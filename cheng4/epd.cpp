@@ -119,7 +119,7 @@ bool EPDFile::load( const char *fnm )
 	ifs.seekg( 0, ios::end );
 	fsz = ifs.tellg();
 	ifs.seekg( 0, ios::beg );
-	char *buf = new (std::nothrow) char[ fsz+streampos(1) ];
+	char *buf = new (std::nothrow) char[ (size_t)(fsz+streampos(1)) ];
 	if ( !buf )
 		return 0;
 	ifs.read( buf, fsz );
@@ -128,7 +128,7 @@ bool EPDFile::load( const char *fnm )
 		delete[] buf;
 		return 0;
 	}
-	buf[ fsz ] = 0;
+	buf[ (size_t)fsz ] = 0;
 	bool res = parse( buf );
 	delete[] buf;
 	return res;

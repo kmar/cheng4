@@ -323,7 +323,7 @@ bool KPK::iterate( u8 *status )
 	return res;
 }
 
-static Square xorMskFile[2] = { 0, 7 };
+static const Square xorMskFile[2] = { 0, 7 };
 
 // stm: white = king with pawn
 uint KPK::index( Square kp, Square bkp, Square psq, Color stm )
@@ -342,7 +342,7 @@ uint KPK::index( Square kp, Square bkp, Square psq, Color stm )
 	return (uint)kp | ((uint)bkp << 6) | ((uint)stm << 12) | ((uint)pp << 13);
 }
 
-static Square xorMsk[2] = { 0, 0x38 };
+static const Square xorMsk[2] = { 0, 0x38 };
 
 // is draw?
 // color (with pawn), color (stm), king (with pawn) position, bare king position, pawn position
