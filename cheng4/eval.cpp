@@ -71,7 +71,7 @@ static TUNE_CONST FineScore passerScaleOpening = 10;
 static TUNE_CONST FineScore passerScaleEndgame = 30;
 
 // 768 best so far, 1024 too much, 640 = 768
-static TUNE_CONST FineScore mobilityScale = 768;
+static TUNE_CONST FineScore mobilityScale = 896;
 
 static TUNE_CONST FineScore knightMobilityOpening = 15;
 static TUNE_CONST FineScore knightMobilityEndgame = 15;
@@ -637,6 +637,7 @@ template< PopCountMode pcm, Color c > void Eval::evalKnights( const Board &b )
 			attackers[flip(c)]++;
 
 		mob &= ~b.occupied( c );					// exclude friendly pieces
+		mob &= ~attm[flip(c)][ptPawn];				// exclude attacked squares
 		int popc = sign<c>() * ((int)BitOp::popCount< pcm >( mob ) - knightMobilityBase);
 		fscore[phOpening] += popc * mobScale(knightMobilityOpening);
 		fscore[phEndgame] += popc * mobScale(knightMobilityEndgame);
@@ -684,6 +685,7 @@ template< PopCountMode pcm, Color c > void Eval::evalBishops( const Board &b )
 			attackers[flip(c)]++;
 
 		mob &= ~b.occupied( c );					// exclude friendly pieces
+		mob &= ~attm[flip(c)][ptPawn];				// exclude attacked squares
 		int popc = sign<c>() * ((int)BitOp::popCount< pcm >( mob ) - bishopMobilityBase);
 		fscore[phOpening] += popc * mobScale(bishopMobilityOpening);
 		fscore[phEndgame] += popc * mobScale(bishopMobilityEndgame);
@@ -734,6 +736,8 @@ template< PopCountMode pcm, Color c > void Eval::evalRooks( const Board &b )
 			attackers[flip(c)]++;
 
 		mob &= ~b.occupied( c );					// exclude friendly pieces
+		// exclude attacked squares
+		mob &= ~(attm[flip(c)][ptPawn] | attm[flip(c)][ptKnight] | attm[flip(c)][ptBishop]);
 		int mobility = (int)BitOp::popCount< pcm >( mob );
 		int popc = sign<c>() * (mobility - rookMobilityBase);
 		fscore[phOpening] += popc * mobScale(rookMobilityOpening);
@@ -774,6 +778,8 @@ template< PopCountMode pcm, Color c > void Eval::evalQueens( const Board &b )
 			attackers[flip(c)]++;
 
 		mob &= ~b.occupied( c );					// exclude friendly pieces
+		// exclude attacked squares
+		mob &= ~(attm[flip(c)][ptPawn] | attm[flip(c)][ptKnight] | attm[flip(c)][ptBishop] | attm[flip(c)][ptRook]);
 		int popc = sign<c>() * ((int)BitOp::popCount< pcm >( mob ) - queenMobilityBase);
 		fscore[phOpening] += popc * mobScale(queenMobilityOpening);
 		fscore[phEndgame] += popc * mobScale(queenMobilityEndgame);

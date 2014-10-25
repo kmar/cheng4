@@ -21,6 +21,8 @@ or as public domain (where applicable)
   3. This notice may not be removed or altered from any source distribution.
 */
 
+// based on Tord Romstad's Looking for magics: https://chessprogramming.wikispaces.com/Looking+for+Magics
+
 #include "magic.h"
 #include <memory.h>
 

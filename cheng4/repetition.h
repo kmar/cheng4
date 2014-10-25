@@ -62,10 +62,8 @@ struct RepHash
 	// clear rep hash
 	inline void clear()
 	{
-		if ( this )
-		{
-			sptr = ptr = 0;
-		}
+		assert( this );
+		sptr = ptr = 0;
 	}
 
 	// is repetition?
