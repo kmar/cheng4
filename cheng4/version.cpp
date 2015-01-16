@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -30,7 +30,7 @@ namespace cheng4
 
 std::string Version::version()
 {
-	return "cheng4 0.36c+";
+	return "cheng4 0.38";
 }
 
 std::string Version::author()

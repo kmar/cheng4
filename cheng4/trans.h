@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -74,7 +74,16 @@ public:
 	
 	// probe hash table
 	// returns scInvalid if probe failed
-	Score probe( Signature sig, Ply ply, Depth depth, Score alpha, Score beta, Move &mv ) const;
+	inline Score probe( Signature sig, Ply ply, Depth depth, Score alpha, Score beta, Move &mv ) const
+	{
+		TransEntry lte;
+		return probe( sig, ply, depth, alpha, beta, mv, lte );
+	}
+
+	// new version returning lte
+	Score probe( Signature sig, Ply ply, Depth depth, Score alpha, Score beta, Move &mv, TransEntry &lte ) const;
+	static Score probeEval( Signature sig, Ply ply, Score val, const TransEntry &lte );
+
 	// store into hash table
 	// TODO: reorder params
 	void store( Signature sig, Age age, Move move, Score score, HashBound bound, Depth depth, Ply ply );

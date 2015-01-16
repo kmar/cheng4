@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -292,6 +292,70 @@ void Board::update()
 				frc = 1;
 		}
 	}
+}
+
+void Board::updateDeltaMaterial()
+{
+	bdmat[ phOpening ] = bdmat[ phEndgame ] = 0;
+	for (Color c = ctWhite; c <= ctBlack; c++ )
+	{
+		for (Piece p = ptPawn; p <= ptQueen; p++ )
+		{
+			Bitboard tmp = pieces( c, p );
+			while ( tmp )
+			{
+				Square sq = BitOp::popBit(tmp);
+
+				// update dmat
+				bdmat[ phOpening ] += PSq::tables[ phOpening ][ c ][ p ][ sq ];
+				bdmat[ phEndgame ] += PSq::tables[ phEndgame ][ c ][ p ][ sq ];
+			}
+		}
+	}
+
+	// king
+	for ( Color c = ctWhite; c <= ctBlack; c++ )
+	{
+		Square kp = king(c);
+		// update dmat
+		bdmat[ phOpening ] += PSq::tables[ phOpening ][ c ][ ptKing ][ kp ];
+		bdmat[ phEndgame ] += PSq::tables[ phEndgame ][ c ][ ptKing ][ kp ];
+	}
+}
+
+// undo psq values from scores (opening, endgames)
+void Board::undoPsq( FineScore *scores ) const
+{
+	DMat pdmat[ phMax ];
+	pdmat[ phOpening ] = pdmat[ phEndgame ] = 0;
+	for (Color c = ctWhite; c <= ctBlack; c++ )
+	{
+		for (Piece p = ptPawn; p <= ptQueen; p++ )
+		{
+			Bitboard tmp = pieces( c, p );
+			while ( tmp )
+			{
+				BitOp::popBit(tmp);
+
+				// update dmat
+				pdmat[ phOpening ] += (DMat)Tables::sign[c] * PSq::materialTables[ phOpening ][ p ];
+				pdmat[ phEndgame ] += (DMat)Tables::sign[c] * PSq::materialTables[ phEndgame ][ p ];
+			}
+		}
+	}
+
+	// king
+	for ( Color c = ctWhite; c <= ctBlack; c++ )
+	{
+		// update dmat
+		pdmat[ phOpening ] += (DMat)Tables::sign[c] * PSq::materialTables[ phOpening ][ ptKing ];
+		pdmat[ phEndgame ] += (DMat)Tables::sign[c] * PSq::materialTables[ phEndgame ][ ptKing ];
+	}
+	// FIXME: actually this will undo everything and just keep pure material
+	// but that's actually what we want for special endgames
+	for ( Phase p = phOpening; p <= phEndgame; p++ )
+		scores[ p ] = ScorePack::initFine( Score(pdmat[ p ] ) );
+		//scores[ p ] -= scores[ p ] - ScorePack::initFine( Score(pdmat[ p ] ) );
 }
 
 // parse from fen

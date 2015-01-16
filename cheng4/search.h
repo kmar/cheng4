@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -45,6 +45,7 @@ struct SearchMode
 	i32 maxTime;							// maximum time in milliseconds (0 if infinite)
 	i32 absLimit;							// absolute maximum time in msec (0 if infinite)
 	volatile bool ponder;					// pondering?
+	bool fixedTime;							// fixed time per move
 
 	void reset();
 };
@@ -79,7 +80,7 @@ struct SearchInfo
 	NodeCount nps;				// nps
 	u64 tbHits;					// TB hits
 	Depth depth;				// current nominal depth
-	Depth selDepth;				// selective depth
+	Ply selDepth;				// selective depth
 	
 	MoveCount curIndex;			// zero-based
 	MoveCount curCount;			// total move count
@@ -142,6 +143,7 @@ struct Search
 	std::vector< LazySMPThread * > smpThreads;
 
 	SearchInfo info;
+	SearchInfo infoPV[maxMoves];
 	SearchCallback callback;
 	void *callbackParam;
 
@@ -160,6 +162,7 @@ struct Search
 	Depth minQsDepth;				// min qsearch depth (limits qs explosions)
 
 	bool verbose;					// can send verbose commands (currmove etc.)?
+	bool verboseFixed;				// if this is set, verboseLimit is ignored and verbose is fixed
 	volatile u8 searchFlags;		// search flags
 
 	Move iterBest, iterPonder;		// best/ponder move from last iteration
@@ -172,12 +175,15 @@ struct Search
 		NodeCount nodes;
 		Move pv[maxPV];
 		uint pvCount;
+	};
 
-		inline bool operator <( const RootMove &o ) const
+	struct RootMovePtrPred
+	{
+		inline bool operator()( const RootMove *m0, const RootMove *m1 ) const
 		{
-			if ( score != o.score )
-				return score > o.score;
-			return nodes > o.nodes;
+			if ( m0->score != m1->score )
+				return m0->score > m1->score;
+			return m0->nodes > m1->nodes;
 		}
 	};
 
@@ -185,12 +191,18 @@ struct Search
 	{
 		Bitboard discovered;			// discovered checkers mask
 		RootMove moves[ maxMoves ];
+		RootMove *sorted[ maxMoves ];
 		size_t count;
 		Move bestMove;					// root search best move
 		Score bestScore;				// root search best score
+
+		inline RootMoves() {}
+		inline RootMoves( const RootMoves &o ) { *this = o; }
+		RootMoves &operator =( const RootMoves &o );
 	};
 
 	RootMoves rootMoves;
+	RootMovePtrPred rootPred;
 
 	Event startSearch;					// start search event (signaled when it's safe to set abort flag!)
 										// note: manual reset event
@@ -243,7 +255,9 @@ struct Search
 	{
 		uint res;
 		stack[ ply ].current = stack[ ply ].threat = mcNone;
-//		stack[ ply ].killers.hashMove = mcNone;		// note: this is only necessary if we don't hash qsearch
+#ifdef USE_TUNING
+		stack[ ply ].killers.hashMove = mcNone;		// note: this is only necessary if we don't hash qsearch
+#endif
 		stack[ ply+2 ].killers.clear();
 		nodes++;
 		if ( pv )
@@ -269,6 +283,9 @@ struct Search
 	// send PV info
 	void sendPV( const RootMove &rm, Depth depth, Score score, Score alpha, Score beta, uint mpvindex = 0 );
 
+	// this is for delaying PV results
+	void flushCachedPV( size_t totalMoves );
+
 	// do root search
 	Score root( Depth depth, Score alpha = -scInfinity, Score beta = +scInfinity );
 
@@ -276,7 +293,7 @@ struct Search
 	Score iterate( Board &b, const SearchMode &sm, bool nosendbest = 0 );
 
 	// clear all helper slots
-	void clearSlots();
+	void clearSlots( bool clearEval = 1 );
 
 	// clear hashtable (and slots)
 	void clearHash();

@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -34,12 +34,12 @@ struct PSq
 	// default tables
 	static TUNE_CONST i16 materialTables[2][ptMax];
 
-	static const i16 pawnTables[2][64];
-	static const i16 knightTables[2][64];
-	static const i16 bishopTables[2][64];
-	static const i16 rookTables[2][64];
-	static const i16 queenTables[2][64];
-	static const i16 kingTables[2][64];
+	static TUNE_CONST i16 pawnTables[2][64];
+	static TUNE_CONST i16 knightTables[2][64];
+	static TUNE_CONST i16 bishopTables[2][64];
+	static TUNE_CONST i16 rookTables[2][64];
+	static TUNE_CONST i16 queenTables[2][64];
+	static TUNE_CONST i16 kingTables[2][64];
 
 	// [phase][color][piece][square]
 	static i16 tables[ 2 ][ 2 ][ ptMax ][ 64 ];

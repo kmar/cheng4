@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2014-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -463,7 +463,7 @@ int main( int argc, char **argv )
 	return 0;*/
 
 	PGBook book;
-	FILE *f2 = fopen("cheng2014.cb", "wb");
+	FILE *f2 = fopen("cheng2015.cb", "wb");
 	FILE *f = fopen(argc > 1 ? argv[1] : "booklines.bin", "rb");
 	if ( !f )
 	{

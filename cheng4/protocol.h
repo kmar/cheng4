@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -78,6 +78,7 @@ class Protocol
 	Board editBoard;						// edit board
 	Level level;							// current level (tc)
 	bool post;								// post (=show thinking)
+	bool fixedTime;							// fixed time per move
 	i32 startTicks;							// CECP search start ticks (ms)
 	uint maxCores;							// CECP maximum # of coress allowed
 	int adjudicated;						// game over (adjudicated) bit 1: adj_flag, msbits: result
@@ -150,7 +151,7 @@ public:
 	// send current depth
 	void sendDepth( Depth d );
 	// send selective depth
-	void sendSelDepth( Depth d );
+	void sendSelDepth( Ply d );
 	// send PV
 	// passing si because of CECP
 	// index: k-best(multipv) zero-based index

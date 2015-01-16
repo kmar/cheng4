@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -55,6 +55,7 @@ public:
 	static bool setParam( const char *name, const char *value );
 	static size_t paramCount();
 	static const TunableBase *getParam( size_t index );
+	static TunableBase *findParam( const char *name );
 	// dump params
 	static void dump();
 };

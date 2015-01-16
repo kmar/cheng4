@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -44,6 +44,7 @@ void SearchMode::reset()
 	multiPV = 1;
 	absLimit = 0;
 	ponder = 0;
+	fixedTime = 0;
 }
 
 // SearchInfo
@@ -51,6 +52,21 @@ void SearchMode::reset()
 void SearchInfo::reset()
 {
 	flags = 0;
+}
+
+// Search::RootMoves
+
+Search::RootMoves &Search::RootMoves::operator =( const RootMoves &o )
+{
+	discovered = o.discovered;
+	count = o.count;
+	for ( size_t i=0; i<count; i++ ) {
+		moves[i] = o.moves[i];
+		sorted[i] = moves + (o.sorted[i] - o.moves);
+	}
+	bestMove = o.bestMove;
+	bestScore = o.bestScore;
+	return *this;
 }
 
 // Search
@@ -64,7 +80,7 @@ enum SearchOpts
 };
 
 // verbose limit (currently none)
-static const i32 verboseLimit = 0;
+static const i32 verboseLimit = 1000;
 // only start sending currmove after this limit
 static const i32 currmoveLimit = 1000;
 
@@ -145,6 +161,7 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 		return scDraw;
 
 	bool qchecks = !incheck && !depth;
+#ifndef USE_TUNING
 	Depth ttDepth = qchecks ? 0 : -1;
 
 	Score ttScore = tt->probe( board.sig(), ply, ttDepth, alpha, beta, stack[ply].killers.hashMove );
@@ -154,6 +171,7 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 		stack[ply].current = stack[ply].killers.hashMove;
 		return ttScore;
 	}
+#endif
 
 	Score oalpha;
 	if ( pv )
@@ -204,12 +222,14 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 		bool ischeck = board.isCheck( m, mg.discovered() );
 
 		// delta/qsearch futility
+#ifndef USE_TUNING
 		if ( useFutility && !pv && !incheck && !ischeck && MovePack::isCapture(m) )
 		{
 			Score fscore = ev + board.moveGain( m );
-			if ( fscore + 50 <= alpha )
+			if ( fscore + 200 <= alpha )
 				continue;
 		}
+#endif
 
 		UndoInfo ui;
 		board.doMove( m, ui, ischeck );
@@ -243,7 +263,9 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 					// no history here => depth is <= 0
 					if ( !MovePack::isSpecial( m ) )
 						stack[ply].killers.addKiller( m );
+#ifndef USE_TUNING
 					tt->store( board.sig(), age, m, score, btLower, ttDepth, ply );
+#endif
 					return score;
 				}
 			}
@@ -256,8 +278,10 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 
 	assert( best > -scInfinity );
 
+#ifndef USE_TUNING
 	tt->store( board.sig(), age, bestMove, best, (HashBound)(pv ? (best > oalpha ? btExact : btUpper) : btUpper),
 		ttDepth, ply );
+#endif
 
 	return best;
 }
@@ -307,7 +331,8 @@ template< bool pv, bool incheck, bool donull >
 		return scDraw;
 
 	// probe hashtable
-	Score ttScore = tt->probe( board.sig(), ply, depth, alpha, beta, stack[ply].killers.hashMove );
+	TransEntry lte;
+	Score ttScore = tt->probe( board.sig(), ply, depth, alpha, beta, stack[ply].killers.hashMove, lte );
 	if ( !pv && ttScore != scInvalid )
 	{
 		assert( ScorePack::isValid( ttScore ) );
@@ -320,8 +345,9 @@ template< bool pv, bool incheck, bool donull >
 	{
 		fscore = eval.eval(board);
 		// use more precise tt score if possible
-		Move tmp;
-		Score ttBetter = tt->probe( board.sig(), ply, (Depth)-1, fscore, fscore, tmp );
+		//Move tmp;
+		Score ttBetter = TransTable::probeEval( board.sig(), ply, fscore, lte );
+			//tt->probe( board.sig(), ply, (Depth)-1, fscore, fscore, tmp );
 		if ( ttBetter != scInvalid )
 			fscore = ttBetter;
 		// beta razoring
@@ -543,11 +569,13 @@ Search::Search( size_t evalKilo, size_t pawnKilo, size_t matKilo ) : startTicks(
 	timeOutCounter(0), triPV(0), newMultiPV(0), selDepth(0), tt(0), nodes(0), age(0), callback(0),
 	callbackParam(0), canStop(0), abortRequest(0), aborting(0), abortingSmp(0),
 	outputBest(1), ponderHit(0), maxThreads(63), eloLimit(0), maxElo(2500), 
-	minQsDepth(-maxDepth), verbose(1), searchFlags(0), startSearch(0), master(0)
+	minQsDepth(-maxDepth), verbose(1), verboseFixed(1), searchFlags(0), startSearch(0), master(0)
 {
 	board.reset();
 	mode.reset();
 	info.reset();
+	for ( int i=0; i<maxMoves; i++ )
+		infoPV[i].reset();
 	iterBest = iterPonder = mcNone;
 
 	assert( evalKilo * 1024 / 1024 == evalKilo );
@@ -586,36 +614,50 @@ void Search::clearHash()
 	tt->clear();
 }
 
-void Search::clearSlots()
+void Search::clearSlots( bool clearEval )
 {
-	eval.clear();
+	if ( clearEval )
+		eval.clear();
 	history.clear();
 	memset( stack, 0, sizeof(stack) );
 }
 
 void Search::sendPV( const RootMove &rm, Depth depth, Score score, Score alpha, Score beta, uint mpvindex )
 {
-	if ( verbose )
+	if ( verbose || !verboseFixed )
 	{
 		i32 dt = Timer::getMillisec() - startTicks;
+		SearchInfo &si = verbose ? info : infoPV[mpvindex];
 
-		info.reset();
+		si.reset();
 		// depth required by stupid UCI
-		info.flags |= sifDepth | sifSelDepth | sifPV | sifTime | sifNodes | sifNPS;
-		info.pvScore = score;
-		info.pvBound = (score >= beta) ? btLower : (score <= alpha) ? btUpper : btExact;
-		info.pvIndex = mpvindex;
-		info.pvCount = rm.pvCount;
-		info.pv = rm.pv;
-		info.nodes = smpNodes();
-		info.nps = dt ? info.nodes * 1000 / dt : 0;
-		info.time = (Time)dt;
+		si.flags |= sifDepth | sifSelDepth | sifPV | sifTime | sifNodes | sifNPS;
+		si.pvScore = score;
+		si.pvBound = (score >= beta) ? btLower : (score <= alpha) ? btUpper : btExact;
+		si.pvIndex = mpvindex;
+		si.pvCount = rm.pvCount;
+		si.pv = rm.pv;
+		si.nodes = smpNodes();
+		si.nps = dt ? si.nodes * 1000 / dt : 0;
+		si.time = (Time)dt;
 		Ply sd = selDepth;
 		for (size_t i=0; i<smpThreads.size(); i++)
 			sd = std::max( sd, smpThreads[i]->search.selDepth);
-		info.depth = depth;
-		info.selDepth = (Depth)(sd+1);
-		sendInfo();
+		si.depth = depth;
+		si.selDepth = (Ply)(sd+1);
+		if ( verbose )
+			sendInfo();
+	}
+}
+
+void Search::flushCachedPV( size_t totalMoves )
+{
+	for ( size_t i=0; i<totalMoves; i++ ) {
+		SearchInfo &si = infoPV[i];
+		if ( si.flags ) {
+			sendInfo( si );
+			si.reset();
+		}
 	}
 }
 
@@ -637,10 +679,10 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 	Move bestm = mcNone;
 
 	// first thing to do: sort root moves
-	std::stable_sort( rootMoves.moves, rootMoves.moves + rootMoves.count );
+	std::stable_sort( rootMoves.sorted, rootMoves.sorted + rootMoves.count, rootPred );
 	for (size_t i=0; i<rootMoves.count; i++)
 	{
-		RootMove &rm = rootMoves.moves[i];
+		RootMove &rm = *rootMoves.sorted[i];
 		if ( i >= mode.multiPV )
 			rm.score = -scInfinity;
 	}
@@ -650,7 +692,7 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 	for (size_t i=0; i<rootMoves.count; i++)
 	{
 		count++;
-		RootMove &rm = rootMoves.moves[i];
+		RootMove &rm = *rootMoves.sorted[i];
 
 		if ( verbose )
 		{
@@ -732,16 +774,14 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 			// extract pv now
 			extractPV( rm );
 
-			RootMove brm = rm;
-
 			if ( mode.multiPV <= 1 )
 			{
 				sendPV( rm, depth, score, oalpha, beta );
 
 				// make sure rm is first now!
 				for (size_t j=i; j>0; j--)
-					rootMoves.moves[j] = rootMoves.moves[j-1];
-				rootMoves.moves[0] = brm;
+					rootMoves.sorted[j] = rootMoves.sorted[j-1];
+				rootMoves.sorted[0] = &rm;
 			}
 			else
 			{
@@ -753,7 +793,7 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 				bool ok = 0;
 				for ( size_t j=0; j<mpv; j++ )
 				{
-					Score mscore = rootMoves.moves[j].score;
+					Score mscore = rootMoves.sorted[j]->score;
 					if ( mscore != -scInfinity )
 						pvcount++;
 					if ( score >= mscore )
@@ -763,7 +803,7 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 				if ( ok )
 				{
 					// yes, we're updating multipv move score
-					std::stable_sort( rootMoves.moves, rootMoves.moves + count );
+					std::stable_sort( rootMoves.sorted, rootMoves.sorted + count, rootPred );
 					// FIXME: if in xboard mode, could send the PV right away
 					// doing the stupid UCI stuff shouldn't hurt probably
 					if ( mpv >= mode.multiPV )
@@ -771,7 +811,7 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 						// send PVs
 						for (size_t j=0; j<mpv; j++)
 						{
-							sendPV(rootMoves.moves[j], depth, rootMoves.moves[j].score,
+							sendPV(*rootMoves.sorted[j], depth, rootMoves.sorted[j]->score,
 								-scInfinity, scInfinity, (uint)j);
 						}
 					}
@@ -783,7 +823,7 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 						// we're really only interested in moves that beat worst multiPV move
 						Score newAlpha = scInfinity;
 						for (size_t j=0; j<mpv; j++)
-							newAlpha = std::min( newAlpha, rootMoves.moves[j].score );
+							newAlpha = std::min( newAlpha, rootMoves.sorted[j]->score );
 						alpha = newAlpha;
 					}
 				}
@@ -791,7 +831,7 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 
 			// set -inf score to uninteresting moves
 			for (size_t j=mode.multiPV; j<rootMoves.count; j++)
-					rootMoves.moves[j].score = -scInfinity;
+					rootMoves.sorted[j]->score = -scInfinity;
 
 			if ( score >= beta )
 			{
@@ -821,9 +861,13 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 			best = rm.bestScore;
 			rootMoves = rm;
 
+			// we have to reset cached pvs if any
+			for (size_t i=0; i<rootMoves.count; i++)
+				infoPV[i].reset();
+
 			if ( rootMoves.count )
 				for (uint j=0; j<mode.multiPV; j++)
-					sendPV( rootMoves.moves[j], depth, rootMoves.moves[j].score, oalpha, beta, j );
+					sendPV( *rootMoves.sorted[j], depth, rootMoves.sorted[j]->score, oalpha, beta, j );
 
 			// FIXME: break here?
 			return best;
@@ -857,6 +901,7 @@ i32 Search::initIteration()
 	outputBest = 1;
 	ponderHit = 0;
 	verbose = 0;
+	verboseFixed = 1;
 
 	timeOutCounter = 1023;
 	nodeTicks = startTicks = sticks;
@@ -879,11 +924,11 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 	for (size_t i=0; i<smpThreads.size(); i++)
 		smpThreads[i]->search.selDepth = 0;
 
-	i32 sticks = initIteration();
+	initIteration();
 	startSearch.signal();
 
 	// don't output anything if we should think for a limited amount of time
-	verbose = sm.ponder || (!sm.maxTime || sm.maxTime >= verboseLimit);
+	verbose = verboseFixed = !sm.maxTime;
 
 	board = b;
 	mode = sm;
@@ -901,10 +946,13 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 	MoveGen mg( b, killers, hist );
 	Move m;
 	rootMoves.discovered = mg.discovered();
+
 	while ( (m = mg.next()) != mcNone )
 	{
 		if ( !sm.moves.empty() && std::find(sm.moves.begin(), sm.moves.end(), m) == sm.moves.end() )
 			continue;
+		if ( !verboseFixed )
+			infoPV[ rootMoves.count ].reset();
 		RootMove &rm = rootMoves.moves[ rootMoves.count++ ];
 		rm.nodes = 0;
 		rm.score = -scInfinity;
@@ -913,6 +961,19 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 		rm.pvCount = 0;
 	}
 
+	for (size_t i=0; i<rootMoves.count; i++)
+		rootMoves.sorted[i] = rootMoves.moves + i;
+
+	Depth depthLimit = maxDepth;
+
+	if ( mode.maxTime && rootMoves.count == 1 && sm.moves.empty() ) {
+		// play only move fast. using depth 2 to have (at least) something to ponder on
+		depthLimit = 2;
+	}
+
+	if ( mode.maxDepth )
+		depthLimit = std::min( depthLimit, mode.maxDepth );
+
 	// limit multiPV to number of available moves!
 	mode.multiPV = std::min( mode.multiPV, (uint)rootMoves.count );
 
@@ -920,8 +981,14 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 
 	Score lastIteration = scDraw;		// last iteration score
 
-	for ( Depth d = 1; rootMoves.count && d <= maxDepth; d++ )
+	i32 lastIterationStart = startTicks;
+
+	for ( Depth d = 1; rootMoves.count && d <= depthLimit; d++ )
 	{
+		i32 curTicks = Timer::getMillisec();
+		i32 lastIterationDelta = curTicks - lastIterationStart;
+		lastIterationStart = curTicks;
+
 		// update multiPV on the fly if needed
 		if ( newMultiPV )
 		{
@@ -931,20 +998,35 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 			newMultiPV = 0;
 		}
 
+		i32 total = curTicks - startTicks;
+		if ( !verboseFixed && !verbose && total >= verboseLimit )
+		{
+			// turning on verbose;
+			verbose = 1;
+			flushCachedPV( rootMoves.count );
+		}
+
+		if ( d > 1 && mode.maxTime && !mode.fixedTime )
+		{
+			// make sure we can at least finish first move on this iteration,
+			// assuming it will take 50% of current iteration (=100% previous iteration)
+			if ( total + lastIterationDelta > mode.maxTime )
+				break;
+		}
+
 		// qsearch explosion guard
 		minQsDepth = (Depth)-std::min( (int)maxDepth, (int)(d*3));
 
 		i32 limitStart = 0;
 		if ( eloLimit && maxElo < (u32)maxStrength )
-			limitStart = Timer::getMillisec();
-		if ( mode.maxDepth && d > mode.maxDepth )
-			break;
+			limitStart = curTicks;
+
 		if ( verbose )
 		{
 			info.reset();
 			info.flags |= sifDepth | sifTime;
 			info.depth = d;
-			info.time = (Time)(Timer::getMillisec() - sticks);
+			info.time = (Time)total;
 			sendInfo();
 		}
 
@@ -1070,6 +1152,8 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 			break;
 	}
 
+	flushCachedPV( rootMoves.count );
+
 	if ( mode.ponder )
 	{
 		// wait for stop or ponderhit!
@@ -1093,7 +1177,7 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 	if ( outputBest )
 	{
 		// return best move and ponder move (if available)
-		const RootMove &rm = rootMoves.moves[0];
+		const RootMove &rm = *rootMoves.sorted[0];
 		iterBest = rm.move;
 		if ( rm.pvCount > 1 )
 			iterPonder = rm.pv[1];
@@ -1325,7 +1409,7 @@ void LazySMPThread::work()
 		searching = 1;
 		startedSearch.signal();
 
-		assert( !(search.searchFlags & sfNoTimeout) );
+		assert( search.searchFlags & sfNoTimeout );
 		search.root( depth, alpha, beta );
 
 		searching = 0;

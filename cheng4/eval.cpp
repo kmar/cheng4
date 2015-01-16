@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -36,73 +36,82 @@ namespace cheng4
 // eval helper
 static const Piece ptAll = ptNone;
 
+// stm bonus in cp (=tempo)
+static TUNE_CONST Score stmBonus			=	5;
+
 // weights/parameters:
 static TUNE_CONST FineScore certainWin		=	128000;
 static TUNE_CONST FineScore kpkWin			=	64000;
 
-// tuned (underperforms)
 static TUNE_CONST int safetyScale[] = {
-	0, 95, 35, 65, 108, 44
+	0, 8, 41, 32, 79, 60
 };
 
-static TUNE_CONST FineScore shelterFront1 = 265;	// tuned (weak)
-static TUNE_CONST FineScore shelterFront2 = 117;	// tuned (weak)
+static TUNE_CONST FineScore shelterFront1 = 224;
+static TUNE_CONST FineScore shelterFront2 = 197;
 
-static TUNE_CONST FineScore bishopPairOpening = 250;
-static TUNE_CONST FineScore bishopPairEndgame = 500;
+static TUNE_CONST FineScore bishopPairOpening = 349;
+static TUNE_CONST FineScore bishopPairEndgame = 569;
 
 static TUNE_CONST FineScore trappedBishopOpening = 1000;
-static TUNE_CONST FineScore trappedBishopEndgame = 1000;
+static TUNE_CONST FineScore trappedBishopEndgame = 1552;
 
-static TUNE_CONST FineScore unstoppablePasser = 8000;
+static TUNE_CONST FineScore unstoppablePasser = 1538;
 
-static TUNE_CONST FineScore isolatedPawnOpening = 124;	// tuned (weak)
-static TUNE_CONST FineScore isolatedPawnEndgame = 93;	// tuned (weak)
+static TUNE_CONST FineScore isolatedPawnOpening = 152;
+static TUNE_CONST FineScore isolatedPawnEndgame = 126;
 
-// failed to improve these
-static TUNE_CONST FineScore doubledPawnOpening = 80;
-static TUNE_CONST FineScore doubledPawnEndgame = 150;
+static TUNE_CONST FineScore doubledPawnOpening = 61;
+static TUNE_CONST FineScore doubledPawnEndgame = 71;
 
-static TUNE_CONST FineScore passerBaseOpening = 0;
-static TUNE_CONST FineScore passerBaseEndgame = 100;
+static TUNE_CONST FineScore passerBaseOpening = -134;
+static TUNE_CONST FineScore passerBaseEndgame = -29;
 
-// tuning these two didn't help at all!!
-static TUNE_CONST FineScore passerScaleOpening = 10;
-static TUNE_CONST FineScore passerScaleEndgame = 30;
+static TUNE_CONST FineScore passerScaleOpening = 19;
+static TUNE_CONST FineScore passerScaleEndgame = 45;
 
-// 768 best so far, 1024 too much, 640 = 768
-static TUNE_CONST FineScore mobilityScale = 896;
+static TUNE_CONST FineScore mobilityScale = 895;
 
-static TUNE_CONST FineScore knightMobilityOpening = 15;
-static TUNE_CONST FineScore knightMobilityEndgame = 15;
-static TUNE_CONST int knightMobilityBase = 4;
-static TUNE_CONST FineScore knightHangingOpening = 150*2;
-static TUNE_CONST FineScore knightHangingEndgame = 150*2;
+static TUNE_CONST FineScore knightMobilityOpening = 21;
+static TUNE_CONST FineScore knightMobilityEndgame = 18;
+static TUNE_CONST int knightMobilityBase = 6;
+static TUNE_CONST FineScore knightHangingOpening = 430;
+static TUNE_CONST FineScore knightHangingEndgame = 302;
 
-static TUNE_CONST FineScore bishopMobilityOpening = 10;
-static TUNE_CONST FineScore bishopMobilityEndgame = 15;
-static TUNE_CONST int bishopMobilityBase = 6;
-static TUNE_CONST FineScore bishopHangingOpening = 150*2;
-static TUNE_CONST FineScore bishopHangingEndgame = 150*2;
+static TUNE_CONST FineScore bishopMobilityOpening = 12;
+static TUNE_CONST FineScore bishopMobilityEndgame = 16;
+static TUNE_CONST int bishopMobilityBase = 4;
+static TUNE_CONST FineScore bishopHangingOpening = 445;
+static TUNE_CONST FineScore bishopHangingEndgame = 316;
 
-static TUNE_CONST FineScore rookMobilityOpening = 10;
-static TUNE_CONST FineScore rookMobilityEndgame = 15;
-static TUNE_CONST int rookMobilityBase = 4;
-static TUNE_CONST FineScore rookHangingOpening = 250*2;
-static TUNE_CONST FineScore rookHangingEndgame = 250*2;
+static TUNE_CONST FineScore rookMobilityOpening = 6;
+static TUNE_CONST FineScore rookMobilityEndgame = 13;
+static TUNE_CONST int rookMobilityBase = -2;
+static TUNE_CONST FineScore rookHangingOpening = 500;
+static TUNE_CONST FineScore rookHangingEndgame = 306;
 
-// failed to improve these
-static TUNE_CONST FineScore rookOnOpenOpening = 250;
-static TUNE_CONST FineScore rookOnOpenEndgame = 45;
+static TUNE_CONST FineScore rookOnOpenOpening = 155;
+static TUNE_CONST FineScore rookOnOpenEndgame = 109;
 
-static TUNE_CONST FineScore queenMobilityOpening = 10;
-static TUNE_CONST FineScore queenMobilityEndgame = 15;
-static TUNE_CONST int queenMobilityBase = 6;
-static TUNE_CONST FineScore queenHangingOpening = 450*2;
-static TUNE_CONST FineScore queenHangingEndgame = 450*2;
+static TUNE_CONST FineScore queenMobilityOpening = 7;
+static TUNE_CONST FineScore queenMobilityEndgame = 13;
+// note: negative value shows my queen value is too low, but that's ok
+static TUNE_CONST int queenMobilityBase = -9;
+static TUNE_CONST FineScore queenHangingOpening = 389;
+static TUNE_CONST FineScore queenHangingEndgame = 0;
 
-static TUNE_CONST int kingPasserSupportBase = 1;			// tuned (weak)
-static TUNE_CONST FineScore kingPasserSupportScale = 54;	// tuned (weak)
+static TUNE_CONST int kingPasserSupportBase = 1;
+static TUNE_CONST FineScore kingPasserSupportScale = 38;
+
+// knight outpost bonus scale based on file
+static TUNE_CONST FineScore outpostBonusFile[8] = {
+	26, 30, 67, 172, 257, 85, 29, 0
+};
+
+// knight outpost bonus scale based on rank
+static TUNE_CONST FineScore outpostBonusRank[8] = {
+	0, 0, -8, 20, 60, 108, 20, 11
+};
 
 static inline FineScore mobScale( FineScore m )
 {
@@ -147,14 +156,22 @@ static const FineScore kbnTable[64] =
 	-999, -500, -250, -100, +100, +250, +500, +999
 };
 
+static void undoStmBonus( const Board &b, FineScore *fscore )
+{
+	for ( Phase p = phOpening; p <= phEndgame; p++ )
+		fscore[ p ] -= ScorePack::initFine( (Score)Tables::sign[b.turn()] * stmBonus );
+}
+
 template< Color c > static void kbnk( const Board &b, FineScore *fscore )
 {
+	b.undoPsq( fscore );
+	undoStmBonus( b, fscore );
 	Bitboard bishop = b.pieces(c, ptBishop);
 	assert( bishop );
 	Square ksq = b.king(flip(c));
 	if ( bishop & darkSquares )
 		ksq = SquarePack::flipH(ksq);
-	FineScore bonus = kbnTable[ksq];
+	FineScore bonus = kbnTable[ksq]*3;
 	fscore[phEndgame] += sign<c>() * bonus;
 }
 
@@ -333,6 +350,24 @@ void Eval::init()
 	TUNE_EXPORT(i16, queenEndgame,	PSq::materialTables[phEndgame][ptQueen]);
 
 	TUNE_EXPORT(FineScore, mobilityScale, mobilityScale);
+
+	TUNE_EXPORT(FineScore, outpostBonusFile0, outpostBonusFile[0]);
+	TUNE_EXPORT(FineScore, outpostBonusFile1, outpostBonusFile[1]);
+	TUNE_EXPORT(FineScore, outpostBonusFile2, outpostBonusFile[2]);
+	TUNE_EXPORT(FineScore, outpostBonusFile3, outpostBonusFile[3]);
+	TUNE_EXPORT(FineScore, outpostBonusFile4, outpostBonusFile[4]);
+	TUNE_EXPORT(FineScore, outpostBonusFile5, outpostBonusFile[5]);
+	TUNE_EXPORT(FineScore, outpostBonusFile6, outpostBonusFile[6]);
+	TUNE_EXPORT(FineScore, outpostBonusFile7, outpostBonusFile[7]);
+
+	TUNE_EXPORT(FineScore, outpostBonusRank0, outpostBonusRank[0]);
+	TUNE_EXPORT(FineScore, outpostBonusRank1, outpostBonusRank[1]);
+	TUNE_EXPORT(FineScore, outpostBonusRank2, outpostBonusRank[2]);
+	TUNE_EXPORT(FineScore, outpostBonusRank3, outpostBonusRank[3]);
+	TUNE_EXPORT(FineScore, outpostBonusRank4, outpostBonusRank[4]);
+	TUNE_EXPORT(FineScore, outpostBonusRank5, outpostBonusRank[5]);
+	TUNE_EXPORT(FineScore, outpostBonusRank6, outpostBonusRank[6]);
+	TUNE_EXPORT(FineScore, outpostBonusRank7, outpostBonusRank[7]);
 }
 
 // Eval
@@ -462,7 +497,7 @@ Score Eval::eval( const Board &b, Score alpha, Score beta )
 {
 	Score res = BitOp::hasHwPopCount() ? ieval< pcmHardware >( b, alpha, beta ) : ieval< pcmNormal >( b, alpha, beta );
 	// stm bonus
-	res += 5;
+	res += stmBonus;
 	return res;
 }
 
@@ -611,15 +646,6 @@ template< PopCountMode pcm, Color c, bool slow > void Eval::evalPawns( const Boa
 		}
 	}
 }
-
-// knight outpost bonus scale based on file
-static const FineScore outpostBonusFile[8] = {
-	0, 0, 50, 80, 80, 50, 0, 0
-};
-
-static const FineScore outpostBonusRank[8] = {
-	0, 0, 10, 20, 30, 30, 20, 10
-};
 
 template< PopCountMode pcm, Color c > void Eval::evalKnights( const Board &b )
 {

@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -95,14 +95,12 @@ bool TransTable::resize( size_t sizeBytes )
 	return 1;
 }
 
-// probe hash table
-// returns scInvalid if probe failed
-Score TransTable::probe( Signature sig, Ply ply, Depth depth, Score alpha, Score beta, Move &mv ) const
+// return entry
+Score TransTable::probe( Signature sig, Ply ply, Depth depth, Score alpha, Score beta, Move &mv, TransEntry &lte ) const
 {
 	mv = mcNone;
 	size_t ei = ((size_t)sig & (size-1) & ~(buckets-1));
 	const TransEntry *te = entries + ei;
-	TransEntry lte;
 	for ( uint i=0; i<buckets; i++, te++)
 	{
 		lte = *te;
@@ -130,6 +128,29 @@ Score TransTable::probe( Signature sig, Ply ply, Depth depth, Score alpha, Score
 			}
 			return scInvalid;
 		}
+	}
+	return scInvalid;
+}
+
+Score TransTable::probeEval( Signature sig, Ply ply, Score val, const TransEntry &lte )
+{
+	if ( lte.bhash != sig || lte.u.s.depth < (Depth)-1 )
+		return scInvalid;
+	BoundType bt = (BoundType)(lte.u.s.bound & 3);
+	Score score = ScorePack::unpackHash( lte.u.s.score, ply );
+	switch( bt )
+	{
+	case btExact:
+		return score;
+	case btUpper:
+		if ( score <= val )
+			return score;
+		break;
+	case btLower:
+		if ( score >= val )
+			return score;
+		break;
+	default:;
 	}
 	return scInvalid;
 }

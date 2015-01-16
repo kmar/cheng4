@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -21,7 +21,7 @@ or as public domain (where applicable)
   3. This notice may not be removed or altered from any source distribution.
 */
 
-// everything glued together into one cpp file
+// everything glued together into one cpp file aka unity build
 
 #ifdef _MSC_VER
 	#undef _CRT_SECURE_NO_WARNINGS
@@ -37,6 +37,7 @@ or as public domain (where applicable)
 #include "bookzobrist.cpp"
 #include "engine.cpp"
 #include "eval.cpp"
+#include "filterpgn.cpp"
 #include "history.cpp"
 #include "kpk.cpp"
 #include "magic.cpp"

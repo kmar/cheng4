@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -118,7 +118,7 @@ Engine::Engine( size_t transMegs ) : ponder(0), pondering(0), ponderMove( mcNone
 	mainThread = new EngineThread;
 	mainThread->search.setHashTable( tt );
 
-	book.open("cheng2014.cb");
+	book.open("cheng2015.cb");
 }
 
 Engine::~Engine()

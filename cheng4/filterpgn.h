@@ -21,43 +21,58 @@ or as public domain (where applicable)
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <memory.h>
-#include "magic.h"
-#include "movegen.h"
-#include "history.h"
-#include "zobrist.h"
-#include "psq.h"
-#include "search.h"
-#include "engine.h"
-#include "protocol.h"
-#include <iostream>
+#pragma once
 
-int main( int argc, char **argv )
+#include "board.h"
+#include <string>
+#include <vector>
+
+namespace cheng4
 {
-	// disable I/O buffering
-	std::cin.rdbuf()->pubsetbuf(0, 0);
-	std::cout.rdbuf()->pubsetbuf(0, 0);
-	setbuf( stdin, 0 );
-	setbuf( stdout, 0 );
 
-	// static init
-	cheng4::Engine::init( argc-1, const_cast<const char **>(argv)+1 );
-
-	cheng4::Engine *eng = new cheng4::Engine;
-	cheng4::Protocol *proto = new cheng4::Protocol( *eng );
-
-	eng->run();
-
-	while ( !proto->shouldQuit() )
+class FilterPgn
+{
+	struct LexState
 	{
-		std::string line;
-		std::getline( std::cin, line );
-		proto->parse( line );
+		const char *ptr, *top;
+	};
+	struct Position
+	{
+		std::string fen;
+		// from white's POV
+		// 0 = loss, 1 = win, 0.5 = draw
+		float outcome;
+	};
+	struct Game
+	{
+		Board board;
+		std::vector<Position> positions;
+		// 0 = white loss (=black win), 0.5 = draw, 1 = white win, -1 = invalid
+		float result;
+
+		void clear();
+	};
+public:
+	bool parse(const char *fname);
+	bool write(const char *fname);
+private:
+	LexState ls;
+	Game game;
+	Game globalGame;
+
+	bool parseTag(std::string &key, std::string &value );
+	bool parseString(std::string &str);
+	bool parseComment(std::string &str);
+	void flushGame();
+
+	inline int getChar()
+	{
+		return ls.ptr < ls.top ? *ls.ptr++ : -1;
 	}
+	inline int peekChar() const
+	{
+		return ls.ptr < ls.top ? *ls.ptr : -1;
+	}
+};
 
-	delete proto;
-	delete eng;
-
-	cheng4::Engine::done();
-	return 0;
 }

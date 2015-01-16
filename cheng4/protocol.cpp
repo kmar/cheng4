@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2014 Martin Sedlak
+  Copyright (C) 2012-2015 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -28,6 +28,7 @@ or as public domain (where applicable)
 #include "thread.h"
 #include "tune.h"
 #include "utils.h"
+#include "filterpgn.h"
 #include <deque>
 #include <cctype>
 #include <algorithm>
@@ -77,9 +78,9 @@ static u64 pbook( std::ofstream &ofs, std::set< Signature > &procmap, Board &b, 
 	size_t num = std::min( (size_t)sm.multiPV, s.rootMoves.count );
 	for (size_t i=0; i<num; i++)
 	{
-		if ( abs(s.rootMoves.moves[i].score) > 40 )
+		if ( abs(s.rootMoves.sorted[i]->score) > 40 )
 			continue;
-		moves.push_back( s.rootMoves.moves[i].move );
+		moves.push_back( s.rootMoves.sorted[i]->move );
 	}
 	if ( moves.empty() )
 		return res;
@@ -351,6 +352,20 @@ static bool pbench()
   return !fails;
 }
 
+static void filterPgn( const char *fname )
+{
+	FilterPgn fp;
+	if (!fp.parse(fname))
+	{
+		std::cout << "failed to parse " << fname << std::endl;
+		return;
+	}
+	if (!fp.write("filterPgn_out.fen"))
+		std::cout << "failed to write filterPgn_out.fen" << std::endl;
+	else
+		std::cout << "all ok" << std::endl;
+}
+
 // Protocol
 
 void Protocol::Level::reset()
@@ -368,7 +383,7 @@ static void protoCallback( const SearchInfo &si, void *param )
 }
 
 Protocol::Protocol( Engine &eng ) : multiPV(1), protover(1), analyze(0), force(0), clocksRunning(0), engineColor(ctBlack),
-	invalidState(0), frc(0), edit(0), post(1), maxCores(64), adjudicated(0), type( ptNative ),
+	invalidState(0), frc(0), edit(0), post(1), fixedTime(0), maxCores(64), adjudicated(0), type( ptNative ),
 	engine(eng), quitFlag(0)
 {
 	level.reset();
@@ -503,7 +518,7 @@ void Protocol::sendDepth( Depth d )
 }
 
 // send selective depth
-void Protocol::sendSelDepth( Depth d )
+void Protocol::sendSelDepth( Ply d )
 {
 	switch( type )
 	{
@@ -823,7 +838,10 @@ bool Protocol::parseUCI( const std::string &line )
 					return 0;
 				}
 				long mt = strtol( token.c_str(), 0, 10 );
-				sm.absLimit = sm.maxTime = std::max(1, (i32)mt);
+				if ( mt <= 0 )
+					mt = -1;
+				sm.absLimit = sm.maxTime = (i32)mt;
+				sm.fixedTime = 1;
 			}
 			else if ( token == "movestogo" )
 			{
@@ -871,6 +889,8 @@ bool Protocol::parseUCI( const std::string &line )
 					return 0;
 				}
 				long t = strtol( token.c_str(), 0, 10 );
+				if ( t <= 0 )
+					t = -1;
 				wtime = (i32)t;
 			}
 			else if ( token == "btime" )
@@ -883,6 +903,8 @@ bool Protocol::parseUCI( const std::string &line )
 					return 0;
 				}
 				long t = strtol( token.c_str(), 0, 10 );
+				if ( t <= 0 )
+					t = -1;
 				btime = (i32)t;
 			}
 			else if ( token == "depth" )
@@ -1170,7 +1192,8 @@ void Protocol::setSearchModeCECP( SearchMode &sm )
 	sm.multiPV = multiPV;
 	if ( timeLimit )
 	{
-		sm.absLimit = sm.maxTime = std::max( 1, (i32)timeLimit );
+		sm.absLimit = sm.maxTime = timeLimit;
+		sm.fixedTime = fixedTime;
 	}
 	else
 	{
@@ -1373,6 +1396,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 
 	if ( token == "time" )
 	{
+		fixedTime = 0;
 		token = nextToken( line, pos );
 		if ( token.empty() )
 		{
@@ -1380,11 +1404,12 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			return 0;
 		}
 		long tmp = strtol( token.c_str(), 0, 10 );
-		etime = (tmp > 0) ? (Time)(tmp * 10) : (Time)1;
+		etime = (tmp > 0) ? (Time)(tmp * 10) : (Time)-1;
 		return 1;
 	}
 	if ( token == "otim" )
 	{
+		fixedTime = 0;
 		token = nextToken( line, pos );
 		if ( token.empty() )
 		{
@@ -1392,7 +1417,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			return 0;
 		}
 		long tmp = strtol( token.c_str(), 0, 10 );
-		otime = (tmp > 0) ? (Time)(tmp * 10) : (Time)1;
+		otime = (tmp > 0) ? (Time)(tmp * 10) : (Time)-1;
 		return 1;
 	}
 	if ( token == "force" )
@@ -1425,6 +1450,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 		// the format is:
 		// moves min(:sec) inc
 		timeLimit = 0;			// override time limit
+		fixedTime = 0;
 		Level lev;
 		lev.reset();
 		lev.move = engine.board().move();
@@ -1476,7 +1502,8 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			return 0;
 		}
 		long tmp = strtol( token.c_str(), 0, 10 );
-		timeLimit = (tmp > 0) ? (Time)(tmp * 1000) : (Time)1;
+		timeLimit = (tmp > 0) ? (Time)(tmp * 1000) : (Time)-1;
+		fixedTime = 1;
 		return 1;
 	}
 	if ( token == "sd" )
@@ -1709,6 +1736,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 		npsLimit = 0;
 		depthLimit = 0;
 		timeLimit = 0;
+		fixedTime = 0;
 
 		invalidState = 0;
 
@@ -2075,6 +2103,12 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 		}
 		return 1;
 	}
+	if ( token == "filterpgn" )
+	{
+		// filter pgn
+		filterPgn( line.c_str() + pos );
+		return 1;
+	}
 	if ( token == "loadepd" )
 	{
 		// epd debug
@@ -2121,15 +2155,16 @@ void Protocol::allocTime(i32 mytime, i32 myinc, i32 /*optime*/, i32 /*opinc*/, i
 	mvl = (mytime + movestogo * myinc) / movestogo;
 	if ( suddenDeath && mvl > mytime/2 )
 		mvl = mytime/2;
+
 	if ( movestogo == 1 )
-	{
-		mvl -= 100;			// reserve
-		if ( mvl <= 0 )
-			mvl = 1;
-		sm.absLimit = mvl;
-	} else sm.absLimit = mytime/4;
-	mvl = std::max( 1, mvl );
-	sm.absLimit = std::max( 1, sm.absLimit );
+		sm.absLimit = mvl -= 100;	// reserve
+	else
+		sm.absLimit = mytime/4;
+
+	if ( mvl <= 0 )
+		mvl = -1;
+	if ( sm.absLimit <= 0 )
+		sm.absLimit = -1;
 	sm.maxTime = mvl;
 }
 
