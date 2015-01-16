@@ -1006,7 +1006,7 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 			flushCachedPV( rootMoves.count );
 		}
 
-		if ( d > 1 && !mode.ponder && mode.maxTime && !mode.fixedTime )
+		if ( d > 1 && (!mode.ponder || ponderHit) && mode.maxTime && !mode.fixedTime )
 		{
 			// make sure we can at least finish first move on this iteration,
 			// assuming it will take 50% of current iteration (=100% previous iteration)
