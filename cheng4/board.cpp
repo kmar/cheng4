@@ -1375,7 +1375,7 @@ Move Board::fromUCI( const char *&c ) const
 				}
 				to = SquarePack::setFile( from, CFILE );
 			}
-			res = MovePack::initCastling( from, to );
+			return MovePack::initCastling( from, to );
 		}
 	}
 	if ( res == mcNone )
