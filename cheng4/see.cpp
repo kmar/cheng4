@@ -22,6 +22,7 @@ or as public domain (where applicable)
 */
 
 #include "board.h"
+#include <algorithm>
 
 namespace cheng4
 {
