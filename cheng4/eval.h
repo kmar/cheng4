@@ -24,6 +24,7 @@ or as public domain (where applicable)
 #pragma once
 
 #include "board.h"
+#include "utils.h"
 
 namespace cheng4
 {
