@@ -717,7 +717,7 @@ char *Board::toFEN( char *dst ) const
 	*dst++ = ' ';
 	*dst++ = turn() == ctWhite ? 'w' : 'b';
 	*dst++ = ' ';
-	
+
 	// now add castling rights
 	CastRights cr[2] = { castRights( ctWhite ), castRights( ctBlack ) };
 	char xorm[2] = {0, 32};
@@ -758,7 +758,7 @@ char *Board::toFEN( char *dst ) const
 		*dst++ = '8' - (SquarePack::rank(sq) ^ RANK8);
 	}
 	*dst++ = ' ';
-	
+
 	// finally add fifty counter and move number
 	snum( dst, fifty() );
 	*dst++ = ' ';
@@ -1426,7 +1426,7 @@ Move Board::fromSAN( const char *&ptr ) const
 {
 	Move res = mcNone;
 	const char *old = ptr;	// save old pointer => we don't want to move ptr in case of failure!
-	
+
 	// piece to move
 	Piece pt = ptPawn;		// default to pawn
 	Piece promo = ptNone;	// default to none

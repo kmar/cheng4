@@ -117,7 +117,7 @@ struct Tables
 	static const u8 npValue[ ptMax ];		// pawn = 0 ... queen = 9
 
 	static const int sign[ ctMax ];			// ctWhite = 1, ctBlack = -1
-	
+
 	// init tables
 	static void init();
 

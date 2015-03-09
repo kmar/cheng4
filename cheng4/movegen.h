@@ -269,7 +269,7 @@ protected:
 		return moves;
 	}
 
-	template< Color color, bool capture > static inline Move *genKnightChecks( 
+	template< Color color, bool capture > static inline Move *genKnightChecks(
 		Bitboard dc, Bitboard dctmask, Bitboard tmask, const Board &b, Move *moves )
 	{
 		Bitboard tmp = b.pieces( color, ptKnight );
@@ -319,14 +319,14 @@ protected:
 		return moves;
 	}
 
-	template< Color color, Piece piece, bool capture > static inline Move *genSliderChecks( 
+	template< Color color, Piece piece, bool capture > static inline Move *genSliderChecks(
 		Bitboard dc, Bitboard dctmask, Bitboard occ, Bitboard tmask, const Board &b, Move *moves )
 	{
 		Bitboard tmp = b.pieces( color, piece );
 		while ( tmp )
 		{
 			Square sq = BitOp::popBit( tmp );
-			Bitboard targ = Magic::sliderAttm<piece>( sq, occ ) & 
+			Bitboard targ = Magic::sliderAttm<piece>( sq, occ ) &
 				( (BitOp::oneShl(sq) & dc) ? dctmask : tmask );
 			while ( targ )
 				*moves++ = MovePack::initMove< capture >( sq, BitOp::popBit( targ ) );

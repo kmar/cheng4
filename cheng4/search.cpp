@@ -389,7 +389,7 @@ template< bool pv, bool incheck, bool donull >
 		board.undoNullMove( ui );
 
 		if ( score >= beta )
-		{	
+		{
 			// do verification search above certain depth
 			if ( depth > 7 && search< 0, 0, 0 >( ply, (depth*3/4) * fracOnePly, alpha, beta ) < beta )
 				goto skipNull;
@@ -568,7 +568,7 @@ skipNull:
 Search::Search( size_t evalKilo, size_t pawnKilo, size_t matKilo ) : startTicks(0), nodeTicks(0),
 	timeOutCounter(0), triPV(0), newMultiPV(0), selDepth(0), tt(0), nodes(0), age(0), callback(0),
 	callbackParam(0), canStop(0), abortRequest(0), aborting(0), abortingSmp(0),
-	outputBest(1), ponderHit(0), maxThreads(63), eloLimit(0), maxElo(2500), 
+	outputBest(1), ponderHit(0), maxThreads(63), eloLimit(0), maxElo(2500),
 	minQsDepth(-maxDepth), verbose(1), verboseFixed(1), searchFlags(0), startSearch(0), master(0)
 {
 	board.reset();

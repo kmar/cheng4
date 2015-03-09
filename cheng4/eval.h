@@ -194,7 +194,7 @@ private:
 	MaterialHash mhash;
 
 	template< PopCountMode pcm > Score ieval( const Board &b, Score alpha = -scInfinity, Score beta = +scInfinity );
-	
+
 	template< PopCountMode pcm, Color c, bool slow > void evalPawns( const Board &b );
 	template< PopCountMode pcm, Color c > void evalKnights( const Board &b );
 	template< PopCountMode pcm, Color c > void evalBishops( const Board &b );

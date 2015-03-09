@@ -84,7 +84,7 @@ public:
 	bool open( const char *fnm );
 	// close book file
 	bool close();
-	
+
 	// reset probe counter
 	void reset();
 

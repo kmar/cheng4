@@ -81,7 +81,7 @@ struct SearchInfo
 	u64 tbHits;					// TB hits
 	Depth depth;				// current nominal depth
 	Ply selDepth;				// selective depth
-	
+
 	MoveCount curIndex;			// zero-based
 	MoveCount curCount;			// total move count
 
@@ -277,7 +277,7 @@ struct Search
 	template< bool pv, bool incheck > Score qsearch( Ply ply, Depth depth, Score alpha, Score beta );
 
 	// alpha-beta search
-	template< bool pv, bool incheck, bool donull > 
+	template< bool pv, bool incheck, bool donull >
 		Score search( Ply ply, FracDepth fdepth, Score alpha, Score beta );
 
 	// send PV info

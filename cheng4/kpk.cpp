@@ -134,7 +134,7 @@ void KPK::generate()
 									if ( !(bkatt & promoBb) || (katt & promoBb) )
 									{
 										// black can't recapture or promosquare is protected by white king
-										Bitboard occ = 
+										Bitboard occ =
 											BitOp::oneShl( kp ) | BitOp::oneShl( bkp ) | BitOp::oneShl( promoSq );
 										// it's only certain win if it's not stalemate
 										Bitboard qattm = Magic::queenAttm( promoSq, occ );

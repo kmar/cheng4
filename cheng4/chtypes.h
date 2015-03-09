@@ -578,12 +578,12 @@ static const MaterialKey matKkn = U64C(1) << MATSHIFT( ctBlack, ptKnight );
 static const MaterialKey matKNK[ctMax] = { matKNk, matKkn };
 static const MaterialKey matKPk = U64C(1) << MATSHIFT( ctWhite, ptPawn );
 static const MaterialKey matKkp = U64C(1) << MATSHIFT( ctBlack, ptPawn );
-static const MaterialKey matKRN[ctMax] = 
+static const MaterialKey matKRN[ctMax] =
 {
 	(U64C(1) << MATSHIFT( ctWhite, ptRook )) | (U64C(1) << MATSHIFT( ctWhite, ptKnight )),
 	(U64C(1) << MATSHIFT( ctBlack, ptRook )) | (U64C(1) << MATSHIFT( ctBlack, ptKnight ))
 };
-static const MaterialKey matKRB[ctMax] = 
+static const MaterialKey matKRB[ctMax] =
 {
 	(U64C(1) << MATSHIFT( ctWhite, ptRook )) | (U64C(1) << MATSHIFT( ctWhite, ptBishop )),
 	(U64C(1) << MATSHIFT( ctBlack, ptRook )) | (U64C(1) << MATSHIFT( ctBlack, ptBishop ))
@@ -600,31 +600,31 @@ static const MaterialKey matKN[ctMax] =
 {
 	U64C(1) << MATSHIFT( ctWhite, ptKnight ), U64C(1) << MATSHIFT( ctBlack, ptKnight )
 };
-static const MaterialKey matKBB[ctMax] = 
+static const MaterialKey matKBB[ctMax] =
 {
 	U64C(2) << MATSHIFT( ctWhite, ptBishop ), U64C(2) << MATSHIFT( ctBlack, ptBishop )
 };
-static const MaterialKey matKNN[ctMax] = 
+static const MaterialKey matKNN[ctMax] =
 {
 	U64C(2) << MATSHIFT( ctWhite, ptKnight ), U64C(2) << MATSHIFT( ctBlack, ptKnight )
 };
-static const MaterialKey matKBN[ctMax] = 
+static const MaterialKey matKBN[ctMax] =
 {
 	(U64C(1) << MATSHIFT( ctWhite, ptBishop )) | (U64C(1) << MATSHIFT( ctWhite, ptKnight )),
 	(U64C(1) << MATSHIFT( ctBlack, ptBishop )) | (U64C(1) << MATSHIFT( ctBlack, ptKnight ))
 };
-static const MaterialKey matBishopEGMask = 
+static const MaterialKey matBishopEGMask =
 	(U64C(63) << MATSHIFT( ctWhite, ptKnight)) |
 	(U64C(63) << MATSHIFT( ctWhite, ptRook)) |
 	(U64C(63) << MATSHIFT( ctWhite, ptQueen)) |
 	(U64C(63) << MATSHIFT( ctBlack, ptKnight)) |
 	(U64C(63) << MATSHIFT( ctBlack, ptRook)) |
 	(U64C(63) << MATSHIFT( ctBlack, ptQueen));
-static const MaterialKey matKRPkr = 
+static const MaterialKey matKRPkr =
 	(U64C(1) << MATSHIFT( ctWhite, ptPawn )) |
 	(U64C(1) << MATSHIFT( ctWhite, ptRook )) |
 	(U64C(1) << MATSHIFT( ctBlack, ptRook ));
-static const MaterialKey matKRkrp = 
+static const MaterialKey matKRkrp =
 	(U64C(1) << MATSHIFT( ctBlack, ptPawn )) |
 	(U64C(1) << MATSHIFT( ctBlack, ptRook )) |
 	(U64C(1) << MATSHIFT( ctWhite, ptRook ));

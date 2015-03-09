@@ -68,10 +68,10 @@ public:
 	// if resize fails, hashtable size is not guaranteed to be the same as before reallocation!
 	// returns 1 on success
 	bool resize( size_t sizeBytes );
-	
+
 	// clear hashtable
 	void clear();
-	
+
 	// probe hash table
 	// returns scInvalid if probe failed
 	inline Score probe( Signature sig, Ply ply, Depth depth, Score alpha, Score beta, Move &mv ) const

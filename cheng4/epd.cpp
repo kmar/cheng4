@@ -33,7 +33,7 @@ namespace cheng4
 
 // EPD
 
-// compares token, if it fits, consumes token and returns ptr to next 
+// compares token, if it fits, consumes token and returns ptr to next
 static bool isToken( const char *&ptr, const char *str )
 {
 	const char *c = ptr;
