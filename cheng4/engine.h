@@ -49,7 +49,7 @@ public:
 	void destroy();
 
 	// set search mode
-	void setMode( SearchMode sm );
+	void setMode( const SearchMode &sm );
 
 	void work();
 };
@@ -107,7 +107,7 @@ public:
 	void run();
 
 	// start search
-	void startSearch( SearchMode mode, bool noabort = 0 );
+	void startSearch( const SearchMode &mode, bool noabort = 0 );
 
 	// stop search (=move now)
 	// does output bestmove

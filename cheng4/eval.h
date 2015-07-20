@@ -183,6 +183,7 @@ private:
 	Bitboard occ;				// occupied
 	Bitboard safetyMask[ctMax];	// safety masks for each king
 	u32 attackers[ctMax];		// attackers for each stm
+	Bitboard pinMask[ctMax];
 
 	PawnHashEntry *pe;			// pawn hash entry pointer
 
@@ -196,6 +197,7 @@ private:
 	template< PopCountMode pcm > Score ieval( const Board &b, Score alpha = -scInfinity, Score beta = +scInfinity );
 
 	template< PopCountMode pcm, Color c, bool slow > void evalPawns( const Board &b );
+	template< Color c > void evalPassers( const Board &b );
 	template< PopCountMode pcm, Color c > void evalKnights( const Board &b );
 	template< PopCountMode pcm, Color c > void evalBishops( const Board &b );
 	template< PopCountMode pcm, Color c > void evalRooks( const Board &b );

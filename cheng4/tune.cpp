@@ -36,6 +36,7 @@ TunableParams *TunableParams::inst = 0;
 
 TunableParams *TunableParams::get()
 {
+	// note: not thread-safe
 	if ( !inst )
 		inst = new TunableParams;
 	return inst;

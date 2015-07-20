@@ -1716,7 +1716,7 @@ bool Board::isValid() const
 
 	tmp.update();
 
-	if ( memcmp( tmp.bpieces, opieces, sizeof(opieces) ) )
+	if ( memcmp( tmp.bpieces, opieces, sizeof(opieces) ) != 0 )
 		return 0;
 
 	if ( tmp.bhash != bhash )

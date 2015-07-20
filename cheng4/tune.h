@@ -24,6 +24,7 @@ or as public domain (where applicable)
 #pragma once
 
 #ifndef USE_TUNING
+#	define TUNE_STATIC static
 #	define TUNE_CONST const
 #	define TUNE_EXPORT(x, y, z)
 #else
@@ -31,6 +32,7 @@ or as public domain (where applicable)
 #	include <string>
 #	include <sstream>
 
+#	define TUNE_STATIC
 #	define TUNE_CONST
 #	define TUNE_EXPORT(x, y, z) static const Tunable<x> tunable_##y(&z, #y)
 

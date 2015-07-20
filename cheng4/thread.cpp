@@ -31,6 +31,7 @@ or as public domain (where applicable)
 #undef min
 #undef max
 #include <time.h>
+#include <process.h>
 
 #if defined(USE_TIMEGETTIME) && !defined(__GNUC__)
 #pragma comment(lib, "winmm.lib")
@@ -216,7 +217,7 @@ void Event::reset()
 // Thread
 
 #ifdef _WIN32
-static DWORD threadProc( LPVOID param )
+static unsigned int __stdcall threadProc( void *param )
 {
 	static_cast<Thread *>(param)->work();
 	return 0;
@@ -290,7 +291,9 @@ bool Thread::run()
 	if ( handle )
 		return 0;			// already running
 #ifdef _WIN32
-	handle = CreateThread( 0, 0, (LPTHREAD_START_ROUTINE)threadProc, (LPVOID)this, 0/*CREATE_SUSPENDED*/, 0 );
+	handle = (HANDLE)_beginthreadex( 0, 0, threadProc, (LPVOID)this, 0/*CREATE_SUSPENDED*/, 0 );
+	if ( !handle || handle == INVALID_HANDLE_VALUE )
+		return 0;
 #else
 	handle = new pthread_t;
 	pthread_attr_t attr;
@@ -337,7 +340,7 @@ bool Thread::setPriority(int prior)
 		default:
 			tp = THREAD_PRIORITY_NORMAL;
 	}
-	return SetThreadPriority( (HANDLE)handle, tp ) == TRUE;
+	return SetThreadPriority( (HANDLE)handle, tp ) != FALSE;
 #else
 	struct sched_param param;
 	param.sched_priority = -prior;

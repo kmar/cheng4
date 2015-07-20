@@ -560,10 +560,8 @@ void Magic::done()
 {
 	for (Square i=0; i<64; i++)
 	{
-		if ( bishopPtr[i] )
-			delete[] bishopPtr[i];
-		if ( rookPtr[i] )
-			delete[] rookPtr[i];
+		delete[] bishopPtr[i];
+		delete[] rookPtr[i];
 	}
 }
 

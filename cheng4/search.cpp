@@ -24,6 +24,7 @@ or as public domain (where applicable)
 #include "search.h"
 #include "movegen.h"
 #include "thread.h"
+#include "tune.h"
 #include <algorithm>
 #include <cassert>
 #include <memory.h>
@@ -84,9 +85,19 @@ static const i32 verboseLimit = 1000;
 // only start sending currmove after this limit
 static const i32 currmoveLimit = 1000;
 
-// futility margins
-static const Score futMargins[] = {
+// beta razoring margins
+static TUNE_CONST Score betaMargins[] = {
 	0, 100, 150, 250, 500
+};
+
+// futility margins
+static TUNE_CONST Score futMargins[] = {
+	0, 100, 150, 250, 500
+};
+
+// razoring margins
+static TUNE_CONST Score razorMargins[] = {
+	0, 150, 200, 250
 };
 
 // timed out?
@@ -192,6 +203,9 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 		Score sev = eval.eval( tb, -beta, -alpha );
 		if ( sev != ev )
 		{
+			eval.clear();
+			ev =  eval.eval( board, alpha, beta );
+			sev = eval.eval( tb, -beta, -alpha );
 			std::cout << "eval_symmetry_bug!" << std::endl;
 			board.dump();
 			tb.dump();
@@ -345,14 +359,12 @@ template< bool pv, bool incheck, bool donull >
 	{
 		fscore = eval.eval(board);
 		// use more precise tt score if possible
-		//Move tmp;
 		Score ttBetter = TransTable::probeEval( board.sig(), ply, fscore, lte );
-			//tt->probe( board.sig(), ply, (Depth)-1, fscore, fscore, tmp );
 		if ( ttBetter != scInvalid )
 			fscore = ttBetter;
 		// beta razoring
 		Score razEval;
-		if ( useRazoring && depth <= 4 && (razEval = fscore - futMargins[depth]) > alpha && !ScorePack::isMate(beta) )
+		if ( useRazoring && depth <= 4 && (razEval = fscore - betaMargins[depth]) > alpha && !ScorePack::isMate(beta) )
 			return razEval;
 	}
 
@@ -360,7 +372,7 @@ template< bool pv, bool incheck, bool donull >
 		!ScorePack::isMate(alpha) )
 	{
 		// razoring
-		Score margin = 150 + depth*50;
+		Score margin = razorMargins[depth];
 
 		Score razEval = fscore;
 		if ( razEval + margin < alpha )
@@ -373,7 +385,7 @@ template< bool pv, bool incheck, bool donull >
 	}
 
 	if ( useNull && !pv && !incheck && donull && depth > 1
-		&& board.canDoNull() && !ScorePack::isMate(beta) && fscore > alpha && !(searchFlags & sfNoNullMove) )
+		&& board.canDoNull() && fscore > alpha && !(searchFlags & sfNoNullMove) )
 	{
 		// null move pruning
 		Depth R = 2 + depth/4;
@@ -390,33 +402,25 @@ template< bool pv, bool incheck, bool donull >
 
 		if ( score >= beta )
 		{
-			// do verification search above certain depth
-			if ( depth > 7 && search< 0, 0, 0 >( ply, (depth*3/4) * fracOnePly, alpha, beta ) < beta )
-				goto skipNull;
+			if ( depth <= 6 )
+				return ScorePack::isMate(score) ? beta : score;
 
-			return ScorePack::isMate(score) ? beta : score;
-		}
-		// null move failed low - we have a threat
-		Move threat = stack[ply+1].current;
-		if ( threat != mcNone && depth < 7 )
-		{
-			stack[ply].threat = threat;
-			// if threat moves same piece that opponent played a ply ago, cancel reductions
-			// this improves tactical accuracy in some testpositions but I measured a small regression
-			// so now I'm doing it only at small depths
-			if ( stack[ply-1].reduction && MovePack::from( threat ) == MovePack::to( stack[ply-1].current ) )
-				return alpha;
+			// using nullmove reductions instead!
+			depth = depth*2/3;
+			fdepth = fdepth*2/3;
+			if ( depth <= 0 )
+				return qsearch< pv, incheck >( ply, 0, alpha, beta );
 		}
 	}
-skipNull:
 
+	// bench-tuned depths (not a great idea but still)
 	if ( pv && depth > 2 && stack[ply].killers.hashMove == mcNone )
 	{
 		// IID at pv nodes
 		search< pv, incheck, 0 >( ply, (depth/3) * fracOnePly, alpha, beta );
 		tt->probe( board.sig(), ply, depth, alpha, beta, stack[ply].killers.hashMove );
 	}
-	if ( !pv && depth > 2 && stack[ply].killers.hashMove == mcNone )
+	if ( !pv && depth > 8 && stack[ply].killers.hashMove == mcNone )
 	{
 		// IID at nonpv nodes
 		search< pv, incheck, 0 >( ply, (depth/3) * fracOnePly, alpha, beta );
@@ -478,7 +482,7 @@ skipNull:
 		if ( pv && count > 1 )
 		{
 			if ( useLMR && !incheck && lmrCount >= 3 && mg.phase() >= mpQuietBuffer && !MovePack::isSpecial(m)
-				&& hist <= 0 && !ischeck && depth > 2 && !extension && board.canReduce(m) )
+				&& (depth > 6 || hist <= 0) && !ischeck && depth > 2 && !extension && board.canReduce(m) )
 			{
 				// LMR at pv nodes
 				stack[ ply ].reduction = (FracDepth)( fracOnePly*std::min((size_t)3, lmrCount/3 ) );
@@ -493,7 +497,8 @@ skipNull:
 		}
 		// new: reduce bad captures as well
 		if ( useLMR && !pv && !incheck && lmrCount >= 3 && mg.phase() >= mpQuietBuffer &&
-			/*!MovePack::isSpecial(m) &&*/ hist <= 0 && !ischeck && depth > 2 && !extension && board.canReduce(m) )
+			/*!MovePack::isSpecial(m) &&*/ (depth > 6 || hist <= 0) && !ischeck && depth > 2 &&
+			!extension && board.canReduce(m) )
 		{
 			// LMR at nonpv nodes
 			stack[ ply ].reduction = (FracDepth)( fracOnePly*std::min((size_t)3, lmrCount/3) );
@@ -666,6 +671,9 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 {
 	// ply = 0 here
 
+	// qsearch explosion guard
+	minQsDepth = (Depth)-std::min( (int)maxDepth, (int)(depth*3));
+
 	rootMoves.bestMove = mcNone;
 	rootMoves.bestScore = scInvalid;
 
@@ -749,11 +757,16 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 		if ( count == 1 && score <= alpha )
 		{
 			// FIXME: break here?!
-			triPV[0] = rm.move;
+			rootMoves.bestMove = triPV[0] = rm.move;
 			triPV[1] = mcNone;
 			// extract pv now
 			extractPV( rm );
 			sendPV( rm, depth, score, oalpha, beta );
+			if ( master )
+			{
+				master->abortingSmp = 1;
+				rm.score = score;
+			}
 			return score;		// early exit => fail low!
 		}
 
@@ -1014,9 +1027,6 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 				break;
 		}
 
-		// qsearch explosion guard
-		minQsDepth = (Depth)-std::min( (int)maxDepth, (int)(d*3));
-
 		i32 limitStart = 0;
 		if ( eloLimit && maxElo < (u32)maxStrength )
 			limitStart = curTicks;
@@ -1045,7 +1055,6 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 		else if ( mode.multiPV > 1 )
 		{
 			// lazySMP kicks in here
-			abortingSmp = 0;
 			smpStart( d, -scInfinity, scInfinity );
 			res = root( d, -scInfinity, scInfinity );
 			smpStop();
@@ -1068,7 +1077,6 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 				assert( alpha < beta );
 
 				// lazySMP kicks in here
-				abortingSmp = 0;
 				smpStart( d, alpha, beta );
 				Score score = root( d, alpha, beta );
 				smpStop();
@@ -1177,6 +1185,13 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 	if ( outputBest )
 	{
 		// return best move and ponder move (if available)
+		if ( !rootMoves.sorted[0] )
+		{
+			iterBest = iterPonder = mcNone;
+			if ( !nosendbest )
+				sendBest();
+			return res;
+		}
 		const RootMove &rm = *rootMoves.sorted[0];
 		iterBest = rm.move;
 		if ( rm.pvCount > 1 )
@@ -1338,6 +1353,7 @@ void Search::enableNullMove( bool enable )
 
 void Search::smpStart( Depth depth, Score alpha, Score beta )
 {
+	abortingSmp = 0;
 	for ( size_t i=0; i<smpThreads.size(); i++ )
 		smpThreads[i]->start( depth + (Depth)((i&1)^1), alpha, beta, *this );
 }
@@ -1356,17 +1372,33 @@ void Search::smpSync() const
 		assert( !smpThreads[i]->searching );
 		Search &s = smpThreads[i]->search;
 		s.initIteration();
-		s.mode.multiPV = mode.multiPV;
 		s.age = age;
 		s.board = board;
 		// FIXME: better?
 		s.rep.copyFrom(rep);
 		s.history = history;
 		s.rootMoves = rootMoves;
-		s.minQsDepth = minQsDepth;
 		// never use timeout for smp helper threads!
 		s.searchFlags = searchFlags | sfNoTimeout;
 	}
+}
+
+// static init
+void Search::init()
+{
+	TUNE_EXPORT(Score, razorMargin1, razorMargins[1]);
+	TUNE_EXPORT(Score, razorMargin2, razorMargins[2]);
+	TUNE_EXPORT(Score, razorMargin3, razorMargins[3]);
+
+	TUNE_EXPORT(Score, futMargin1, futMargins[1]);
+	TUNE_EXPORT(Score, futMargin2, futMargins[2]);
+	TUNE_EXPORT(Score, futMargin3, futMargins[3]);
+	TUNE_EXPORT(Score, futMargin4, futMargins[4]);
+
+	TUNE_EXPORT(Score, betaMargin1, betaMargins[1]);
+	TUNE_EXPORT(Score, betaMargin2, betaMargins[2]);
+	TUNE_EXPORT(Score, betaMargin3, betaMargins[3]);
+	TUNE_EXPORT(Score, betaMargin4, betaMargins[4]);
 }
 
 // LazySMPThread
@@ -1403,9 +1435,11 @@ void LazySMPThread::work()
 		depth = c.depth;
 		alpha = c.alpha;
 		beta = c.beta;
+		search.mode.multiPV = c.multiPV;
 		search.rootMoves = c.rootMoves;
 		search.abortRequest = 0;
 		search.aborting = 0;
+		search.rootMoves.bestMove = mcNone;
 		searching = 1;
 		startedSearch.signal();
 
@@ -1431,6 +1465,7 @@ void LazySMPThread::start( Depth depth, Score alpha, Score beta, const Search &m
 	cd.alpha = alpha;
 	cd.beta = beta;
 	cd.rootMoves = master.rootMoves;
+	cd.multiPV = master.mode.multiPV;
 
 	commandEvent.signal();
 	startedSearch.wait();

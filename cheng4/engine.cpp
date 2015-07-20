@@ -27,11 +27,7 @@ or as public domain (where applicable)
 #include "movegen.h"
 #include "tune.h"
 #include <memory.h>
-
-#if defined(_MSC_VER) && !defined(NDEBUG)
-// Windows debug only: include visual leak detector
-//#include <vld.h>
-#endif
+#include <iostream>
 
 namespace cheng4
 {
@@ -55,7 +51,7 @@ void EngineThread::destroy()
 	commandEvent.signal();
 }
 
-void EngineThread::setMode( SearchMode sm )
+void EngineThread::setMode( const SearchMode &sm )
 {
 	searchMode = sm;
 }
@@ -87,6 +83,7 @@ void Engine::init( int npar, const char **par )
 	PSq::init();
 	KPK::init();
 	Eval::init();
+	Search::init();
 #ifdef USE_TUNING
 	// pass parameters:
 	for (int i=0; i<npar; i+=2)
@@ -135,7 +132,7 @@ void Engine::run()
 }
 
 // start search
-void Engine::startSearch( SearchMode mode, bool noabort )
+void Engine::startSearch( const SearchMode &mode, bool noabort )
 {
   if ( !noabort )
 	  abortSearch();

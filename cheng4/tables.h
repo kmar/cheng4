@@ -90,7 +90,7 @@ struct Tables
 	static Bitboard pawnAttm[2][64];
 	static bool neighbor[64][64];
 	static Bitboard between[64][64];
-	static Bitboard ray[64][64];			// "infinite" ray [from][to], goes beyond to
+	static Bitboard ray[64][64];			// semi-infinite ray [from][to], goes beyond to
 	static Bitboard diagAttm[64];			// diagonal pseudo attack mask
 	static Bitboard orthoAttm[64];			// orthogonal pseudo attack mask
 	static Bitboard queenAttm[64];			// queen pseudo attack mask

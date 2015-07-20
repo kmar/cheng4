@@ -76,10 +76,10 @@ enum SearchInfoFlags
 
 struct SearchInfo
 {
+	const Move *pv;				// PV
 	NodeCount nodes;			// nodes
 	NodeCount nps;				// nps
 	u64 tbHits;					// TB hits
-	Depth depth;				// current nominal depth
 	Ply selDepth;				// selective depth
 
 	MoveCount curIndex;			// zero-based
@@ -90,8 +90,6 @@ struct SearchInfo
 
 	uint pvIndex;				// multi pv mode: zero-based index
 	Score pvScore;				// PV score
-	enum BoundType pvBound;		// bound type
-	const Move *pv;				// PV
 	uint pvCount;				// number of moves in PV
 
 	uint hashFull;				// hash full (permill)
@@ -99,6 +97,8 @@ struct SearchInfo
 	Move ponderMove;			// ponder move
 
 	uint flags;					// flags valid entries
+	enum BoundType pvBound;		// bound type
+	Depth depth;				// current nominal depth
 
 	// reset search info
 	void reset();
@@ -113,10 +113,9 @@ struct Search
 	struct Stack
 	{
 		Move current;				// current move
-		Move threat;				// null-threat move
 		Killer killers;				// killers
 		FracDepth reduction;		// reducing
-		u32 pad;					// pad structure to 32 bytes
+		u32 pad[2];					// pad structure to 32 bytes
 	};
 
 	Board board;					// board
@@ -254,7 +253,7 @@ struct Search
 	template<bool pv> inline uint initPly( Ply ply )
 	{
 		uint res;
-		stack[ ply ].current = stack[ ply ].threat = mcNone;
+		stack[ ply ].current = mcNone;
 #ifdef USE_TUNING
 		stack[ ply ].killers.hashMove = mcNone;		// note: this is only necessary if we don't hash qsearch
 #endif
@@ -363,6 +362,9 @@ struct Search
 	// return number of nodes searched
 	inline NodeCount smpNodes() const;
 
+	// static init
+	static void init();
+
 protected:
 	Search *master;							// SMP master
 	i32 initIteration();
@@ -379,6 +381,7 @@ public:
 		Score alpha;
 		Score beta;
 		Search::RootMoves rootMoves;
+		uint multiPV;
 	} commandData;
 
 	Event startedSearch;		// set when search has started

@@ -259,7 +259,7 @@ static void bench()
 	Board b;
 	SearchMode sm;
 	sm.reset();
-	sm.maxDepth = 13;
+	sm.maxDepth = 15;
 
 	const char **p = benchFens;
 
@@ -953,9 +953,10 @@ bool Protocol::parseUCI( const std::string &line )
 					if ( token.empty() )
 						break;
 					// now parse UCI move
-					Move m = engine.board().fromUCI( token );
-					bool legal = engine.board().inCheck() ? engine.board().isLegal<1, 0>(m, engine.board().pins() ) :
-						engine.board().isLegal<0, 0>(m, engine.board().pins() );
+					const Board &b = engine.board();
+					Move m = b.fromUCI( token );
+					bool legal = b.inCheck() ? b.isLegal<1, 0>(m, b.pins() ) :
+						b.isLegal<0, 0>(m, b.pins() );
 					if ( !legal )
 					{
 						pos = opos;
@@ -1180,7 +1181,10 @@ bool Protocol::parseUCIOptions( const std::string &line, size_t &pos )
 	}
 #ifdef USE_TUNING
 	if ( TunableParams::setParam(key.c_str(), value.c_str()) )
+	{
+		PSq::init();
 		return 1;
+	}
 #endif
 	error( "unknown option", line );
 	return 0;
@@ -1212,6 +1216,7 @@ void Protocol::setSearchModeCECP( SearchMode &sm )
 	}
 	if ( npsLimit )
 		sm.maxNodes = npsLimit * sm.maxTime;
+	sm.maxDepth = depthLimit;
 }
 
 // start CECP-mode search
