@@ -485,9 +485,8 @@ template< bool pv, bool incheck, bool donull >
 				&& (depth > 6 || hist <= 0) && !ischeck && depth > 2 && !extension && board.canReduce(m) )
 			{
 				// LMR at pv nodes
-				stack[ ply ].reduction = (FracDepth)( fracOnePly*std::min((size_t)3, lmrCount/3 ) );
-				score = -search< 0, 0, 1 >( ply+1, newDepth - stack[ ply ].reduction, -alpha-1, -alpha );
-				stack[ ply ].reduction = 0;
+				FracDepth reduction = (FracDepth)( fracOnePly*std::min((size_t)3, lmrCount/3 ) );
+				score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
 			}
 
 			if ( score > alpha )
@@ -501,9 +500,8 @@ template< bool pv, bool incheck, bool donull >
 			!extension && board.canReduce(m) )
 		{
 			// LMR at nonpv nodes
-			stack[ ply ].reduction = (FracDepth)( fracOnePly*std::min((size_t)3, lmrCount/3) );
-			score = -search< 0, 0, 1 >( ply+1, newDepth - stack[ ply ].reduction, -alpha-1, -alpha );
-			stack[ ply ].reduction = 0;
+			FracDepth reduction = (FracDepth)( fracOnePly*std::min((size_t)3, lmrCount/3) );
+			score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
 		}
 
 		if ( score > alpha )

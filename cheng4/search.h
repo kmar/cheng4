@@ -114,8 +114,7 @@ struct Search
 	{
 		Move current;				// current move
 		Killer killers;				// killers
-		FracDepth reduction;		// reducing
-		u32 pad[2];					// pad structure to 32 bytes
+		u32 pad[3];					// pad structure to 32 bytes
 	};
 
 	Board board;					// board
