@@ -128,9 +128,12 @@ typedef void (*RecogFunc)( const Board &b, FineScore *fscore );
 
 struct MaterialHashEntry
 {
-	MaterialKey sig;		// signature
-	RecogFunc recog;		// recognizer function (can be 0)
+	MaterialKey sig;			// signature
+	RecogFunc recog;			// recognizer function (can be 0)
 	FineScore fscore[phMax];
+#if IS_X64
+	u32 pad64;					// need 64-bit padding due to 64-bit pointers
+#endif
 	union u
 	{
 		u8 div[phMax];			// scale dividers
@@ -192,6 +195,7 @@ private:
 
 	EvalCache ecache;
 	PawnHash phash;
+	// note: not used (yet); I never actually finished this
 	MaterialHash mhash;
 
 	template< PopCountMode pcm > Score ieval( const Board &b, Score alpha = -scInfinity, Score beta = +scInfinity );

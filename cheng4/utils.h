@@ -33,7 +33,7 @@ namespace cheng4
 // returns true if input is power of two
 bool isPow2( size_t sz );
 // round size to nearest power of two
-bool roundPow2( size_t &sz );
+bool roundPow2( size_t &sz, bool down = 0 );
 // align pointer
 void *alignPtr( void *ptr, size_t align );
 // simple unsafe string copy (doesn't copy null terminator!)

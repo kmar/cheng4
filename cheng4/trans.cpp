@@ -77,7 +77,8 @@ bool TransTable::resize( size_t sizeBytes )
 		dummyAlloc();
 		return 1;
 	}
-	if ( !roundPow2( sizeEntries ) )
+	// new: always round down, this fixes CECP memory command problems
+	if ( !roundPow2( sizeEntries, 1 ) )
 		return 0;					// bad size
 	if ( size == sizeEntries )
 		return 1;
