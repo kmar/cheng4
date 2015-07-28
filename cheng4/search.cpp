@@ -408,8 +408,7 @@ template< bool pv, bool incheck, bool donull >
 			// using nullmove reductions instead!
 			depth = depth*2/3;
 			fdepth = fdepth*2/3;
-			if ( depth <= 0 )
-				return qsearch< pv, incheck >( ply, 0, alpha, beta );
+			assert( depth > 0 );
 		}
 	}
 
