@@ -872,8 +872,8 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 			rootMoves = rm;
 
 			// we have to reset cached pvs if any
-			for (size_t i=0; i<rootMoves.count; i++)
-				infoPV[i].reset();
+			for (size_t j=0; j<rootMoves.count; j++)
+				infoPV[j].reset();
 
 			if ( rootMoves.count )
 				for (uint j=0; j<mode.multiPV; j++)
