@@ -131,9 +131,8 @@ struct MaterialHashEntry
 	MaterialKey sig;			// signature
 	RecogFunc recog;			// recognizer function (can be 0)
 	FineScore fscore[phMax];
-#if IS_X64
-	u32 pad64;					// need 64-bit padding due to 64-bit pointers
-#endif
+	// tricky padding to make it power of 2
+	u32 pad[3-int(sizeof(RecogFunc)/sizeof(u32))];
 	union u
 	{
 		u8 div[phMax];			// scale dividers
