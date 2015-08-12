@@ -132,7 +132,7 @@ struct MaterialHashEntry
 	RecogFunc recog;			// recognizer function (can be 0)
 	FineScore fscore[phMax];
 	// tricky padding to make it power of 2
-	u32 pad[3-int(sizeof(RecogFunc)/sizeof(u32))];
+	u8 pad[12-int(sizeof(RecogFunc))];
 	union u
 	{
 		u8 div[phMax];			// scale dividers
