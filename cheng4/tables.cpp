@@ -88,13 +88,19 @@ void Tables::init()
 		if ( i < 256 )
 			popCount8[ i ] = (u8)bc;
 
+		lsBit16[i] = msBit16[i] = 255;
 		for (uint j=0; j<16; j++)
-		{
 			if ( i & (1<<j) )
+			{
 				lsBit16[i] = (u8)j;
+				break;
+			}
+		for (uint j=0; j<16; j++)
 			if ( i & (1<<(15-j)) )
+			{
 				msBit16[i] = (u8)(15-j);
-		}
+				break;
+			}
 	}
 
 	memset( noneShlTab, 255, sizeof(noneShlTab) );
