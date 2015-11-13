@@ -196,8 +196,9 @@ struct BitOp
 			"rm" (m) : "cc"
 		);
 		return (uint)(res & 0xffffffffu);
-//		return __builtin_ffsl(m);	 // FIXME: doesn't work here => I wonder why?
 	#else
+		// seems slower on my (emulated) device?
+		//return __builtin_ffsll(m)-1;
 		for (uint i=0; m && i<4*16; i+=16, m >>= 16)
 		{
 			u16 p = (u16)m;
