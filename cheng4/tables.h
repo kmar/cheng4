@@ -143,7 +143,7 @@ protected:
 	static u8 msBit16[ 65536 ];
 };
 
-#if (defined(__GNUC__) && (defined(__LP64__) || defined(__x86_64__))) || (defined(_MSC_VER) && (defined(_M_AMD64) || defined(_M_X64)))
+#if ((defined(__GNUC__) || defined(__clang__)) && (defined(__LP64__) || defined(__x86_64__))) || (defined(_MSC_VER) && (defined(_M_AMD64) || defined(_M_X64)))
 #	define IS_X64 1
 #endif
 
@@ -188,24 +188,18 @@ struct BitOp
 		"cc", "eax"
 		);
 		return res;
-	#elif defined(__GNUC__) && defined(IS_X64)
-		u64 res;
-		asm(
-			"bsfq %1, %0" :
-			"=r" (res) :
-			"rm" (m) : "cc"
-		);
-		return (uint)(res & 0xffffffffu);
+	#elif defined(IS_X64)
+		return (uint)__builtin_ctzll(m);
 	#else
-		// seems slower on my (emulated) device?
-		//return __builtin_ffsll(m)-1;
-		for (uint i=0; m && i<4*16; i+=16, m >>= 16)
+		// assume 32-bit ARM (Android)
+		return (u32)m ? __builtin_ctz(m) : 32+__builtin_ctz((u32)(m>>32));
+		/*for (uint i=0; m && i<4*16; i+=16, m >>= 16)
 		{
 			u16 p = (u16)m;
 			if ( p )
 				return Tables::lsBit16[ p ] + i;
 		}
-		return 0u-1u;
+		return 0u-1u;*/
 	#endif
 #else
 	#if defined ( _M_AMD64 ) || defined ( _M_X64 )
