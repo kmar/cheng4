@@ -436,10 +436,10 @@ void MoveGen::scoreCaptures()
 			continue;
 		}
 		// apply MVV/LVA
-		Piece mvv = Tables::mvvValue[ PiecePack::type( board.piece( MovePack::to( *mp ) ) ) ];
-		Piece lva = Tables::lvaValue[ PiecePack::type( board.piece( MovePack::from( *mp ) ) ) ];
+		Piece mvv_lva = Tables::mvvValue[ PiecePack::type( board.piece( MovePack::to( *mp ) ) ) ] +
+						Tables::lvaValue[ PiecePack::type( board.piece( MovePack::from( *mp ) ) ) ];
 		assert( mvv );
-		*mp += ( (((mvv << 3) - lva)<<3) + MovePack::promo( *mp ) ) << msScore;
+		*mp += ( (mvv_lva<<3) + MovePack::promo( *mp ) ) << msScore;
 	}
 	isort( moveBuf, count );
 }
@@ -456,9 +456,9 @@ void MoveGen::scoreEvasions()
 			if ( MovePack::isCapture(*mp) )
 			{
 				// captures by MVV/LVA
-				Piece mvv = Tables::mvvValue[ PiecePack::type( board.piece( MovePack::to( *mp ) ) ) ];
-				Piece lva = Tables::lvaValue[ PiecePack::type( board.piece( MovePack::from( *mp ) ) ) ];
-				*mp += ( ((mvv << 3) - lva) + 1 + 2*History::historyMax ) << msScore;
+				Piece mvv_lva = Tables::mvvValue[ PiecePack::type( board.piece( MovePack::to( *mp ) ) ) ] +
+								Tables::lvaValue[ PiecePack::type( board.piece( MovePack::from( *mp ) ) ) ];
+				*mp += ( mvv_lva + 1 + 2*History::historyMax ) << msScore;
 			}
 			else
 				// history
