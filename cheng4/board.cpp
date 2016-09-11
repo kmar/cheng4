@@ -1196,7 +1196,7 @@ char *Board::toSAN( char *dst, Move m ) const
 		File ff = SquarePack::file( f );
 		Rank fr = SquarePack::rank( f );
 
-		u8 diffFile = 0, diffRank = 0;
+		u8 diffFile = 0, diffRank = 0, diffCount = 0;
 
 		MoveGen mg( *this );
 		Move lm;
@@ -1217,6 +1217,7 @@ char *Board::toSAN( char *dst, Move m ) const
 			File lff = SquarePack::file( lf );
 			Rank lfr = SquarePack::rank( lf );
 
+			diffCount++;
 			if ( ff != lff )
 				diffFile++;
 			if ( fr != lfr )
@@ -1226,12 +1227,12 @@ char *Board::toSAN( char *dst, Move m ) const
 		if ( ptype == ptPawn && MovePack::isCapture(m) )
 			diffFile = 1;						// force diffile for pawn captures
 
+		if ( diffFile && diffFile == diffCount )
+			diffRank = 0;
+		if ( diffRank && diffRank == diffCount )
+			diffFile = 0;
 		if ( diffFile )
-		{
 			*dst++ = 'a' + ff;
-			if ( diffRank == 1 )				// prefer file disambiguation
-				diffRank = 0;
-		}
 		if ( diffRank )
 			*dst++  = '8' - (fr ^ RANK8);
 		if ( MovePack::isCapture(m) )
