@@ -438,7 +438,7 @@ void MoveGen::scoreCaptures()
 		// apply MVV/LVA
 		Piece mvv_lva = Tables::mvvValue[ PiecePack::type( board.piece( MovePack::to( *mp ) ) ) ] +
 						Tables::lvaValue[ PiecePack::type( board.piece( MovePack::from( *mp ) ) ) ];
-		assert( mvv );
+		assert( mvv_lva );
 		*mp += ( (mvv_lva<<3) + MovePack::promo( *mp ) ) << msScore;
 	}
 	isort( moveBuf, count );
