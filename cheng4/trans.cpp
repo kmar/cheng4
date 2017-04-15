@@ -100,7 +100,7 @@ bool TransTable::resize( size_t sizeBytes )
 Score TransTable::probe( Signature sig, Ply ply, Depth depth, Score alpha, Score beta, Move &mv, TransEntry &lte ) const
 {
 	mv = mcNone;
-	size_t ei = ((size_t)sig & (size-1) & ~(buckets-1));
+	size_t ei = ((size_t)sig & (size-1) & ~(size_t)(buckets-1));
 	const TransEntry *te = entries + ei;
 	for ( uint i=0; i<buckets; i++, te++)
 	{
@@ -163,7 +163,7 @@ void TransTable::store( Signature sig, Age age, Move move, Score score, HashBoun
 	assert( ScorePack::isValid(score) );
 	assert( score != -scInfinity );
 
-	size_t ei = ((size_t)sig & (size-1) & ~(buckets-1));
+	size_t ei = ((size_t)sig & (size-1) & ~(size_t)(buckets-1));
 	TransEntry *te = entries + ei;
 	TransEntry *be = 0;				// best entry
 	i32 beScore = -0x7fffffff;
