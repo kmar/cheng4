@@ -1153,6 +1153,17 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 					break;
 			}
 		}
+
+		if ( mode.mateSearch )
+		{
+			Score score =  mode.multiPV ? res : lastIteration;
+
+			int msc = score >= 0 ? (scInfinity - score)/2 + 1 : (-scInfinity - score + 1)/2 - 1;
+
+			if ( msc == (int)mode.mateSearch )
+				break;
+		}
+
 		if ( aborting )
 			break;
 	}
