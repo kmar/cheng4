@@ -84,7 +84,7 @@ Draw Board::isDraw() const
 void Board::clear()
 {
 	memset( this, 0, sizeof(*this) );
-	frc = arenaMode = 0;
+	frc = 0;
 	curMove = 1;
 	bb[ BBI( ctWhite, ptPawn ) ]	= 0;
 	bb[ BBI( ctBlack, ptPawn ) ]	= 0;
@@ -113,7 +113,7 @@ void Board::clear()
 void Board::reset()
 {
 	memset( this, 0, sizeof(*this) );
-	frc = arenaMode = 0;
+	frc = 0;
 	curMove = 1;
 	bb[ BBI( ctWhite, ptPawn ) ]	= U64C( 0x00ff000000000000 );
 	bb[ BBI( ctBlack, ptPawn ) ]	= U64C( 0x000000000000ff00 );
@@ -490,7 +490,6 @@ const char *Board::fromFEN( const char *fen )
 		{
 			// white
 			File rf = (File)ch - 'A';
-			File orf = rf;
 			File kf = SquarePack::file( king( ctWhite ) );
 
 			Square rsq = SquarePack::init( rf, RANK1 );
@@ -526,8 +525,6 @@ const char *Board::fromFEN( const char *fen )
 						}
 					}
 				}
-				if ( rf != orf )
-					arenaMode = 1;
 			}
 
 			if ( ch )
@@ -539,7 +536,6 @@ const char *Board::fromFEN( const char *fen )
 		{
 			// black
 			File rf = (File)ch - 'a';
-			File orf = rf;
 			File kf = SquarePack::file( king( ctBlack ) );
 
 			Square rsq = SquarePack::init( rf, RANK8 );
@@ -575,22 +571,12 @@ const char *Board::fromFEN( const char *fen )
 						}
 					}
 				}
-				if ( rf != orf )
-					arenaMode = 1;
 			}
 			if ( ch )
 			{
 				bcastRights[ ctBlack ] = CastPack::loseRights( rf>kf, bcastRights[ ctBlack ] );
 				bcastRights[ ctBlack ] |= CastPack::initFile( rf>kf, rf );
 			}
-		}
-		// last Arena mode check: only if king is not E1/E8
-		if ( standardCastling )
-		{
-			if ( castRights( ctWhite ) && SquarePack::file( king(ctWhite) ) != EFILE )
-				arenaMode = 1;
-			if ( castRights( ctBlack ) && SquarePack::file( king(ctBlack) ) != EFILE )
-				arenaMode = 1;
 		}
 		fen++;
 	}
@@ -1273,7 +1259,7 @@ std::string Board::toUCI( Move m ) const
 
 char *Board::toUCI( char *dst, Move m ) const
 {
-	if ( frc && !arenaMode && MovePack::isCastling( m ) )
+	if ( frc && MovePack::isCastling( m ) )
 	{
 		// handle FRC castling here (king captures rook)
 		// fortunately this is compatible with both Arena and Shredder

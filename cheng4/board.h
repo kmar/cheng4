@@ -113,7 +113,6 @@ protected:
 
 	// extra stuff (not used during search)
 	bool frc;					// is fischer random?
-	bool arenaMode;				// FRC Arena mode
 	uint curMove;				// current move number
 
 	// castling move is special
