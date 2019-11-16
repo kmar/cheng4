@@ -48,6 +48,11 @@ void SearchMode::reset()
 	fixedTime = 0;
 }
 
+bool SearchMode::analyzing() const
+{
+	return !maxTime && !mateSearch && !maxDepth && !absLimit && !fixedTime;
+}
+
 // SearchInfo
 
 void SearchInfo::reset()
@@ -197,6 +202,7 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 		best = ev =  eval.eval( board, alpha, beta );
 
 #ifndef NDEBUG
+		// note: this won't work with contempt enabled, of course
 		Board tb(board);
 		tb.swap();
 		// FIXME: ok?
@@ -570,7 +576,7 @@ template< bool pv, bool incheck, bool donull >
 Search::Search( size_t evalKilo, size_t pawnKilo, size_t matKilo ) : startTicks(0), nodeTicks(0),
 	timeOutCounter(0), triPV(0), newMultiPV(0), selDepth(0), tt(0), nodes(0), age(0), callback(0),
 	callbackParam(0), canStop(0), abortRequest(0), aborting(0), abortingSmp(0),
-	outputBest(1), ponderHit(0), maxThreads(63), eloLimit(0), maxElo(2500),
+	outputBest(1), ponderHit(0), maxThreads(63), eloLimit(0), maxElo(2500), contemptFactor(scDraw),
 	minQsDepth(-maxDepth), verbose(1), verboseFixed(1), searchFlags(0), startSearch(0), master(0)
 {
 	board.reset();
@@ -930,9 +936,20 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 
 	Score res = scInvalid;
 
+	Score contempt = scDraw;
+
+	// ignore contempt when analyzing (=infinite time)
+	if ( !sm.analyzing() )
+		contempt = b.turn() == ctWhite ? contemptFactor : -contemptFactor;
+
+	eval.setContempt( contempt );
+
 	selDepth = 0;
 	for (size_t i=0; i<smpThreads.size(); i++)
+	{
 		smpThreads[i]->search.selDepth = 0;
+		smpThreads[i]->search.eval.setContempt( contempt );
+	}
 
 	initIteration();
 	startSearch.signal();
@@ -1338,6 +1355,11 @@ void Search::setEloLimit( bool limit )
 void Search::setMaxElo( u32 elo )
 {
 	maxElo = elo;
+}
+
+void Search::setContempt( Score contempt )
+{
+	contemptFactor = contempt;
 }
 
 // enable timeout

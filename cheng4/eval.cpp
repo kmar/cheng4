@@ -388,10 +388,17 @@ void Eval::init()
 
 Eval::Eval() : occ(0), pe(0)
 {
+	contemptFactor[ctWhite] = contemptFactor[ctBlack] = scDraw;
 	fscore[phOpening] = fscore[phEndgame] = 0;
 	safetyMask[ctWhite] = safetyMask[ctBlack] = 0;
 	attackers[ctWhite] = attackers[ctBlack] = 0;
 	memset( attm, 0, sizeof(attm) );
+}
+
+void Eval::setContempt( Score contempt )
+{
+	contemptFactor[ctWhite] = contempt;
+	contemptFactor[ctBlack] = -contempt;
 }
 
 bool Eval::resizeEval( size_t sizeBytes )
@@ -512,6 +519,8 @@ Score Eval::eval( const Board &b, Score alpha, Score beta )
 	Score res = BitOp::hasHwPopCount() ? ieval< pcmHardware >( b, alpha, beta ) : ieval< pcmNormal >( b, alpha, beta );
 	// stm bonus
 	res += stmBonus;
+	// contempt
+	res += contemptFactor[b.turn()];
 	return res;
 }
 

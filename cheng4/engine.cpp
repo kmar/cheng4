@@ -484,6 +484,12 @@ void Engine::setElo( u32 elo )
 	mainThread->search.setMaxElo( elo );
 }
 
+// set contempt
+void Engine::setContempt( Score contempt )
+{
+	mainThread->search.setContempt( contempt );
+}
+
 // get opening book
 const Book &Engine::getBook() const
 {

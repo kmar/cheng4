@@ -197,6 +197,9 @@ public:
 	// set elo (if limit is enabled)
 	void setElo( u32 elo );
 
+	// set contempt
+	void setContempt( Score contempt );
+
 	// get opening book
 	const Book &getBook() const;
 };

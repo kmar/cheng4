@@ -159,6 +159,9 @@ struct Eval
 	// static initializer (sort recognizers)
 	static void init();
 
+	// set contempt
+	void setContempt( Score contempt );
+
 	// returns final centipawn evaluation from stm's point of view
 	Score eval( const Board &b, Score alpha = -scInfinity, Score beta = +scInfinity );
 
@@ -179,6 +182,7 @@ struct Eval
 	void clear();
 
 private:
+	Score contemptFactor[ctMax];
 	// scores for game phases
 	FineScore fscore[phMax];
 	// precomputed values for evaluation

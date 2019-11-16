@@ -48,6 +48,8 @@ struct SearchMode
 	bool fixedTime;							// fixed time per move
 
 	void reset();
+	// analyzing?
+	bool analyzing() const;
 };
 
 // extra search flags
@@ -156,6 +158,7 @@ struct Search
 									// defaults to 63
 	volatile bool eloLimit;			// elo limit master flag
 	volatile u32 maxElo;			// 2500 = full
+	volatile Score contemptFactor;	// contempt factor
 
 	Depth minQsDepth;				// min qsearch depth (limits qs explosions)
 
@@ -344,6 +347,9 @@ struct Search
 
 	// set maximum elo limit (2500 = full)
 	void setMaxElo( u32 elo );
+
+	// set contempt
+	void setContempt( Score contempt );
 
 	// enable timeout flag
 	void enableTimeOut( bool enable );
