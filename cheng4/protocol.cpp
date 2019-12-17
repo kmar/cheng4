@@ -626,8 +626,18 @@ void Protocol::sendPV( const SearchInfo &si, uint index, Score score, enum Bound
 		else if ( bound == btUpper )
 			sendStr << " upperbound ";
 		sendStr << " multipv " << (1+index) << " score " << uciScore( score ) << " pv";
-		for (size_t i=0; i<pvCount; i++)
-			sendStr << " " << engine.board().toUCI( pv[i] );
+
+		if (pvCount)
+		{
+			Board b( engine.board() );
+
+			for (size_t i=0; i<pvCount; i++)
+			{
+				sendStr << " " << b.toUCI( pv[i] );
+				UndoInfo ui;
+				b.doMove( pv[i], ui, b.isCheck( pv[i], b.discovered() ) );
+			}
+		}
 		break;
 	case ptCECP:
 		if ( !post )
@@ -685,8 +695,16 @@ void Protocol::sendBest( Move best, Move ponder )
 	{
 	case ptUCI:
 		sendStr << "bestmove " << engine.board().toUCI( best );
+
 		if ( ponder != mcNone )
-			sendStr << " ponder " << engine.board().toUCI( ponder );
+		{
+			Board b( engine.board() );
+
+			UndoInfo ui;
+			b.doMove( best, ui, b.isCheck( best, b.discovered() ) );
+
+			sendStr << " ponder " << b.toUCI( ponder );
+		}
 		break;
 	case ptCECP:
 		if ( !analyze )
