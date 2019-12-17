@@ -56,9 +56,6 @@ char *MovePack::toUCI( char *dst, Move m, bool frc )
 	if ( m == mcNull || m == mcNone )
 		return scpy(dst, "0000");
 
-	if ( frc && isCastling(m) )
-		return SquarePack::file( MovePack::to(m) ) >= EFILE ? scpy(dst, "O-O") : scpy(dst, "O-O-O");
-
 	Square from = MovePack::from( m );
 	Square to = MovePack::to( m );
 	*dst++ = (char)( SquarePack::file( from ) + 'a' );

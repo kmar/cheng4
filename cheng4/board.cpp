@@ -1262,7 +1262,6 @@ char *Board::toUCI( char *dst, Move m ) const
 	if ( frc && MovePack::isCastling( m ) )
 	{
 		// handle FRC castling here (king captures rook)
-		// fortunately this is compatible with both Arena and Shredder
 		CastRights cr = castRights( turn() );
 		m = MovePack::init( MovePack::from(m), CastPack::rookSquare( MovePack::to(m), cr ) );
 		return MovePack::toUCI( dst, m, frc );
