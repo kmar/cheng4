@@ -1264,9 +1264,9 @@ char *Board::toUCI( char *dst, Move m ) const
 		// handle FRC castling here (king captures rook)
 		CastRights cr = castRights( turn() );
 		m = MovePack::init( MovePack::from(m), CastPack::rookSquare( MovePack::to(m), cr ) );
-		return MovePack::toUCI( dst, m, frc );
+		return MovePack::toUCI( dst, m );
 	}
-	return MovePack::toUCI( dst, m, frc );
+	return MovePack::toUCI( dst, m );
 }
 
 // move from UCI
