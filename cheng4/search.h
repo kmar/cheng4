@@ -373,6 +373,8 @@ struct Search
 protected:
 	Search *master;							// SMP master
 	i32 initIteration();
+
+	static inline FracDepth lmrFormula(Depth depth, size_t lmrCount);
 };
 
 class LazySMPThread : public Thread

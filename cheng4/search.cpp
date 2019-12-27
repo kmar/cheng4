@@ -105,6 +105,17 @@ static TUNE_CONST Score razorMargins[] = {
 	0, 150, 200, 250
 };
 
+inline FracDepth Search::lmrFormula(Depth depth, size_t lmrCount)
+{
+	assert(depth > 0 && lmrCount > 0);
+
+	uint a = BitOp::getMSB(depth);
+	uint b = BitOp::getMSB(lmrCount);
+
+	FracDepth res = (FracDepth)(a*b*fracOnePly/3);
+	return res * (depth*fracOnePly > res);
+}
+
 // timed out?
 bool Search::timeOut()
 {
@@ -180,7 +191,10 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 #ifndef USE_TUNING
 	Depth ttDepth = qchecks ? 0 : -1;
 
-	Score ttScore = tt->probe( board.sig(), ply, ttDepth, alpha, beta, stack[ply].killers.hashMove );
+	TransEntry lte;
+
+	Score ttScore = tt->probe( board.sig(), ply, ttDepth, alpha, beta, stack[ply].killers.hashMove, lte );
+
 	if ( !pv && ttScore != scInvalid )
 	{
 		assert( ScorePack::isValid( ttScore ) );
@@ -219,6 +233,13 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 #endif
 
 		assert( !ScorePack::isMate( ev ) );
+
+#ifndef USE_TUNING
+		Score ttBetter = TransTable::probeEval( board.sig(), ply, ev, lte );
+		if ( ttBetter != scInvalid )
+			best = ev = ttBetter;
+#endif
+
 		if ( best >= beta )
 			return best;			// stand pat
 		if ( best > alpha )
@@ -240,6 +261,10 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 		count++;
 
 		bool ischeck = board.isCheck( m, mg.discovered() );
+
+		// don't waste time on bad checks in qsearch (qchecks)
+		if ( !incheck && ischeck && !MovePack::isCapture(m) && board.see<1>(m) < 0 )
+			continue;
 
 		// delta/qsearch futility
 #ifndef USE_TUNING
@@ -356,7 +381,14 @@ template< bool pv, bool incheck, bool donull >
 	if ( !pv && ttScore != scInvalid )
 	{
 		assert( ScorePack::isValid( ttScore ) );
-		stack[ply].current = stack[ply].killers.hashMove;
+		Move ttmove = stack[ply].current = stack[ply].killers.hashMove;
+
+		if ( !MovePack::isSpecial( ttmove ) )
+		{
+			stack[ply].killers.addKiller( ttmove );
+			history.add( board, ttmove, depth );
+		}
+
 		return ttScore;					// tt cutoff
 	}
 
@@ -450,9 +482,7 @@ template< bool pv, bool incheck, bool donull >
 	{
 		stack[ ply ].current = m;
 		count++;
-
-		if ( !MovePack::isSpecial(m) && mg.phase() >= mpQuietBuffer )
-			lmrCount++;
+		lmrCount = count;
 
 		if ( !MovePack::isSpecial( m ) )
 			failHist[ failHistCount++ ] = m;
@@ -486,12 +516,13 @@ template< bool pv, bool incheck, bool donull >
 		score = alpha+1;
 		if ( pv && count > 1 )
 		{
-			if ( useLMR && !incheck && lmrCount >= 3 && mg.phase() >= mpQuietBuffer && !MovePack::isSpecial(m)
+			if ( useLMR && !incheck && mg.phase() >= mpQuietBuffer && !MovePack::isSpecial(m)
 				&& (depth > 6 || hist <= 0) && !ischeck && depth > 2 && !extension && board.canReduce(m) )
 			{
 				// LMR at pv nodes
-				FracDepth reduction = (FracDepth)( fracOnePly*std::min((size_t)3, lmrCount/3 ) );
-				score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
+				FracDepth reduction = lmrFormula(depth, lmrCount);
+				if (reduction > 0)
+					score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
 			}
 
 			if ( score > alpha )
@@ -500,13 +531,14 @@ template< bool pv, bool incheck, bool donull >
 					-search< 0, 0, 1 >( ply+1, newDepth, -alpha-1, -alpha );
 		}
 		// new: reduce bad captures as well
-		if ( useLMR && !pv && !incheck && lmrCount >= 3 && mg.phase() >= mpQuietBuffer &&
+		if ( useLMR && !pv && !incheck && mg.phase() >= mpQuietBuffer &&
 			/*!MovePack::isSpecial(m) &&*/ (depth > 6 || hist <= 0) && !ischeck && depth > 2 &&
 			!extension && board.canReduce(m) )
 		{
 			// LMR at nonpv nodes
-			FracDepth reduction = (FracDepth)( fracOnePly*std::min((size_t)3, lmrCount/3) );
-			score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
+			FracDepth reduction = lmrFormula(depth, lmrCount);
+			if (reduction > 0)
+				score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
 		}
 
 		if ( score > alpha )
@@ -704,6 +736,8 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 	{
 		count++;
 		RootMove &rm = *rootMoves.sorted[i];
+
+		stack[ 0 ].current = rm.move;
 
 		if ( verbose )
 		{

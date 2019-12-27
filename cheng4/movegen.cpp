@@ -451,7 +451,7 @@ void MoveGen::scoreEvasions()
 	for ( ;mp < me; mp++ )
 	{
 		assert( !(*mp & mmScore) );
-		if ( board.see<0>(*mp) >= 0 )
+		if ( board.see<1>(*mp) >= 0 )
 		{
 			if ( MovePack::isCapture(*mp) )
 			{
