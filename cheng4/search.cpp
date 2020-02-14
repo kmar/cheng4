@@ -600,7 +600,7 @@ Search::Search( size_t evalKilo, size_t pawnKilo, size_t matKilo ) : startTicks(
 	triPV = new Move[maxTriPV];
 	memset( triPV, 0, sizeof(Move)*maxTriPV );
 
-	memset( &rootMoves, 0, sizeof(rootMoves) );
+	memset( (void *)&rootMoves, 0, sizeof(rootMoves) );
 
 	history.clear();
 }
@@ -1435,7 +1435,7 @@ void Search::init()
 
 LazySMPThread::LazySMPThread() : searching(0), shouldQuit(0)
 {
-	memset( &commandData, 0, sizeof(commandData) );
+	memset( (void *)&commandData, 0, sizeof(commandData) );
 }
 
 void LazySMPThread::destroy()
