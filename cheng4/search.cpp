@@ -113,6 +113,8 @@ inline FracDepth Search::lmrFormula(Depth depth, size_t lmrCount)
 	uint b = BitOp::getMSB(lmrCount);
 
 	FracDepth res = (FracDepth)(a*b*fracOnePly/3);
+	res = (res + fracOnePly/2) & ~(fracOnePly-1);
+
 	return res * (depth*fracOnePly > res);
 }
 
@@ -383,7 +385,7 @@ template< bool pv, bool incheck, bool donull >
 		assert( ScorePack::isValid( ttScore ) );
 		Move ttmove = stack[ply].current = stack[ply].killers.hashMove;
 
-		if ( !MovePack::isSpecial( ttmove ) )
+		if ( ttmove && !MovePack::isSpecial( ttmove ) )
 		{
 			stack[ply].killers.addKiller( ttmove );
 			history.add( board, ttmove, depth );
