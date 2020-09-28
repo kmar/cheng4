@@ -518,11 +518,13 @@ template< bool pv, bool incheck, bool donull >
 		score = alpha+1;
 		if ( pv && count > 1 )
 		{
-			if ( useLMR && !incheck && mg.phase() >= mpQuietBuffer && !MovePack::isSpecial(m)
-				&& (depth > 6 || hist <= 0) && !ischeck && depth > 2 && !extension && board.canReduce(m) )
+			if ( useLMR && !incheck && mg.phase() >= mpQuietBuffer && !MovePack::isSpecial(m) &&
+				!ischeck && depth > 2 && !extension && board.canReduce(m) )
 			{
 				// LMR at pv nodes
 				FracDepth reduction = lmrFormula(depth, lmrCount);
+				reduction >>= int(hist > 0);
+
 				if (reduction > 0)
 					score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
 			}
@@ -532,13 +534,15 @@ template< bool pv, bool incheck, bool donull >
 					-search< 0, 1, 1 >( ply+1, newDepth, -alpha-1, -alpha ) :
 					-search< 0, 0, 1 >( ply+1, newDepth, -alpha-1, -alpha );
 		}
-		// new: reduce bad captures as well
+		// note: reducing bad captures as well
 		if ( useLMR && !pv && !incheck && mg.phase() >= mpQuietBuffer &&
-			/*!MovePack::isSpecial(m) &&*/ (depth > 6 || hist <= 0) && !ischeck && depth > 2 &&
+			!ischeck && depth > 2 &&
 			!extension && board.canReduce(m) )
 		{
 			// LMR at nonpv nodes
 			FracDepth reduction = lmrFormula(depth, lmrCount);
+			reduction >>= int(hist > 0);
+
 			if (reduction > 0)
 				score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
 		}
