@@ -383,12 +383,16 @@ template< bool pv, bool incheck, bool donull >
 	if ( !pv && ttScore != scInvalid )
 	{
 		assert( ScorePack::isValid( ttScore ) );
-		Move ttmove = stack[ply].current = stack[ply].killers.hashMove;
 
-		if ( ttmove && !MovePack::isSpecial( ttmove ) )
+		if (ttScore >= beta)
 		{
-			stack[ply].killers.addKiller( ttmove );
-			history.add( board, ttmove, depth );
+			Move ttmove = stack[ply].current = stack[ply].killers.hashMove;
+
+			if ( ttmove && !MovePack::isSpecial( ttmove ) )
+			{
+				stack[ply].killers.addKiller( ttmove );
+				history.add( board, ttmove, depth );
+			}
 		}
 
 		return ttScore;					// tt cutoff

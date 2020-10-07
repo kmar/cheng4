@@ -44,7 +44,7 @@ static TUNE_CONST FineScore certainWin		=	128000;
 static TUNE_CONST FineScore kpkWin			=	64000;
 
 TUNE_STATIC TUNE_CONST int safetyScale[] = {
-	0, 19, 44, 26, 72, 51
+	0, -1, 5, 4, 6, 8
 };
 
 static TUNE_CONST FineScore shelterFront1 = 224;
@@ -926,18 +926,23 @@ template< PopCountMode pcm, Color c > void Eval::evalKing( const Board &b )
 	uint front2 = BitOp::popCount< pcm >( tmp & pawns );
 	fscore[ phOpening ] += sign<c>() * (FineScore)(front2 * shelterFront2);
 
-	FineScore safety = 0;
-	for ( Piece p = ptPawn; p <= ptQueen; p++ )
+	u32 atk = attackers[ c ];
+
+	if (atk)
 	{
-		Bitboard threats = attm[ flip(c) ][ p ] & safetyMask[c];
-		safety += BitOp::popCount< pcm >( threats ) * safetyScale[ p ];
+		FineScore safety = 0;
+		for ( Piece p = ptPawn; p <= ptQueen; p++ )
+		{
+			Bitboard threats = attm[ flip(c) ][ p ] & safetyMask[c];
+			safety += BitOp::popCount< pcm >( threats ) * safetyScale[ p ];
+		}
+
+		if ( b.pieces( flip(c), ptQueen ) )
+			safety *= 2;
+
+		safety *= attackers[ c ];
+		fscore[phOpening] -= sign<c>() * ((safety * safety) >> 4);
 	}
-
-	if ( b.pieces( flip(c), ptQueen ) )
-		safety *= 2;
-
-	safety *= attackers[ c ];
-	fscore[phOpening] -= sign<c>() * safety;
 
 	// endgame: bonus/penalty for being close/away from passers
 	Bitboard pass = pe->passers[c];
