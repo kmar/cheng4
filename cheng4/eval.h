@@ -225,4 +225,47 @@ private:
 	template< Color c > void evalBlindBishop( const Board &b );
 };
 
+// feature export
+
+extern i16 safetyScale[];
+extern i16 safetyScaleEg[];
+extern i16 shelterFront1;
+extern i16 shelterFront2;
+extern i16 bishopPairOpening;
+extern i16 bishopPairEndgame;
+extern i16 trappedBishopOpening;
+extern i16 trappedBishopEndgame;
+extern i16 unstoppablePasser;
+extern i16 doubledPawnOpening;
+extern i16 doubledPawnEndgame;
+extern i16 isolatedPawnOpening;
+extern i16 isolatedPawnEndgame;
+extern i16 knightHangingOpening;
+extern i16 knightHangingEndgame;
+extern i16 bishopHangingOpening;
+extern i16 bishopHangingEndgame;
+extern i16 rookHangingOpening;
+extern i16 rookHangingEndgame;
+extern i16 rookOnOpenOpening;
+extern i16 rookOnOpenEndgame;
+extern i16 queenHangingOpening;
+extern i16 queenHangingEndgame;
+extern i16 kingPasserSupportBase;
+extern i16 kingPasserSupportScale;
+extern i16 outpostBonusFile[];
+extern i16 outpostBonusRank[];
+extern i16 pawnRaceAdvantageEndgame;
+extern i16 passerScaleImbalance[];
+extern i16 passerScaleBlocked[];
+extern i16 candPasserOpening[];
+extern i16 candPasserEndgame[];
+extern i16 passerOpening[];
+extern i16 passerEndgame[];
+extern i16 knightMobility[phMax][9];
+extern i16 bishopMobility[phMax][14];
+extern i16 rookMobility[phMax][15];
+extern i16 queenMobility[phMax][28];
+extern i16 goodBishopOpening[17];
+extern i16 goodBishopEndgame[17];
+
 }

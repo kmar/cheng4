@@ -37,57 +37,61 @@ namespace cheng4
 static const Piece ptAll = ptNone;
 
 // stm bonus in cp (=tempo)
-static TUNE_CONST Score stmBonus			=	5;
+TUNE_STATIC TUNE_CONST i16 stmBonus			=	5;
 
 // weights/parameters:
-static TUNE_CONST FineScore certainWin		=	128000;
-static TUNE_CONST FineScore kpkWin			=	64000;
+TUNE_STATIC TUNE_CONST FineScore certainWin		=	128000;
+TUNE_STATIC TUNE_CONST FineScore kpkWin			=	64000;
 
-TUNE_STATIC TUNE_CONST int safetyScale[] = {
-	0, -1, 5, 4, 6, 8
+TUNE_STATIC TUNE_CONST i16 safetyScale[] = {
+	0, 0, 6, 4, 6, 8
 };
 
-static TUNE_CONST FineScore shelterFront1 = 224;
-static TUNE_CONST FineScore shelterFront2 = 185;
+TUNE_STATIC TUNE_CONST i16 safetyScaleEg[] = {
+	0, -1, 1, 2, 2, 3
+};
 
-static TUNE_CONST FineScore bishopPairOpening = 351;
-static TUNE_CONST FineScore bishopPairEndgame = 527;
+TUNE_STATIC TUNE_CONST i16 shelterFront1 = 224;
+TUNE_STATIC TUNE_CONST i16 shelterFront2 = 185;
 
-static TUNE_CONST FineScore trappedBishopOpening = 157;
-static TUNE_CONST FineScore trappedBishopEndgame = 1552;
+TUNE_STATIC TUNE_CONST i16 bishopPairOpening = 351;
+TUNE_STATIC TUNE_CONST i16 bishopPairEndgame = 527;
 
-static TUNE_CONST FineScore unstoppablePasser = 2067;
+TUNE_STATIC TUNE_CONST i16 trappedBishopOpening = 157;
+TUNE_STATIC TUNE_CONST i16 trappedBishopEndgame = 1552;
 
-static TUNE_CONST FineScore isolatedPawnOpening = 152;
-static TUNE_CONST FineScore isolatedPawnEndgame = 121;
+TUNE_STATIC TUNE_CONST i16 unstoppablePasser = 2067;
 
-static TUNE_CONST FineScore doubledPawnOpening = 66;
-static TUNE_CONST FineScore doubledPawnEndgame = 102;
+TUNE_STATIC TUNE_CONST i16 isolatedPawnOpening = 152;
+TUNE_STATIC TUNE_CONST i16 isolatedPawnEndgame = 121;
+
+TUNE_STATIC TUNE_CONST i16 doubledPawnOpening = 66;
+TUNE_STATIC TUNE_CONST i16 doubledPawnEndgame = 102;
 
 // note: only tune index 0
-TUNE_STATIC TUNE_CONST Score passerScaleImbalance[2] = {
+TUNE_STATIC TUNE_CONST i16 passerScaleImbalance[2] = {
 	225, 256
 };
 
 // note: only tune index 0
-TUNE_STATIC TUNE_CONST Score passerScaleBlocked[2] = {
+TUNE_STATIC TUNE_CONST i16 passerScaleBlocked[2] = {
 	144, 256
 };
 
 // note: 7th rank is unimportant
-TUNE_STATIC TUNE_CONST FineScore candPasserOpening[8] = {
+TUNE_STATIC TUNE_CONST i16 candPasserOpening[8] = {
 	0, -18, -28, 59, 169, 108, 0, 0
 };
 
-TUNE_STATIC TUNE_CONST FineScore candPasserEndgame[8] = {
+TUNE_STATIC TUNE_CONST i16 candPasserEndgame[8] = {
 	0, -16, -2, 138, 378, 815, 0, 0
 };
 
-TUNE_STATIC TUNE_CONST FineScore passerOpening[8] = {
+TUNE_STATIC TUNE_CONST i16 passerOpening[8] = {
 	0, 137, -54, 42, 247, 468, 740, 0
 };
 
-TUNE_STATIC TUNE_CONST FineScore passerEndgame[8] = {
+TUNE_STATIC TUNE_CONST i16 passerEndgame[8] = {
 	0, 158, 178, 438, 782, 1280, 1849, 0
 };
 
@@ -95,25 +99,28 @@ TUNE_STATIC TUNE_CONST i16 knightMobility[phMax][9] = {
 	{ -479, -401, -289, -215, -131, -76, -45, -26, 29 },
 	{ -495, -497, -263, -158, -59, 31, 56, 62, 46 }
 };
-static TUNE_CONST FineScore knightHangingOpening = 402;
-static TUNE_CONST FineScore knightHangingEndgame = 303;
+
+TUNE_STATIC TUNE_CONST i16 knightHangingOpening = 402;
+TUNE_STATIC TUNE_CONST i16 knightHangingEndgame = 303;
 
 TUNE_STATIC TUNE_CONST i16 bishopMobility[phMax][14] = {
 	{ -228, -184, -82, -28, 37, 66, 82, 95, 99, 160, 162, 260, 332, 366 },
 	{ -309, -257, -174, -67, 48, 135, 168, 212, 221, 267, 271, 351, 348, 456 }
 };
-static TUNE_CONST FineScore bishopHangingOpening = 443;
-static TUNE_CONST FineScore bishopHangingEndgame = 352;
+
+TUNE_STATIC TUNE_CONST i16 bishopHangingOpening = 443;
+TUNE_STATIC TUNE_CONST i16 bishopHangingEndgame = 352;
 
 TUNE_STATIC TUNE_CONST i16 rookMobility[phMax][15] = {
 	{ 38, 67, 112, 100, 83, 129, 168, 182, 217, 270, 253, 261, 286, 298, 318 },
 	{ -163, 48, 158, 229, 271, 329, 380, 411, 495, 522, 572, 583, 609, 581, 711 }
 };
-static TUNE_CONST FineScore rookHangingOpening = 503;
-static TUNE_CONST FineScore rookHangingEndgame = 306;
 
-static TUNE_CONST FineScore rookOnOpenOpening = 153;
-static TUNE_CONST FineScore rookOnOpenEndgame = 49;
+TUNE_STATIC TUNE_CONST i16 rookHangingOpening = 503;
+TUNE_STATIC TUNE_CONST i16 rookHangingEndgame = 306;
+
+TUNE_STATIC TUNE_CONST i16 rookOnOpenOpening = 153;
+TUNE_STATIC TUNE_CONST i16 rookOnOpenEndgame = 49;
 
 TUNE_STATIC TUNE_CONST i16 queenMobility[phMax][28] = {
 	{ 179, 237, 299, 313, 322, 344, 360, 381, 395, 428, 456, 479, 503, 529, 551, 577,
@@ -121,14 +128,15 @@ TUNE_STATIC TUNE_CONST i16 queenMobility[phMax][28] = {
 	{ 335, 428, 485, 530, 583, 629, 678, 721, 782, 819, 858, 903, 967, 999, 1045, 1079,
 	 1099, 1139, 1168, 1238, 1257, 1328, 1285, 1392, 1356, 1524, 1554, 1620 }
 };
-static TUNE_CONST FineScore queenHangingOpening = 396;
-static TUNE_CONST FineScore queenHangingEndgame = 4;
 
-static TUNE_CONST int kingPasserSupportBase = 1;
-static TUNE_CONST FineScore kingPasserSupportScale = 38;
+TUNE_STATIC TUNE_CONST i16 queenHangingOpening = 396;
+TUNE_STATIC TUNE_CONST i16 queenHangingEndgame = 4;
+
+TUNE_STATIC TUNE_CONST i16 kingPasserSupportBase = 1;
+TUNE_STATIC TUNE_CONST i16 kingPasserSupportScale = 38;
 
 // pawn race (=endgame) => bonus to side with more pawns
-static TUNE_CONST FineScore pawnRaceAdvantageEndgame = 1010;
+TUNE_STATIC TUNE_CONST i16 pawnRaceAdvantageEndgame = 1010;
 
 // good/bad bishops
 TUNE_STATIC TUNE_CONST i16 goodBishopOpening[17] = {
@@ -140,12 +148,12 @@ TUNE_STATIC TUNE_CONST i16 goodBishopEndgame[17] = {
 };
 
 // knight outpost bonus scale based on file
-TUNE_STATIC TUNE_CONST FineScore outpostBonusFile[8] = {
+TUNE_STATIC TUNE_CONST i16 outpostBonusFile[8] = {
 	3, 20, 90, 171, 249, 84, 99, 125
 };
 
 // knight outpost bonus scale based on rank
-TUNE_STATIC TUNE_CONST FineScore outpostBonusRank[8] = {
+TUNE_STATIC TUNE_CONST i16 outpostBonusRank[8] = {
 	0, 0, -105, 30, 78, 103, 21, 8
 };
 
@@ -175,7 +183,7 @@ template< Color c > static void kpk( const Board &b, FineScore *fscore )
 		fscore[ phEndgame ] += sign<c>()*kpkWin;
 }
 
-static const FineScore kbnTable[64] =
+static const i16 kbnTable[64] =
 {
 	+999, +500, +250, +100, -100, -250, -500, -999,
 	+500, +400, +250, +100, -100, -250, -400, -500,
@@ -311,45 +319,51 @@ void Eval::init()
 	TUNE_EXPORT(FineScore, certainWin, certainWin);
 	TUNE_EXPORT(FineScore, kpkWin, kpkWin);
 
-	TUNE_EXPORT(int, safetyScale1, safetyScale[1]);
-	TUNE_EXPORT(int, safetyScale2, safetyScale[2]);
-	TUNE_EXPORT(int, safetyScale3, safetyScale[3]);
-	TUNE_EXPORT(int, safetyScale4, safetyScale[4]);
-	TUNE_EXPORT(int, safetyScale5, safetyScale[5]);
+	TUNE_EXPORT(i16, safetyScale1, safetyScale[1]);
+	TUNE_EXPORT(i16, safetyScale2, safetyScale[2]);
+	TUNE_EXPORT(i16, safetyScale3, safetyScale[3]);
+	TUNE_EXPORT(i16, safetyScale4, safetyScale[4]);
+	TUNE_EXPORT(i16, safetyScale5, safetyScale[5]);
 
-	TUNE_EXPORT(FineScore, shelterFront1, shelterFront1);
-	TUNE_EXPORT(FineScore, shelterFront2, shelterFront2);
+	TUNE_EXPORT(i16, safetyScaleEg1, safetyScaleEg[1]);
+	TUNE_EXPORT(i16, safetyScaleEg2, safetyScaleEg[2]);
+	TUNE_EXPORT(i16, safetyScaleEg3, safetyScaleEg[3]);
+	TUNE_EXPORT(i16, safetyScaleEg4, safetyScaleEg[4]);
+	TUNE_EXPORT(i16, safetyScaleEg5, safetyScaleEg[5]);
 
-	TUNE_EXPORT(FineScore, bishopPairOpening, bishopPairOpening);
-	TUNE_EXPORT(FineScore, bishopPairEndgame, bishopPairEndgame);
+	TUNE_EXPORT(i16, shelterFront1, shelterFront1);
+	TUNE_EXPORT(i16, shelterFront2, shelterFront2);
 
-	TUNE_EXPORT(FineScore, trappedBishopOpening, trappedBishopOpening);
-	TUNE_EXPORT(FineScore, trappedBishopEndgame, trappedBishopEndgame);
+	TUNE_EXPORT(i16, bishopPairOpening, bishopPairOpening);
+	TUNE_EXPORT(i16, bishopPairEndgame, bishopPairEndgame);
 
-	TUNE_EXPORT(FineScore, unstoppablePasser, unstoppablePasser);
+	TUNE_EXPORT(i16, trappedBishopOpening, trappedBishopOpening);
+	TUNE_EXPORT(i16, trappedBishopEndgame, trappedBishopEndgame);
 
-	TUNE_EXPORT(FineScore, doubledPawnOpening, doubledPawnOpening);
-	TUNE_EXPORT(FineScore, doubledPawnEndgame, doubledPawnEndgame);
+	TUNE_EXPORT(i16, unstoppablePasser, unstoppablePasser);
 
-	TUNE_EXPORT(FineScore, isolatedPawnOpening, isolatedPawnOpening);
-	TUNE_EXPORT(FineScore, isolatedPawnEndgame, isolatedPawnEndgame);
+	TUNE_EXPORT(i16, doubledPawnOpening, doubledPawnOpening);
+	TUNE_EXPORT(i16, doubledPawnEndgame, doubledPawnEndgame);
 
-	TUNE_EXPORT(FineScore, knightHangingOpening, knightHangingOpening );
-	TUNE_EXPORT(FineScore, knightHangingEndgame, knightHangingEndgame );
+	TUNE_EXPORT(i16, isolatedPawnOpening, isolatedPawnOpening);
+	TUNE_EXPORT(i16, isolatedPawnEndgame, isolatedPawnEndgame);
 
-	TUNE_EXPORT(FineScore, bishopHangingOpening, bishopHangingOpening );
-	TUNE_EXPORT(FineScore, bishopHangingEndgame, bishopHangingEndgame );
+	TUNE_EXPORT(i16, knightHangingOpening, knightHangingOpening );
+	TUNE_EXPORT(i16, knightHangingEndgame, knightHangingEndgame );
 
-	TUNE_EXPORT(FineScore, rookHangingOpening, rookHangingOpening );
-	TUNE_EXPORT(FineScore, rookHangingEndgame, rookHangingEndgame );
-	TUNE_EXPORT(FineScore, rookOnOpenOpening, rookOnOpenOpening );
-	TUNE_EXPORT(FineScore, rookOnOpenEndgame, rookOnOpenEndgame );
+	TUNE_EXPORT(i16, bishopHangingOpening, bishopHangingOpening );
+	TUNE_EXPORT(i16, bishopHangingEndgame, bishopHangingEndgame );
 
-	TUNE_EXPORT(FineScore, queenHangingOpening, queenHangingOpening );
-	TUNE_EXPORT(FineScore, queenHangingEndgame, queenHangingEndgame );
+	TUNE_EXPORT(i16, rookHangingOpening, rookHangingOpening );
+	TUNE_EXPORT(i16, rookHangingEndgame, rookHangingEndgame );
+	TUNE_EXPORT(i16, rookOnOpenOpening, rookOnOpenOpening );
+	TUNE_EXPORT(i16, rookOnOpenEndgame, rookOnOpenEndgame );
 
-	TUNE_EXPORT(int, kingPasserSupportBase, kingPasserSupportBase);
-	TUNE_EXPORT(FineScore, kingPasserSupportScale, kingPasserSupportScale);
+	TUNE_EXPORT(i16, queenHangingOpening, queenHangingOpening );
+	TUNE_EXPORT(i16, queenHangingEndgame, queenHangingEndgame );
+
+	TUNE_EXPORT(i16, kingPasserSupportBase, kingPasserSupportBase);
+	TUNE_EXPORT(i16, kingPasserSupportScale, kingPasserSupportScale);
 
 	TUNE_EXPORT(i16, pawnOpening,	PSq::materialTables[phOpening][ptPawn]);
 	TUNE_EXPORT(i16, knightOpening, PSq::materialTables[phOpening][ptKnight]);
@@ -363,25 +377,25 @@ void Eval::init()
 	TUNE_EXPORT(i16, rookEndgame,	PSq::materialTables[phEndgame][ptRook]);
 	TUNE_EXPORT(i16, queenEndgame,	PSq::materialTables[phEndgame][ptQueen]);
 
-	TUNE_EXPORT(FineScore, outpostBonusFile0, outpostBonusFile[0]);
-	TUNE_EXPORT(FineScore, outpostBonusFile1, outpostBonusFile[1]);
-	TUNE_EXPORT(FineScore, outpostBonusFile2, outpostBonusFile[2]);
-	TUNE_EXPORT(FineScore, outpostBonusFile3, outpostBonusFile[3]);
-	TUNE_EXPORT(FineScore, outpostBonusFile4, outpostBonusFile[4]);
-	TUNE_EXPORT(FineScore, outpostBonusFile5, outpostBonusFile[5]);
-	TUNE_EXPORT(FineScore, outpostBonusFile6, outpostBonusFile[6]);
-	TUNE_EXPORT(FineScore, outpostBonusFile7, outpostBonusFile[7]);
+	TUNE_EXPORT(i16, outpostBonusFile0, outpostBonusFile[0]);
+	TUNE_EXPORT(i16, outpostBonusFile1, outpostBonusFile[1]);
+	TUNE_EXPORT(i16, outpostBonusFile2, outpostBonusFile[2]);
+	TUNE_EXPORT(i16, outpostBonusFile3, outpostBonusFile[3]);
+	TUNE_EXPORT(i16, outpostBonusFile4, outpostBonusFile[4]);
+	TUNE_EXPORT(i16, outpostBonusFile5, outpostBonusFile[5]);
+	TUNE_EXPORT(i16, outpostBonusFile6, outpostBonusFile[6]);
+	TUNE_EXPORT(i16, outpostBonusFile7, outpostBonusFile[7]);
 
-	TUNE_EXPORT(FineScore, outpostBonusRank0, outpostBonusRank[0]);
-	TUNE_EXPORT(FineScore, outpostBonusRank1, outpostBonusRank[1]);
-	TUNE_EXPORT(FineScore, outpostBonusRank2, outpostBonusRank[2]);
-	TUNE_EXPORT(FineScore, outpostBonusRank3, outpostBonusRank[3]);
-	TUNE_EXPORT(FineScore, outpostBonusRank4, outpostBonusRank[4]);
-	TUNE_EXPORT(FineScore, outpostBonusRank5, outpostBonusRank[5]);
-	TUNE_EXPORT(FineScore, outpostBonusRank6, outpostBonusRank[6]);
-	TUNE_EXPORT(FineScore, outpostBonusRank7, outpostBonusRank[7]);
+	TUNE_EXPORT(i16, outpostBonusRank0, outpostBonusRank[0]);
+	TUNE_EXPORT(i16, outpostBonusRank1, outpostBonusRank[1]);
+	TUNE_EXPORT(i16, outpostBonusRank2, outpostBonusRank[2]);
+	TUNE_EXPORT(i16, outpostBonusRank3, outpostBonusRank[3]);
+	TUNE_EXPORT(i16, outpostBonusRank4, outpostBonusRank[4]);
+	TUNE_EXPORT(i16, outpostBonusRank5, outpostBonusRank[5]);
+	TUNE_EXPORT(i16, outpostBonusRank6, outpostBonusRank[6]);
+	TUNE_EXPORT(i16, outpostBonusRank7, outpostBonusRank[7]);
 
-	TUNE_EXPORT(FineScore, pawnRaceAdvantageEndgame, pawnRaceAdvantageEndgame);
+	TUNE_EXPORT(i16, pawnRaceAdvantageEndgame, pawnRaceAdvantageEndgame);
 }
 
 // Eval
@@ -928,20 +942,28 @@ template< PopCountMode pcm, Color c > void Eval::evalKing( const Board &b )
 
 	u32 atk = attackers[ c ];
 
-	if (atk)
+	if ( atk )
 	{
-		FineScore safety = 0;
+		FineScore safety[ phMax ] = { 0, 0 };
+
 		for ( Piece p = ptPawn; p <= ptQueen; p++ )
 		{
 			Bitboard threats = attm[ flip(c) ][ p ] & safetyMask[c];
-			safety += BitOp::popCount< pcm >( threats ) * safetyScale[ p ];
+			safety[ phOpening ] += BitOp::popCount< pcm >( threats ) * safetyScale[ p ];
+			safety[ phEndgame ] += BitOp::popCount< pcm >( threats ) * safetyScaleEg[ p ];
 		}
 
 		if ( b.pieces( flip(c), ptQueen ) )
-			safety *= 2;
+		{
+			safety[ phOpening ] *= 2;
+			safety[ phEndgame ] *= 2;
+		}
 
-		safety *= attackers[ c ];
-		fscore[phOpening] -= sign<c>() * ((safety * safety) >> 4);
+		safety[ phOpening ] *= attackers[ c ];
+		safety[ phEndgame ] *= attackers[ c ];
+
+		fscore[ phOpening ] -= sign<c>() * ((safety[ phOpening ] * safety[ phOpening ]) >> 4);
+		fscore[ phEndgame ] -= sign<c>() * ((safety[ phEndgame ] * safety[ phEndgame ]) >> 4);
 	}
 
 	// endgame: bonus/penalty for being close/away from passers
