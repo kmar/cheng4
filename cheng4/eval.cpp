@@ -122,6 +122,9 @@ TUNE_STATIC TUNE_CONST i16 rookHangingEndgame = 306;
 TUNE_STATIC TUNE_CONST i16 rookOnOpenOpening = 153;
 TUNE_STATIC TUNE_CONST i16 rookOnOpenEndgame = 49;
 
+TUNE_STATIC TUNE_CONST i16 rookBehindPasserOpening = 0;
+TUNE_STATIC TUNE_CONST i16 rookBehindPasserEndgame = 0;
+
 TUNE_STATIC TUNE_CONST i16 queenMobility[phMax][28] = {
 	{ 179, 237, 299, 313, 322, 344, 360, 381, 395, 428, 456, 479, 503, 529, 551, 577,
 	 591, 627, 648, 672, 694, 721, 747, 770, 793, 815, 840, 866 },
@@ -358,6 +361,8 @@ void Eval::init()
 	TUNE_EXPORT(i16, rookHangingEndgame, rookHangingEndgame );
 	TUNE_EXPORT(i16, rookOnOpenOpening, rookOnOpenOpening );
 	TUNE_EXPORT(i16, rookOnOpenEndgame, rookOnOpenEndgame );
+	TUNE_EXPORT(i16, rookBehindPasserOpening, rookBehindPasserOpening );
+	TUNE_EXPORT(i16, rookBehindPasserEndgame, rookBehindPasserEndgame );
 
 	TUNE_EXPORT(i16, queenHangingOpening, queenHangingOpening );
 	TUNE_EXPORT(i16, queenHangingEndgame, queenHangingEndgame );
@@ -406,6 +411,7 @@ Eval::Eval() : occ(0), pe(0)
 	fscore[phOpening] = fscore[phEndgame] = 0;
 	safetyMask[ctWhite] = safetyMask[ctBlack] = 0;
 	attackers[ctWhite] = attackers[ctBlack] = 0;
+	rookVertAttacks[ctWhite] = rookVertAttacks[ctBlack] = 0;
 	memset( attm, 0, sizeof(attm) );
 }
 
@@ -555,6 +561,7 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 
 	// init attack masks
 	memset( attm, 0, sizeof(attm) );
+	rookVertAttacks[ctWhite] = rookVertAttacks[ctBlack] = 0;
 
 	// init pin masks
 	pinMask[ctWhite] = b.pinTemplate< ctWhite, ctBlack, 0 >( b.king(ctWhite) );
@@ -564,7 +571,22 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 	for ( Color c = ctWhite; c <= ctBlack; c++ )
 	{
 		attackers[c] = 0;
-		safetyMask[c] = Tables::kingAttm[ b.king(c) ];
+
+		// offset king out of edges, so we always have a 8-square mask
+		Square kp = b.king(c);
+		File kf = SquarePack::file(kp);
+		Rank kr = SquarePack::rank(kp);
+
+		kf += kf == AFILE;
+		kf -= kf == HFILE;
+
+		kr += kr == RANK8;
+		kr -= kr == RANK1;
+
+		kp = SquarePack::init( kf, kr );
+
+		safetyMask[c] = Tables::kingAttm[ kp ] | Tables::oneShlTab[ kp ];
+		assert(BitOp::popCount<pcm>(safetyMask[c]) == 9);
 	}
 
 	if ( pe->sig == b.pawnSig() )
@@ -584,10 +606,6 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 	fscore[ phOpening ] += pe->scores[ phOpening ];
 	fscore[ phEndgame ] += pe->scores[ phEndgame ];
 
-	// passers require special handling
-	evalPassers< ctWhite >(b);
-	evalPassers< ctBlack >(b);
-
 	evalKnights< pcm, ctWhite >(b);
 	evalKnights< pcm, ctBlack >(b);
 	evalBishops< pcm, ctWhite >(b);
@@ -598,6 +616,10 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 	evalQueens< pcm, ctBlack >(b);
 	evalKing< pcm, ctWhite >(b);
 	evalKing< pcm, ctBlack >(b);
+
+	// passers require special handling
+	evalPassers< ctWhite >(b);
+	evalPassers< ctBlack >(b);
 
 	fscore[ phEndgame ] > 0 ? evalSpecial< ctWhite >( b ) : evalSpecial< ctBlack >( b );
 
@@ -686,16 +708,26 @@ template< PopCountMode pcm, Color c, bool slow > void Eval::evalPawns( const Boa
 
 template< Color c > void Eval::evalPassers( const Board &b )
 {
+	rookVertAttacks[c] |= b.pieces( c, ptRook );
 	Bitboard p = pe->passers[ c ];
 	i32 dm = (i32)b.nonPawnMat(c) - b.nonPawnMat(flip(c));
+
 	while ( p )
 	{
 		Square sq = BitOp::popBit( p );
-		Bitboard fwd = BitOp::shiftForward<c>(BitOp::oneShl(sq));
+		Bitboard pbit = BitOp::oneShl(sq);
+		Bitboard fwd = BitOp::shiftForward<c>(pbit);
 		// eval passer
 		// scale bonus down based on material difference
 		Score scl = passerScaleImbalance[ dm >= 0 ];
 		scl *= passerScaleBlocked[ !(occ & fwd) ];
+
+		// rook behind passer
+		if (rookVertAttacks[c] & BitOp::shiftBackward<c>(pbit))
+		{
+			fscore[ phOpening ] += sign<c>() * rookBehindPasserOpening;
+			fscore[ phEndgame ] += sign<c>() * rookBehindPasserEndgame;
+		}
 
 		Rank rr = SquarePack::relRank<c>( sq ) ^ RANK1;	// important: use rank1 = 7, ... rank8 = 0
 		fscore[ phOpening ] += sign<c>() * passerOpening[rr] * scl / 65536;
@@ -845,6 +877,8 @@ template< PopCountMode pcm, Color c > void Eval::evalRooks( const Board &b )
 		Square sq = BitOp::popBit( tmp );
 		Bitboard mob = Magic::rookAttm( sq, tocc );
 
+		rookVertAttacks[c] |= mob & Tables::fileMask[SquarePack::file(sq)];
+
 		// determine valid movement mask if pinned
 		if ( pinMask[c] & BitOp::oneShl(sq) )
 			mob &= Tables::ray[ b.king(c) ][ sq ];
@@ -962,8 +996,8 @@ template< PopCountMode pcm, Color c > void Eval::evalKing( const Board &b )
 		safety[ phOpening ] *= attackers[ c ];
 		safety[ phEndgame ] *= attackers[ c ];
 
-		fscore[ phOpening ] -= sign<c>() * ((safety[ phOpening ] * safety[ phOpening ]) >> 4);
-		fscore[ phEndgame ] -= sign<c>() * ((safety[ phEndgame ] * safety[ phEndgame ]) >> 4);
+		fscore[ phOpening ] -= sign<c>() * ((safety[ phOpening ] * safety[ phOpening ]) >> 8);
+		fscore[ phEndgame ] -= sign<c>() * ((safety[ phEndgame ] * safety[ phEndgame ]) >> 8);
 	}
 
 	// endgame: bonus/penalty for being close/away from passers

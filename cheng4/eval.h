@@ -195,6 +195,8 @@ private:
 
 	// attack mask [color][piece]
 	Bitboard attm[ctMax][ptMax];
+	// full rook vertical attack mask [color]
+	Bitboard rookVertAttacks[ctMax];
 
 	EvalCache ecache;
 	PawnHash phash;
@@ -248,6 +250,8 @@ extern i16 rookHangingOpening;
 extern i16 rookHangingEndgame;
 extern i16 rookOnOpenOpening;
 extern i16 rookOnOpenEndgame;
+extern i16 rookBehindPasserOpening;
+extern i16 rookBehindPasserEndgame;
 extern i16 queenHangingOpening;
 extern i16 queenHangingEndgame;
 extern i16 kingPasserSupportBase;
