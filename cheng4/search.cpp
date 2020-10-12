@@ -999,7 +999,7 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 	startSearch.signal();
 
 	// don't output anything if we should think for a limited amount of time
-	verbose = verboseFixed = !sm.maxTime;
+	verbose = verboseFixed = !sm.maxTime || eloLimit;
 
 	board = b;
 	mode = sm;
@@ -1195,7 +1195,7 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 			// -1600 = 65536x slower
 			// -1700 = 131072x slower
 			// .. etc
-			i32 delay = (i32)(pow(2.0, slowdown/100.0) * delta);
+			i64 delay = (i64)(floor(pow(2.0, slowdown/100.0) * std::max(delta, 1)) + 0.5);
 			delay -= delta + 1;			// adjust for sleep granularity
 			if ( sm.maxTime && ticks + delay - startTicks >= sm.maxTime )
 				aborting = 1;			// early exit => we won't be able to reach next iteration anyway
@@ -1209,9 +1209,9 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 					aborting = 1;
 					break;
 				}
-				i32 current = Timer::getMillisec() - ticks;
-				if ( current >= delay )
-					break;
+				i32 current = Timer::getMillisec();
+				delay -= current - ticks;
+				ticks = current;
 			}
 		}
 
