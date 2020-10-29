@@ -108,14 +108,14 @@ static const uint phaseEvas[] = {
 };
 
 static const uint phaseQCapsNoCastling[] = {
-	mpHash,
+	mpQHash,
 	mpQCap,
 	mpQCapBuffer,
 	mpDone
 };
 
 static const uint phaseQCaps[] = {
-	mpHash,
+	mpQHash,
 	mpQCap,
 	mpQCapBuffer,
 	mpCastling,
@@ -124,7 +124,7 @@ static const uint phaseQCaps[] = {
 };
 
 static const uint phaseQCapsChecks[] = {
-	mpHash,
+	mpQHash,
 	mpQCap,
 	mpQCapBuffer,
 	mpQChecks,
@@ -224,6 +224,14 @@ loop:
 		index = 0;
 		phPtr++;
 		goto loop;
+		break;
+	case mpQHash:
+		res = killer->hashMove;
+		phPtr++;
+		if ( !res || !(board.inCheck() ? board.isLegal<1,0>( res, pins() ) : board.see<1>(res) >= 0 && board.isLegal<0,0>( res, pins() ) ) )
+			goto loop;
+
+		genMoves[ genMoveCount++ ] = res;
 		break;
 	case mpQCap:
 		count = generateCaptures( board, moveBuf, 0 );
@@ -398,7 +406,7 @@ checksloop:
 			if ( MovePack::isCastling(res) )
 				break;
 			if ( board.see<1>( res ) < 0 )
-				continue;						// skip bad see checks
+				goto checksloop;						// skip bad see checks
 		} while ( !board.pseudoIsLegal<0>( res, pin ) );
 		assert( board.isCheck( res, dcMask ) );
 		break;

@@ -50,6 +50,7 @@ enum MoveGenPhase
 	mpHash,				// hashmove
 	mpCap,				// captures and promotions (note that only good/winning captures belong here)
 	mpCapBuffer,		// buffer phases: picks sorted moves from buffer
+	mpQHash,			// hashmove in qsearch
 	mpQCap,				// quiescence captures and promotions (ignores underpromotions)
 	mpQCapBuffer,
 	mpQChecks,			// qchecks

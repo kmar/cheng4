@@ -264,10 +264,6 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 
 		bool ischeck = board.isCheck( m, mg.discovered() );
 
-		// don't waste time on bad checks in qsearch (qchecks)
-		if ( !incheck && ischeck && !MovePack::isCapture(m) && board.see<1>(m) < 0 )
-			continue;
-
 		// delta/qsearch futility
 #ifndef USE_TUNING
 		if ( useFutility && !pv && !incheck && !ischeck && MovePack::isCapture(m) )
