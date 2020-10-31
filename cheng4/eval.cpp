@@ -51,6 +51,9 @@ TUNE_STATIC TUNE_CONST i16 safetyScaleEg[] = {
 	0, -1, 1, 2, 2, 3
 };
 
+TUNE_STATIC TUNE_CONST i16 kingOpenFile[] = {0, 0, 0, 0};
+TUNE_STATIC TUNE_CONST i16 kingOpenFileEg[] = {0, 0, 0, 0};
+
 TUNE_STATIC TUNE_CONST i16 shelterFront1 = 224;
 TUNE_STATIC TUNE_CONST i16 shelterFront2 = 185;
 
@@ -93,6 +96,17 @@ TUNE_STATIC TUNE_CONST i16 passerOpening[8] = {
 
 TUNE_STATIC TUNE_CONST i16 passerEndgame[8] = {
 	0, 158, 178, 438, 782, 1280, 1849, 0
+};
+
+TUNE_STATIC TUNE_CONST i16 disconnectedPawn = 0;
+TUNE_STATIC TUNE_CONST i16 disconnectedPawnEg = 0;
+
+TUNE_STATIC TUNE_CONST i16 connectedPasserOpening[8] = {
+	0, 0, 0, 0, 0, 0, 0, 0
+};
+
+TUNE_STATIC TUNE_CONST i16 connectedPasserEndgame[8] = {
+	0, 0, 0, 0, 0, 0, 0, 0
 };
 
 TUNE_STATIC TUNE_CONST i16 knightMobility[phMax][9] = {
@@ -334,6 +348,13 @@ void Eval::init()
 	TUNE_EXPORT(i16, safetyScaleEg4, safetyScaleEg[4]);
 	TUNE_EXPORT(i16, safetyScaleEg5, safetyScaleEg[5]);
 
+	TUNE_EXPORT(i16, kingOpenFile1, kingOpenFile[1]);
+	TUNE_EXPORT(i16, kingOpenFile2, kingOpenFile[2]);
+	TUNE_EXPORT(i16, kingOpenFile3, kingOpenFile[3]);
+	TUNE_EXPORT(i16, kingOpenFileEg1, kingOpenFileEg[1]);
+	TUNE_EXPORT(i16, kingOpenFileEg2, kingOpenFileEg[2]);
+	TUNE_EXPORT(i16, kingOpenFileEg3, kingOpenFileEg[3]);
+
 	TUNE_EXPORT(i16, shelterFront1, shelterFront1);
 	TUNE_EXPORT(i16, shelterFront2, shelterFront2);
 
@@ -409,6 +430,7 @@ Eval::Eval() : occ(0), pe(0)
 {
 	contemptFactor[ctWhite] = contemptFactor[ctBlack] = scDraw;
 	fscore[phOpening] = fscore[phEndgame] = 0;
+	kingOpenFiles[ctWhite] = kingOpenFiles[ctBlack] = 0;
 	safetyMask[ctWhite] = safetyMask[ctBlack] = 0;
 	attackers[ctWhite] = attackers[ctBlack] = 0;
 	rookVertAttacks[ctWhite] = rookVertAttacks[ctBlack] = 0;
@@ -580,6 +602,13 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 		kf += kf == AFILE;
 		kf -= kf == HFILE;
 
+		Bitboard pawns = b.pieces(c, ptPawn);
+
+		kingOpenFiles[c] =
+			!(Tables::fileMask[kf-1] & pawns) +
+			!(Tables::fileMask[kf] & pawns) +
+			!(Tables::fileMask[kf+1] & pawns);
+
 		kr += kr == RANK8;
 		kr -= kr == RANK1;
 
@@ -671,7 +700,8 @@ template< PopCountMode pcm, Color c, bool slow > void Eval::evalPawns( const Boa
 		while ( tmp )
 		{
 			Square sq = BitOp::popBit( tmp );
-//			bool chained = (Tables::chainMask[ sq ] & pawns) != 0;
+			Rank rr = SquarePack::relRank<c>( sq ) ^ RANK1;	// important: use rank1 = 7, ... rank8 = 0
+			bool chained = (Tables::chainMask[ sq ] & pawns) != 0;
 			bool passer = !(b.pieces( flip(c), ptPawn ) & Tables::passerMask[ c ][ sq ]);
 			bool doubled = (Tables::frontMask[ c ][ sq ] & pawns) != 0;
 			bool isolated = !(Tables::isoMask[ SquarePack::file(sq) ] & pawns);
@@ -693,7 +723,6 @@ template< PopCountMode pcm, Color c, bool slow > void Eval::evalPawns( const Boa
 				if ( BitOp::popCount< pcm >( Tables::passerMask[ c ][ sq ] & b.pieces( flip(c), ptPawn ) ) < 2 )
 				{
 					// candidate passer
-					Rank rr = SquarePack::relRank<c>( sq ) ^ RANK1;	// important: use rank1 = 7, ... rank8 = 0
 					pe->scores[ phOpening ] += sign<c>() * candPasserOpening[rr];
 					pe->scores[ phEndgame ] += sign<c>() * candPasserEndgame[rr];
 				}
@@ -701,6 +730,19 @@ template< PopCountMode pcm, Color c, bool slow > void Eval::evalPawns( const Boa
 			if ( passer && !doubled )
 			{
 				pe->passers[c] |= BitOp::oneShl( sq );
+
+				// connected passers
+				if (chained)
+				{
+					pe->scores[ phOpening ] += sign<c>() * connectedPasserOpening[rr];
+					pe->scores[ phEndgame ] += sign<c>() * connectedPasserEndgame[rr];
+				}
+			}
+			else if (!chained)
+			{
+				// penalize disconnected pawns
+				pe->scores[ phOpening ] -= sign<c>() * disconnectedPawn;
+				pe->scores[ phEndgame ] -= sign<c>() * disconnectedPawnEg;
 			}
 		}
 	}
@@ -974,6 +1016,11 @@ template< PopCountMode pcm, Color c > void Eval::evalKing( const Board &b )
 	uint front2 = BitOp::popCount< pcm >( tmp & pawns );
 	fscore[ phOpening ] += sign<c>() * (FineScore)(front2 * shelterFront2);
 
+	// king open file penalty
+	fscore[ phOpening ] -= sign<c>() * kingOpenFile[kingOpenFiles[c]];
+	fscore[ phEndgame ] -= sign<c>() * kingOpenFileEg[kingOpenFiles[c]];
+
+	// safety
 	u32 atk = attackers[ c ];
 
 	if ( atk )

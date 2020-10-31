@@ -188,6 +188,7 @@ private:
 	// precomputed values for evaluation
 	Bitboard occ;				// occupied
 	Bitboard safetyMask[ctMax];	// safety masks for each king
+	u32 kingOpenFiles[ctMax];	// open files around the king
 	u32 attackers[ctMax];		// attackers for each stm
 	Bitboard pinMask[ctMax];
 
@@ -229,6 +230,8 @@ private:
 
 // feature export
 
+extern i16 kingOpenFile[];
+extern i16 kingOpenFileEg[];
 extern i16 safetyScale[];
 extern i16 safetyScaleEg[];
 extern i16 shelterFront1;
@@ -265,11 +268,15 @@ extern i16 candPasserOpening[];
 extern i16 candPasserEndgame[];
 extern i16 passerOpening[];
 extern i16 passerEndgame[];
+extern i16 connectedPasserOpening[];
+extern i16 connectedPasserEndgame[];
 extern i16 knightMobility[phMax][9];
 extern i16 bishopMobility[phMax][14];
 extern i16 rookMobility[phMax][15];
 extern i16 queenMobility[phMax][28];
 extern i16 goodBishopOpening[17];
 extern i16 goodBishopEndgame[17];
+extern i16 disconnectedPawn;
+extern i16 disconnectedPawnEg;
 
 }
