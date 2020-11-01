@@ -918,12 +918,12 @@ public:
 	inline bool canPrune( Move m ) const
 	{
 		// don't prune passer pushes
-		Square to = MovePack::to( m );
-		Piece p = piece(to);
+		Square from = MovePack::from( m );
+		Piece p = piece(from);
 		if ( PiecePack::type( p ) != ptPawn )
 			return 1;
 		// don't prune passer pushes
-		return (Tables::passerMask[ turn() ][ to ] & pieces( flip(turn()), ptPawn )) != 0;
+		return (Tables::passerMask[ turn() ][ from ] & pieces( flip(turn()), ptPawn )) != 0;
 	}
 
 	// can reduce move?
