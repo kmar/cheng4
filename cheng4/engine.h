@@ -95,7 +95,7 @@ public:
 
 	EngineThread *mainThread;
 
-	Engine( size_t transMegs = 4 );
+	Engine( size_t transMegs = 32 );
 	~Engine();
 
 	const Board &board() const;
