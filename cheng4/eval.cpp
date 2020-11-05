@@ -247,7 +247,28 @@ template< Color c > static void krpkr( const Board &b, FineScore *fscore )
 	}
 }
 
-static const size_t numRecognizers = 6;
+template< Color c > static void kpkq( const Board &b, FineScore *fscore )
+{
+	// scale down if pawn is on 7th rank
+	assert( b.pieces( c, ptPawn ) );
+	Square psq = (Square)BitOp::getLSB( b.pieces( c, ptPawn ) );
+
+	Rank rr = SquarePack::relRank<c>( psq ) ^ RANK1;	// important: use rank1 = 7, ... rank8 = 0
+
+	if (rr == 6)
+	{
+		fscore[ phEndgame ] /= 64;
+	}
+}
+
+static void kqkq( const Board &b, FineScore *fscore )
+{
+	(void)b;
+	// discourage any imaginary advantage
+	fscore[ phEndgame ] /= 4;
+}
+
+static const size_t numRecognizers = 10;
 
 static Eval::Recognizer recognizers[ numRecognizers ] =
 {
@@ -256,7 +277,11 @@ static Eval::Recognizer recognizers[ numRecognizers ] =
 	{ matKBN[ctWhite], kbnk<ctWhite> },
 	{ matKBN[ctBlack], kbnk<ctBlack> },
 	{ matKRPkr, krpkr<ctWhite> },
-	{ matKRkrp, krpkr<ctBlack> }
+	{ matKRkrp, krpkr<ctBlack> },
+	{ matKPkq, kpkq<ctWhite> },
+	{ matKQkp, kpkq<ctBlack> },
+	{ matKQkq, kqkq },
+	{ matKRkr, kqkq }
 };
 
 // EG scale recognizers
@@ -480,6 +505,9 @@ template< Color c > static inline bool hasMatingMaterial( const Board &b )
 	uint knights = (uint)(mk >> MATSHIFT( c, ptKnight )) & 63;
 	uint bishops = (uint)(mk >> MATSHIFT( c, ptBishop )) & 63;
 	if ( knights > 2 || (knights && bishops) )
+		return 1;
+	// ! knnvskp may not be a draw - Cheng lost a knnkp ending against Chiron 2
+	if ( knights == 2 && (uint)(mk >> MATSHIFT( flip(c), ptPawn )) & 63 )
 		return 1;
 	if ( bishops <= 1 )
 		return 0;

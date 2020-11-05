@@ -185,7 +185,7 @@ void TransTable::store( Signature sig, Age age, Move move, Score score, HashBoun
 		}
 		// replace based on depth and age
 		// FIXME: better?
-		i32 escore = ((i32)depth-lte.u.s.depth)*2 + ((Age)(lte.u.s.bound & 0xfc) != age) * 256 -
+		i32 escore = (-lte.u.s.depth)*2 + ((Age)(lte.u.s.bound & 0xfc) != age) * 256 -
 			((lte.u.s.bound & 3) == btExact);
 		if ( escore > beScore )
 		{

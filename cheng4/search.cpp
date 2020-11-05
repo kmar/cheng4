@@ -495,6 +495,12 @@ template< bool pv, bool incheck, bool donull >
 
 		// extend
 		FracDepth extension = std::min( (FracDepth)fracOnePly, extend<pv>( m, ischeck, mg.discovered() ) );
+
+		// extend good SEE queen checks a full ply
+		// costs 5 elo in hyperbullet self-play but cures some of the tactical blindness
+		if (!pv && ischeck && depth >= 6 && (board.pieces(board.turn(), ptQueen) & Tables::oneShlTab[MovePack::from(m)]) && board.see<1>(m) >= 0)
+			extension = fracOnePly;
+
 		FracDepth newDepth = fdepth - fracOnePly + extension;
 
 		if ( useFutility && !pv && !incheck && mg.phase() >= mpQuietBuffer &&
