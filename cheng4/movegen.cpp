@@ -133,7 +133,13 @@ static const uint phaseQCapsChecks[] = {
 };
 
 // legal only version
-MoveGen::MoveGen( const Board &b_ ) : mode( mmLegal ), board(b_), killer(0), history(0), genMoveCount(0)
+MoveGen::MoveGen( const Board &b_ )
+	: mode( mmLegal )
+	, board(b_)
+	, killer(0)
+	, history(0)
+	, genMoveCount(0)
+	, nextMove(mcNone)
 {
 	dcMask = board.discovered();
 	pin = board.pins();
@@ -141,7 +147,12 @@ MoveGen::MoveGen( const Board &b_ ) : mode( mmLegal ), board(b_), killer(0), his
 }
 
 MoveGen::MoveGen(const Board &b_, const Killer &killer_, const History &history_, uint mode_)
-	: mode(mode_), board(b_), killer(&killer_), history(&history_), genMoveCount(0)
+	: mode(mode_)
+	, board(b_)
+	, killer(&killer_)
+	, history(&history_)
+	, genMoveCount(0)
+	, nextMove(mcNone)
 {
 	dcMask = board.discovered();
 	pin = board.pins();
@@ -177,9 +188,25 @@ bool MoveGen::alreadyGenerated( Move m )
 	return 0;
 }
 
+Move MoveGen::peek()
+{
+	if (nextMove != mcNone)
+		return nextMove;
+
+	return (nextMove = next());
+}
+
 Move MoveGen::next()
 {
 	Move res;
+
+	if (nextMove != mcNone)
+	{
+		res = nextMove;
+		nextMove = mcNone;
+		return res;
+	}
+
 loop:
 	switch( *phPtr )
 	{

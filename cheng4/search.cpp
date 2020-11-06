@@ -501,6 +501,11 @@ template< bool pv, bool incheck, bool donull >
 		if (!pv && ischeck && depth >= 6 && (board.pieces(board.turn(), ptQueen) & Tables::oneShlTab[MovePack::from(m)]) && board.see<1>(m) >= 0)
 			extension = fracOnePly;
 
+		// single evasion extension
+		// costs 3 elo
+		if (incheck && count == 1 && depth > 8 && !mg.peek())
+			extension = fracOnePly*3/2;
+
 		FracDepth newDepth = fdepth - fracOnePly + extension;
 
 		if ( useFutility && !pv && !incheck && mg.phase() >= mpQuietBuffer &&
