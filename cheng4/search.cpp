@@ -92,12 +92,12 @@ static const i32 currmoveLimit = 1000;
 
 // beta razoring margins
 static TUNE_CONST Score betaMargins[] = {
-	0, 100, 150, 250, 500
+	0, 100, 150, 250, 400, 600, 850
 };
 
 // futility margins
 static TUNE_CONST Score futMargins[] = {
-	0, 100, 150, 250, 500
+	0, 100, 150, 250, 400, 600, 850
 };
 
 // razoring margins
@@ -404,7 +404,7 @@ template< bool pv, bool incheck, bool donull >
 			fscore = ttBetter;
 		// beta razoring
 		Score razEval;
-		if ( useRazoring && depth <= 4 && (razEval = fscore - betaMargins[depth]) > alpha && !ScorePack::isMate(beta) )
+		if ( useRazoring && depth <= 6 && (razEval = fscore - betaMargins[depth]) > alpha && !ScorePack::isMate(beta) )
 			return razEval;
 	}
 
@@ -509,7 +509,7 @@ template< bool pv, bool incheck, bool donull >
 		FracDepth newDepth = fdepth - fracOnePly + extension;
 
 		if ( useFutility && !pv && !incheck && mg.phase() >= mpQuietBuffer &&
-			!extension && depth <= 4 && !MovePack::isSpecial(m) && !ScorePack::isMate(beta) &&
+			!extension && depth <= 6 && !MovePack::isSpecial(m) && !ScorePack::isMate(beta) &&
 			board.canPrune(m) )
 		{
 			// futility pruning
