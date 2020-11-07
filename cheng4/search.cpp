@@ -513,7 +513,7 @@ template< bool pv, bool incheck, bool donull >
 			board.canPrune(m) )
 		{
 			// futility pruning
-			Score futScore = fscore + futMargins[depth] - (Score)(20*lmrCount);
+			Score futScore = fscore + futMargins[depth] - (Score)(22*lmrCount);
 			if ( futScore <= alpha )
 				continue;
 		}
