@@ -551,7 +551,7 @@ template< bool pv, bool incheck, bool donull >
 		{
 			// LMR at nonpv nodes
 			FracDepth reduction = lmrFormula(depth, lmrCount);
-			reduction >>= int(hist > 0 || !board.canReduce(m));
+			reduction >>= int(hist > 0 || !board.canReduce(m) || MovePack::isSpecial(m));
 
 			if (reduction > 0)
 				score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
