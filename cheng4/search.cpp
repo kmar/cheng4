@@ -266,7 +266,7 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 
 		// delta/qsearch futility
 #ifndef USE_TUNING
-		if ( useFutility && !pv && !incheck && !ischeck && MovePack::isCapture(m) )
+		if ( useFutility && !pv && !incheck && !ischeck )
 		{
 			Score fscore = ev + board.moveGain( m );
 			if ( fscore + 200 <= alpha )

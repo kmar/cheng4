@@ -72,8 +72,8 @@ const int Tables::sign[ctMax] = {1, -1};
 const u8 Tables::mvvValue[ ptMax ] = { 1*8, 1*8, 2*8, 2*8, 3*8, 4*8, 1*8 };
 // lva reversed, added to mvvValue to get final sorting key
 const u8 Tables::lvaValue[ ptMax ] = {0, 5, 4, 4, 3, 2, 1 };
-const Score Tables::gainPromo[ ptMax ] = { 0, 0, 225, 225, 400, 875, 0 };	// promotion score gain table
-const Score Tables::gainCap[ ptMax ] = { 100, 100, 325, 325, 500, 975, 0};	// capture score gain table
+Score Tables::gainPromo[ ptMax ] = { 0, 0, 225, 225, 400, 875, 0 };		// promotion score gain table
+Score Tables::gainCap[ ptMax ] = { 100, 100, 325, 325, 500, 975, 0};	// capture score gain table
 
 void Tables::init()
 {

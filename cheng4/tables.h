@@ -110,8 +110,8 @@ struct Tables
 	static const u8 seeValue[ ptMax ];		// pawn = 1 ... queen = 9
 	static const u8 mvvValue[ ptMax ];		// none = 1 (enpassant), pawn = 1 ... queen = 5
 	static const u8 lvaValue[ ptMax ];		// pawn = 1 ..
-	static const Score gainPromo[ ptMax ];	// promotion score gain table
-	static const Score gainCap[ ptMax ];	// capture score gain table
+	static Score gainPromo[ ptMax ];		// promotion score gain table
+	static Score gainCap[ ptMax ];			// capture score gain table
 
 	// non-pawn material value
 	static const u8 npValue[ ptMax ];		// pawn = 0 ... queen = 9
