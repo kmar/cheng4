@@ -36,6 +36,11 @@ namespace cheng4
 // eval helper
 static const Piece ptAll = ptNone;
 
+// where we start fading out
+TUNE_STATIC TUNE_CONST i16 progressBasePly = 16;
+// fixedpoint n:8
+TUNE_STATIC TUNE_CONST i16 progressScale = 64;
+
 // stm bonus in cp (=tempo)
 TUNE_STATIC TUNE_CONST i16 stmBonus			=	5;
 
@@ -587,6 +592,11 @@ template< Color c > void Eval::evalBlindBishop( const Board &b )
 Score Eval::eval( const Board &b, Score alpha, Score beta )
 {
 	Score res = BitOp::hasHwPopCount() ? ieval< pcmHardware >( b, alpha, beta ) : ieval< pcmNormal >( b, alpha, beta );
+
+	// scale down based on 50 rule counter
+	res *= evalProgress(b);
+	res /= 256;
+
 	// stm bonus
 	res += stmBonus;
 	// contempt
@@ -1186,6 +1196,22 @@ void Eval::evalRecog( const Board &b )
 
 	// exec true recognizers
 	execRecog( b, mk, recognizers, numRecognizers );
+}
+
+uint Eval::evalProgress(const Board &b)
+{
+	uint value = b.fifty();
+
+	if (value < (uint)progressBasePly)
+		return 256;
+
+	value = clamp<uint>(value, progressBasePly, 100) - progressBasePly;
+	value *= 256;
+	value /= 100 - progressBasePly;
+
+	// now lerp from 256 to progressScale
+	value = std::max<int>(256 + ((progressScale - 256)*(int)value >> 8), 0);
+	return value;
 }
 
 }

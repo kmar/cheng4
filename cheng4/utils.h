@@ -43,4 +43,10 @@ void skipSpaces( const char *&ptr );
 // skip until EOL (and skip it too)
 void skipUntilEOL( const char *&ptr );
 
+template<typename T>
+inline T clamp(T val, T minv, T maxv)
+{
+	return val < minv ? minv : val > maxv ? maxv : val;
+}
+
 }

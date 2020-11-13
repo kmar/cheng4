@@ -226,6 +226,9 @@ private:
 
 	// evaluate blind bishop scaling
 	template< Color c > void evalBlindBishop( const Board &b );
+
+	// returns scale, fpn:8
+	static uint evalProgress(const Board &b);
 };
 
 // feature export
@@ -278,5 +281,7 @@ extern i16 goodBishopOpening[17];
 extern i16 goodBishopEndgame[17];
 extern i16 disconnectedPawn;
 extern i16 disconnectedPawnEg;
+extern i16 progressBasePly;
+extern i16 progressScale;
 
 }
