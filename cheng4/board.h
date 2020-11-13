@@ -954,7 +954,6 @@ public:
 	// move gain ( used in qs delta(futility) )
 	Score moveGain( Move m ) const
 	{
-		assert( !MovePack::isCastling(m) && MovePack::isCapture(m) );
 		Score res = Tables::gainPromo[ MovePack::promo(m) ];
 		return res + Tables::gainCap[ PiecePack::type( piece( MovePack::to(m) ) ) ] * (MovePack::isCapture(m) != 0);
 	}
