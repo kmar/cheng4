@@ -56,6 +56,8 @@ TUNE_STATIC TUNE_CONST i16 safetyScaleEg[] = {
 	0, -1, 1, 2, 2, 3
 };
 
+TUNE_STATIC TUNE_CONST i16 kingCheckPotential[28];
+
 TUNE_STATIC TUNE_CONST i16 kingOpenFile[] = {0, 0, 0, 0};
 TUNE_STATIC TUNE_CONST i16 kingOpenFileEg[] = {0, 0, 0, 0};
 
@@ -460,6 +462,7 @@ Eval::Eval() : occ(0), pe(0)
 {
 	contemptFactor[ctWhite] = contemptFactor[ctBlack] = scDraw;
 	fscore[phOpening] = fscore[phEndgame] = 0;
+	checkPotential[ctWhite] = checkPotential[ctBlack] = 0;
 	kingOpenFiles[ctWhite] = kingOpenFiles[ctBlack] = 0;
 	safetyMask[ctWhite] = safetyMask[ctBlack] = 0;
 	attackers[ctWhite] = attackers[ctBlack] = 0;
@@ -634,6 +637,10 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 
 		// offset king out of edges, so we always have a 8-square mask
 		Square kp = b.king(c);
+
+		checkPotential[c] = (u32)BitOp::popCount(Magic::queenAttm(kp, occ) & ~occ);
+		assert(checkPotential[c] >= 0 && checkPotential[c] < 28);
+
 		File kf = SquarePack::file(kp);
 		Rank kr = SquarePack::rank(kp);
 
@@ -1057,6 +1064,8 @@ template< PopCountMode pcm, Color c > void Eval::evalKing( const Board &b )
 	// king open file penalty
 	fscore[ phOpening ] -= sign<c>() * kingOpenFile[kingOpenFiles[c]];
 	fscore[ phEndgame ] -= sign<c>() * kingOpenFileEg[kingOpenFiles[c]];
+
+	fscore[ phOpening ] -= sign<c>() * kingCheckPotential[checkPotential[c]];
 
 	// safety
 	u32 atk = attackers[ c ];

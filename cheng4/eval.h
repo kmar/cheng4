@@ -188,6 +188,7 @@ private:
 	// precomputed values for evaluation
 	Bitboard occ;				// occupied
 	Bitboard safetyMask[ctMax];	// safety masks for each king
+	u32 checkPotential[ctMax];	// king checking potential
 	u32 kingOpenFiles[ctMax];	// open files around the king
 	u32 attackers[ctMax];		// attackers for each stm
 	Bitboard pinMask[ctMax];
@@ -233,6 +234,7 @@ private:
 
 // feature export
 
+extern i16 kingCheckPotential[];
 extern i16 kingOpenFile[];
 extern i16 kingOpenFileEg[];
 extern i16 safetyScale[];
