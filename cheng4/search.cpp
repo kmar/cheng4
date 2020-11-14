@@ -497,12 +497,11 @@ template< bool pv, bool incheck, bool donull >
 		FracDepth extension = std::min( (FracDepth)fracOnePly, extend<pv>( m, ischeck, mg.discovered() ) );
 
 		// extend good SEE queen checks a full ply
-		// costs 5 elo in hyperbullet self-play but cures some of the tactical blindness
+		// cures some of the tactical blindness
 		if (!pv && ischeck && depth >= 6 && (board.pieces(board.turn(), ptQueen) & Tables::oneShlTab[MovePack::from(m)]) && board.see<1>(m) >= 0)
 			extension = fracOnePly;
 
 		// single evasion extension
-		// costs 3 elo
 		if (incheck && count == 1 && depth > 8 && !mg.peek())
 			extension = fracOnePly*3/2;
 
