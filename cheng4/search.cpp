@@ -480,6 +480,8 @@ template< bool pv, bool incheck, bool donull >
 	Move failHist[maxMoves];
 	MoveCount failHistCount = 0;
 
+	Square recapTarget = ply > 0 && MovePack::isCapture(stack[ply-1].current) ? MovePack::to(stack[ply-1].current) : sqInvalid;
+
 	while ( (m = mg.next()) != mcNone )
 	{
 		stack[ ply ].current = m;
@@ -495,6 +497,10 @@ template< bool pv, bool incheck, bool donull >
 
 		// extend
 		FracDepth extension = std::min( (FracDepth)fracOnePly, extend<pv>( m, ischeck, mg.discovered() ) );
+
+		// recapture extension
+		if (MovePack::isCapture(m) && MovePack::to(m) == recapTarget)
+			extension = fracOnePly;
 
 		// extend good SEE queen checks a full ply
 		// cures some of the tactical blindness
