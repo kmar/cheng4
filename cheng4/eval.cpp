@@ -1061,11 +1061,13 @@ template< PopCountMode pcm, Color c > void Eval::evalKing( const Board &b )
 	uint front2 = BitOp::popCount< pcm >( tmp & pawns );
 	fscore[ phOpening ] += sign<c>() * (FineScore)(front2 * shelterFront2);
 
-	// king open file penalty
-	fscore[ phOpening ] -= sign<c>() * kingOpenFile[kingOpenFiles[c]];
-	fscore[ phEndgame ] -= sign<c>() * kingOpenFileEg[kingOpenFiles[c]];
+	const int oppQueen = b.pieces( flip(c), ptQueen ) != 0;
 
-	fscore[ phOpening ] -= sign<c>() * kingCheckPotential[checkPotential[c]];
+	// king open file penalty
+	fscore[ phOpening ] -= sign<c>() * (kingOpenFile[kingOpenFiles[c]] << oppQueen);
+	fscore[ phEndgame ] -= sign<c>() * (kingOpenFileEg[kingOpenFiles[c]] << oppQueen);
+
+	fscore[ phOpening ] -= sign<c>() * (kingCheckPotential[checkPotential[c]] << oppQueen);
 
 	// safety
 	u32 atk = attackers[ c ];
@@ -1081,7 +1083,7 @@ template< PopCountMode pcm, Color c > void Eval::evalKing( const Board &b )
 			safety[ phEndgame ] += BitOp::popCount< pcm >( threats ) * safetyScaleEg[ p ];
 		}
 
-		if ( b.pieces( flip(c), ptQueen ) )
+		if ( oppQueen )
 		{
 			safety[ phOpening ] *= 2;
 			safety[ phEndgame ] *= 2;
