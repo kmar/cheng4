@@ -76,6 +76,7 @@ static const uint phaseNormal[] = {
 	mpCapBuffer,
 	mpKiller1,
 	mpKiller2,
+	mpCounter,
 	mpCastling,
 	mpCastlingBuffer,
 	mpQuiet,
@@ -91,6 +92,7 @@ static const uint phaseNormalNoCastling[] = {
 	mpCapBuffer,
 	mpKiller1,
 	mpKiller2,
+	mpCounter,
 	mpQuiet,
 	mpQuietBuffer,
 	mpBadCap,
@@ -102,6 +104,7 @@ static const uint phaseEvas[] = {
 	mpHash,
 	mpKiller1,
 	mpKiller2,
+	mpCounter,
 	mpEvas,
 	mpEvasBuffer,
 	mpDone
@@ -232,6 +235,15 @@ loop:
 		if ( !res || alreadyGenerated(res) ||
 			!(board.inCheck() ? board.isLegal<1,1>( res, pins() ) : board.isLegal<0,1>( res, pins() ) ) )
 			goto loop;
+		genMoves[ genMoveCount++ ] = res;
+		break;
+	case mpCounter:
+		res = history->getCounter(board, history->previous);
+		phPtr++;
+		if ( !res || alreadyGenerated(res) ||
+			!(board.inCheck() ? board.isLegal<1,0>( res, pins() ) : board.isLegal<0,0>( res, pins() ) ) )
+			goto loop;
+
 		genMoves[ genMoveCount++ ] = res;
 		break;
 	case mpCapNoSort:

@@ -8,7 +8,18 @@ namespace cheng4
 
 void History::clear()
 {
+	previous = mcNone;
 	memset( history, 0, sizeof(history) );
+	memset( counter, 0, sizeof(counter) );
+}
+
+void History::addCounter( const Board &b, Move m, Move cm )
+{
+	Piece p = b.piece( MovePack::from(m) );
+	Color c = PiecePack::color( p );
+	Piece pt = PiecePack::type(p);
+
+	counter[c][pt][MovePack::to(m)] = cm;
 }
 
 void History::add( const Board &b, Move m, i32 depth )

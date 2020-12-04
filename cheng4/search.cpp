@@ -252,6 +252,7 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 	if ( !incheck && depth < minQsDepth )
 		return best;
 
+	history.previous = ply > 0 ? stack[ply-1].current : mcNull;
 	MoveGen mg( board, stack[ply].killers, history, qchecks ? mmQCapsChecks : mmQCaps );
 	Move m;
 	Move bestMove = mcNone;
@@ -384,10 +385,16 @@ template< bool pv, bool incheck, bool donull >
 		{
 			Move ttmove = stack[ply].current = stack[ply].killers.hashMove;
 
-			if ( ttmove && !MovePack::isSpecial( ttmove ) )
+			if ( ttmove )
 			{
-				stack[ply].killers.addKiller( ttmove );
-				history.add( board, ttmove, depth );
+				if (ply > 0 && stack[ply-1].current != mcNull)
+					history.addCounter(board, stack[ply-1].current, ttmove);
+
+				if ( !MovePack::isSpecial( ttmove ) )
+				{
+					stack[ply].killers.addKiller( ttmove );
+					history.add( board, ttmove, depth );
+				}
 			}
 		}
 
@@ -472,6 +479,7 @@ template< bool pv, bool incheck, bool donull >
 	if ( pv )
 		oalpha = alpha;
 
+	history.previous = ply > 0 ? stack[ply-1].current : mcNull;
 	MoveGen mg( board, stack[ply].killers, history, mmNormal );
 	Move m;
 	Move bestMove = mcNone;
@@ -588,6 +596,9 @@ template< bool pv, bool incheck, bool donull >
 				}
 				if ( score >= beta )
 				{
+					if (ply > 0 && stack[ply-1].current != mcNull)
+						history.addCounter(board, stack[ply-1].current, m);
+
 					if ( !MovePack::isSpecial( m ) )
 					{
 						stack[ply].killers.addKiller( m );
@@ -1025,6 +1036,7 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 	tt->probe( b.sig(), 0, 0, scDraw, scDraw, killers.hashMove );
 
 	// init root moves
+	hist.previous = mcNull;
 	MoveGen mg( b, killers, hist );
 	Move m;
 	rootMoves.discovered = mg.discovered();
@@ -1137,7 +1149,8 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 			Score beta = lastIteration + 15;
 
 			i32 maxTime = mode.maxTime;
-			bool blunderCheck = 0;
+			bool blunderCheck = false;
+			bool failHigh = false;
 
 			for (;;)
 			{
@@ -1165,7 +1178,8 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 					// fail low
 					alpha = (alpha - lastIteration)*2;
 					alpha += lastIteration;
-					if ( abs( score - prevScore ) >= 30 )
+					// fail low after fail high triggers blunder check - saw Cheng lose 1 game because of this
+					if ( failHigh || abs( score - prevScore ) >= 30 )
 					{
 						// blunder warning => give more time to resolve iteration (if possible)
 						blunderCheck = 1;
@@ -1174,6 +1188,7 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 				}
 				else
 				{
+					failHigh = true;
 					// fail high
 					beta = (beta - lastIteration)<<1;
 					beta += lastIteration;

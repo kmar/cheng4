@@ -55,6 +55,7 @@ enum MoveGenPhase
 	mpQCapBuffer,
 	mpQChecks,			// qchecks
 	mpQChecksBuffer,
+	mpCounter,			// countermove
 	mpKiller1,			// killer1
 	mpKiller2,			// killer2
 	mpCastling,			// castling moves
@@ -634,7 +635,7 @@ protected:
 	Move moveBuf[ maxMoves ];		// move buffer
 	Move badCaps[ maxCaptures ];	// bad captures buffer
 
-	Move genMoves[ 4 ];				// already generated moves (hash, killers) (FIXME: use constant, rename)
+	Move genMoves[ 5 ];				// already generated moves (hash, counter, killers) (FIXME: use constant, rename)
 	MoveCount genMoveCount;			// number of already generated moves
 
 	Move nextMove;					// used by peek
