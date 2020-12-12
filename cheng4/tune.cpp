@@ -208,6 +208,15 @@ bool saveFeatures(const char *filename)
 
 #define ADD_SINGLE_FEATURE(x) addFeature(#x, &x)
 
+void freeFeatures()
+{
+	std::vector<Feature> nfeatures;
+	std::vector<i16> nfeatureVector;
+
+	features.swap(nfeatures);
+	featureVector.swap(nfeatureVector);
+}
+
 void extractFeatures()
 {
 	addFeature("kingCheckPotential", kingCheckPotential, 28);

@@ -97,6 +97,7 @@ void Engine::init( int npar, const char **par )
 
 void Engine::done()
 {
+	freeFeatures();
 	Magic::done();
 	Timer::done();
 }

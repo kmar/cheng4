@@ -44,6 +44,7 @@ extern std::vector<i16> featureVector;
 void addFeature(const char *name, i16 *ptr, int count = 1);
 bool saveFeatures(const char *filename);
 void extractFeatures();
+void freeFeatures();
 
 }
 
