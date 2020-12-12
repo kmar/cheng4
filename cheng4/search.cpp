@@ -115,6 +115,9 @@ inline FracDepth Search::lmrFormula(Depth depth, size_t lmrCount)
 	FracDepth res = (FracDepth)(a*b*fracOnePly/3);
 	res = (res + fracOnePly/2) & ~(fracOnePly-1);
 
+	if (res > 4*fracOnePly)
+		res = 4*fracOnePly;
+
 	return res * (depth*fracOnePly > res);
 }
 
@@ -488,7 +491,7 @@ template< bool pv, bool incheck, bool donull >
 	Move failHist[maxMoves];
 	MoveCount failHistCount = 0;
 
-	Square recapTarget = ply > 0 && MovePack::isCapture(stack[ply-1].current) ? MovePack::to(stack[ply-1].current) : sqInvalid;
+	Square recapTarget = ply > 0 && MovePack::isCapture(stack[ply-1].current) ? MovePack::to(stack[ply-1].current) : (Square)sqInvalid;
 
 	while ( (m = mg.next()) != mcNone )
 	{
