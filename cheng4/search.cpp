@@ -115,8 +115,8 @@ inline FracDepth Search::lmrFormula(Depth depth, size_t lmrCount)
 	FracDepth res = (FracDepth)(a*b*fracOnePly/3);
 	res = (res + fracOnePly/2) & ~(fracOnePly-1);
 
-	if (res > 4*fracOnePly)
-		res = 4*fracOnePly;
+	if (res > 5*fracOnePly)
+		res = 5*fracOnePly;
 
 	return res * (depth*fracOnePly > res);
 }

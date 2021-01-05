@@ -139,6 +139,7 @@ Score TransTable::probeEval( Signature sig, Ply ply, Score val, const TransEntry
 		return scInvalid;
 	BoundType bt = (BoundType)(lte.u.s.bound & 3);
 	Score score = ScorePack::unpackHash( lte.u.s.score, ply );
+	score = clamp<Score>(score, -scMate+1, scMate-1);
 	switch( bt )
 	{
 	case btExact:
