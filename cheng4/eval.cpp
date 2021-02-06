@@ -561,15 +561,33 @@ template< Color c > bool Eval::isCertainWin( const Board &b ) const
 
 template< Color c > void Eval::evalBlindBishop( const Board &b )
 {
-	if ( !isBareKing<c^1>(b) )
+	if ( sign<c>() * fscore[phEndgame] < 0 )
 		return;
+
 	MaterialKey mk = b.materialKey();
+
 	// blind bishop check (FIXME: better -- seems too complicated)
 	if ( !b.pieces(c, ptBishop) || (mk & matBishopEGMask) )
 		return;				// ok - no bishop eg
+
 	Bitboard pawns = b.pieces( c, ptPawn );
+
 	if ( !pawns )
 		return;
+
+	Square psq = c == ctWhite ? (Square)BitOp::getLSB(pawns) : (Square)BitOp::getMSB(pawns);
+	Square okp = b.king(c^1);
+	Rank rr = SquarePack::relRank(c, psq) ^ RANK1;	// important: use rank1 = 7, ... rank8 = 0
+	Distance pdist = (Distance)8 - (Distance)rr;
+	Distance dist = Tables::distance[okp][psq];
+
+	if ( b.turn() == c )
+		dist++;
+
+	// early out if opponent's king can't capture the pawn in time
+	if ( pdist < dist )
+		return;
+
 	if ( !(pawns & ~Tables::fileMask[ HFILE ]) )
 	{
 		// pawn(s) on H file only
