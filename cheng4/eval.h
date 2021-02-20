@@ -25,6 +25,7 @@ or as public domain (where applicable)
 
 #include "board.h"
 #include "utils.h"
+#include <memory.h>
 
 namespace cheng4
 {

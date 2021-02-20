@@ -1080,12 +1080,13 @@ template< PopCountMode pcm, Color c > void Eval::evalKing( const Board &b )
 	fscore[ phOpening ] += sign<c>() * (FineScore)(front2 * shelterFront2);
 
 	const int oppQueen = b.pieces( flip(c), ptQueen ) != 0;
+	const int oppQueenMult = 1+oppQueen;
 
 	// king open file penalty
-	fscore[ phOpening ] -= sign<c>() * (kingOpenFile[kingOpenFiles[c]] << oppQueen);
-	fscore[ phEndgame ] -= sign<c>() * (kingOpenFileEg[kingOpenFiles[c]] << oppQueen);
+	fscore[ phOpening ] -= sign<c>() * (kingOpenFile[kingOpenFiles[c]] * oppQueenMult);
+	fscore[ phEndgame ] -= sign<c>() * (kingOpenFileEg[kingOpenFiles[c]] * oppQueenMult);
 
-	fscore[ phOpening ] -= sign<c>() * (kingCheckPotential[checkPotential[c]] << oppQueen);
+	fscore[ phOpening ] -= sign<c>() * (kingCheckPotential[checkPotential[c]] * oppQueenMult);
 
 	// safety
 	u32 atk = attackers[ c ];
@@ -1153,7 +1154,8 @@ template< Color c > void Eval::evalSpecial( const Board &b )
 void Eval::execRecog( const Board &b, MaterialKey mk, const Recognizer *recogs, size_t numRecogs )
 {
 	i32 l = 0;
-	i32 h = (i32)numRecogs;
+	i32 h = (i32)numRecogs-1;
+
 	while ( l <= h )
 	{
 		i32 m = (l+h) >> 1;
