@@ -262,6 +262,12 @@ void Board::update()
 		h ^= Zobrist::epFile[ SquarePack::file( epSquare() ) ];
 
 	// castling rights
+	if (bcastRights[ ctWhite ] && SquarePack::rank(king(ctWhite)) != RANK1)
+		bcastRights[ ctWhite ] = 0;
+
+	if (bcastRights[ ctBlack ] && SquarePack::rank(king(ctBlack)) != RANK8)
+		bcastRights[ ctBlack ] = 0;
+
 	for ( Color c = ctWhite; c <= ctBlack; c++ )
 		h ^= Zobrist::cast[ c ][ castRights(c) ];
 
@@ -580,6 +586,7 @@ const char *Board::fromFEN( const char *fen )
 		}
 		fen++;
 	}
+
 	if ( *fen == '-' )
 	{
 		bcastRights[ ctWhite ] = bcastRights[ ctBlack ] = 0;
