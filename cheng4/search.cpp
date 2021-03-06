@@ -502,14 +502,17 @@ template< bool pv, bool incheck, bool donull >
 	Move failHist[maxMoves];
 	MoveCount failHistCount = 0;
 
-	bool trySingular = useSingular && exclude == mcNone && depth > 8 && depth+1 < maxDepth &&
-		(lte.u.s.bound & 3) >= btLower && stack[ply].killers.hashMove &&
-		board.isLegal<incheck, false>(stack[ply].killers.hashMove, board.pins());
+	Square recapTarget = ply > 0 && MovePack::isCapture(stack[ply-1].current) ? MovePack::to(stack[ply-1].current) : (Square)sqInvalid;
+
+	Move hashmove = stack[ply].killers.hashMove;
+
+	// note: avoiding singular if a recapture already lost a tiny amount of elo
+	bool trySingular = useSingular && exclude == mcNone && depth > 6 && depth+1 < maxDepth &&
+		(lte.u.s.bound & 3) >= btLower && hashmove &&
+		board.isLegal<incheck, false>(hashmove, board.pins());
 
 	bool doSingular = trySingular &&
-		search<false, incheck, false>(ply, fdepth/3, alpha-singularMargin-1,  alpha - singularMargin, stack[ply].killers.hashMove) < alpha - singularMargin;
-
-	Square recapTarget = ply > 0 && MovePack::isCapture(stack[ply-1].current) ? MovePack::to(stack[ply-1].current) : (Square)sqInvalid;
+		search<false, incheck, false>(ply, fdepth/3, alpha-singularMargin-1,  alpha - singularMargin, hashmove) < alpha - singularMargin;
 
 	while ( (m = mg.next()) != mcNone )
 	{
