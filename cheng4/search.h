@@ -279,7 +279,7 @@ struct Search
 
 	// alpha-beta search
 	template< bool pv, bool incheck, bool donull >
-		Score search( Ply ply, FracDepth fdepth, Score alpha, Score beta );
+		Score search( Ply ply, FracDepth fdepth, Score alpha, Score beta, Move exclude = mcNone );
 
 	// send PV info
 	void sendPV( const RootMove &rm, Depth depth, Score score, Score alpha, Score beta, uint mpvindex = 0 );

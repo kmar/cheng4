@@ -82,7 +82,8 @@ enum SearchOpts
 	useLMR		=	1,
 	useNull		=	1,
 	useRazoring	=	1,
-	useFutility	=	1
+	useFutility	=	1,
+	useSingular	=	1
 };
 
 // verbose limit (currently none)
@@ -104,6 +105,9 @@ static TUNE_CONST Score futMargins[] = {
 static TUNE_CONST Score razorMargins[] = {
 	0, 150, 200, 250
 };
+
+// singular extension margin
+static TUNE_CONST Score singularMargin = 25;
 
 inline FracDepth Search::lmrFormula(Depth depth, size_t lmrCount)
 {
@@ -334,7 +338,7 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 }
 
 template< bool pv, bool incheck, bool donull >
-	Score Search::search( Ply ply, FracDepth fdepth, Score alpha, Score beta )
+	Score Search::search( Ply ply, FracDepth fdepth, Score alpha, Score beta, Move exclude )
 {
 	assert( incheck == board.inCheck() );
 	assert( alpha >= -scInfinity && beta <= scInfinity && alpha < beta );
@@ -356,11 +360,14 @@ template< bool pv, bool incheck, bool donull >
 	if ( ply > selDepth )
 		selDepth = ply;
 
-	// mate distance pruning
-	alpha = std::max( alpha, ScorePack::checkMated(ply) );
-	beta = std::min( beta, ScorePack::mateIn(ply) );
-	if ( alpha >= beta )
-		return alpha;
+	if (!exclude)
+	{
+		// mate distance pruning
+		alpha = std::max( alpha, ScorePack::checkMated(ply) );
+		beta = std::min( beta, ScorePack::mateIn(ply) );
+		if ( alpha >= beta )
+			return alpha;
+	}
 
 	// check for timeout
 	if ( !(searchFlags & sfNoTimeout) && timeOut() )
@@ -380,7 +387,7 @@ template< bool pv, bool incheck, bool donull >
 	// probe hashtable
 	TransEntry lte;
 	Score ttScore = tt->probe( board.sig(), ply, depth, alpha, beta, stack[ply].killers.hashMove, lte );
-	if ( !pv && ttScore != scInvalid )
+	if ( !pv && !exclude && ttScore != scInvalid )
 	{
 		assert( ScorePack::isValid( ttScore ) );
 
@@ -414,7 +421,7 @@ template< bool pv, bool incheck, bool donull >
 			fscore = ttBetter;
 		// beta razoring
 		Score razEval;
-		if ( useRazoring && depth <= 6 && (razEval = fscore - betaMargins[depth]) > alpha && !ScorePack::isMate(beta) )
+		if ( useRazoring && !exclude && depth <= 6 && (razEval = fscore - betaMargins[depth]) > alpha && !ScorePack::isMate(beta) )
 			return razEval;
 	}
 
@@ -425,7 +432,8 @@ template< bool pv, bool incheck, bool donull >
 		Score margin = razorMargins[depth];
 
 		Score razEval = fscore;
-		if ( razEval + margin < alpha )
+
+		if ( !exclude && razEval + margin < alpha )
 		{
 			Score scout = alpha - margin;
 			Score score = qsearch< 0, 0 >( ply, 0, scout-1, scout );
@@ -462,18 +470,21 @@ template< bool pv, bool incheck, bool donull >
 		}
 	}
 
-	// bench-tuned depths (not a great idea but still)
-	if ( pv && depth > 2 && stack[ply].killers.hashMove == mcNone )
+	if (!exclude)
 	{
-		// IID at pv nodes
-		search< pv, incheck, 0 >( ply, (depth/3) * fracOnePly, alpha, beta );
-		tt->probe( board.sig(), ply, depth, alpha, beta, stack[ply].killers.hashMove );
-	}
-	if ( !pv && depth > 8 && stack[ply].killers.hashMove == mcNone )
-	{
-		// IID at nonpv nodes
-		search< pv, incheck, 0 >( ply, (depth/3) * fracOnePly, alpha, beta );
-		tt->probe( board.sig(), ply, depth, alpha, beta, stack[ply].killers.hashMove );
+		// bench-tuned depths (not a great idea but still)
+		if ( pv && depth > 2 && stack[ply].killers.hashMove == mcNone )
+		{
+			// IID at pv nodes
+			search< pv, incheck, 0 >( ply, (depth/3) * fracOnePly, alpha, beta );
+			tt->probe( board.sig(), ply, depth, alpha, beta, stack[ply].killers.hashMove );
+		}
+		if ( !pv && depth > 8 && stack[ply].killers.hashMove == mcNone )
+		{
+			// IID at nonpv nodes
+			search< pv, incheck, 0 >( ply, (depth/3) * fracOnePly, alpha, beta );
+			tt->probe( board.sig(), ply, depth, alpha, beta, stack[ply].killers.hashMove );
+		}
 	}
 
 	Score best = -scInfinity;
@@ -491,6 +502,13 @@ template< bool pv, bool incheck, bool donull >
 	Move failHist[maxMoves];
 	MoveCount failHistCount = 0;
 
+	bool trySingular = useSingular && exclude == mcNone && depth > 8 && depth+1 < maxDepth &&
+		(lte.u.s.bound & 3) >= btLower && stack[ply].killers.hashMove &&
+		board.isLegal<incheck, false>(stack[ply].killers.hashMove, board.pins());
+
+	bool doSingular = trySingular &&
+		search<false, incheck, false>(ply, fdepth/3, alpha-singularMargin-1,  alpha - singularMargin, stack[ply].killers.hashMove) < alpha - singularMargin;
+
 	Square recapTarget = ply > 0 && MovePack::isCapture(stack[ply-1].current) ? MovePack::to(stack[ply-1].current) : (Square)sqInvalid;
 
 	while ( (m = mg.next()) != mcNone )
@@ -498,6 +516,9 @@ template< bool pv, bool incheck, bool donull >
 		stack[ ply ].current = m;
 		count++;
 		lmrCount = count;
+
+		if (m == exclude)
+			continue;
 
 		if ( !MovePack::isSpecial( m ) )
 			failHist[ failHistCount++ ] = m;
@@ -509,8 +530,8 @@ template< bool pv, bool incheck, bool donull >
 		// extend
 		FracDepth extension = std::min( (FracDepth)fracOnePly, extend<pv>( m, ischeck, mg.discovered() ) );
 
-		// recapture extension
-		if (MovePack::isCapture(m) && MovePack::to(m) == recapTarget)
+		// singular/recapture extension
+		if ((doSingular && count==1) || (MovePack::isCapture(m) && MovePack::to(m) == recapTarget))
 			extension = fracOnePly;
 
 		// extend good SEE queen checks a full ply
@@ -599,6 +620,9 @@ template< bool pv, bool incheck, bool donull >
 				}
 				if ( score >= beta )
 				{
+					if (exclude)
+						return score;
+
 					if (ply > 0 && stack[ply-1].current != mcNull)
 						history.addCounter(board, stack[ply-1].current, m);
 
@@ -633,9 +657,10 @@ template< bool pv, bool incheck, bool donull >
 
 	assert( best > -scInfinity );
 
-	tt->store( board.sig(), age, bestMove, best,
-		(HashBound)(!pv ? btUpper :
-		(best > oalpha ? btExact : btUpper)), depth, ply );
+	if (!exclude)
+		tt->store( board.sig(), age, bestMove, best,
+			(HashBound)(!pv ? btUpper :
+			(best > oalpha ? btExact : btUpper)), depth, ply );
 
 	return best;
 }
