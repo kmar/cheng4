@@ -103,7 +103,7 @@ void Engine::done()
 }
 
 Engine::Engine( size_t transMegs ) : ponder(0), pondering(0), ponderMove( mcNone ), stm( ctWhite ),
-	uciMode(0), ownBook(1), tt(0)
+	uciMode(0), ownBook(0), tt(0)
 {
 	curBoard.reset();
 	startBoard = curBoard;
@@ -117,7 +117,7 @@ Engine::Engine( size_t transMegs ) : ponder(0), pondering(0), ponderMove( mcNone
 	mainThread = new EngineThread;
 	mainThread->search.setHashTable( tt );
 
-	book.open("cheng2015.cb");
+	book.open("cheng2021.cb");
 }
 
 Engine::~Engine()
