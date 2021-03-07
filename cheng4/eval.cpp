@@ -200,6 +200,11 @@ template< Color c > static void kpk( const Board &b, FineScore *fscore )
 	// FIXME: use getMSB on platforms (ARM) where it's faster?
 	assert( b.pieces( c, ptPawn ) );
 	Square psq = (Square)BitOp::getLSB( b.pieces( c, ptPawn ) );
+
+	// avoid pathological case
+	if (SquarePack::isRank1Or8(psq))
+		return;
+
 	u8 draw = KPK::isDraw( c, b.turn(), b.king( c ), b.king( flip(c) ), psq );
 	if ( draw )
 		fscore[ phEndgame ] = 0;
