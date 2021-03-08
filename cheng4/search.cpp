@@ -107,7 +107,7 @@ static TUNE_CONST Score razorMargins[] = {
 };
 
 // singular extension margin
-static TUNE_CONST Score singularMargin = 25;
+static TUNE_CONST Score singularMargin = 13;
 
 inline FracDepth Search::lmrFormula(Depth depth, size_t lmrCount)
 {
