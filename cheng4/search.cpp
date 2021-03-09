@@ -154,6 +154,14 @@ bool Search::timeOut()
 			info.nps = dt ? info.nodes * 1000 / dt : 0;
 			sendInfo();
 			nodeTicks = ms;
+
+			// note: moved here so really verboseLimit has to be a multiply of a second
+			if ( !verbose && !verboseFixed && dt >= verboseLimit )
+			{
+				// turning on verbose;
+				verbose = 1;
+				flushCachedPV( rootMoves.count );
+			}
 		}
 	}
 	return 0;
@@ -1124,12 +1132,6 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 		}
 
 		i32 total = curTicks - startTicks;
-		if ( !verboseFixed && !verbose && total >= verboseLimit )
-		{
-			// turning on verbose;
-			verbose = 1;
-			flushCachedPV( rootMoves.count );
-		}
 
 		if ( d > 1 && (!mode.ponder || ponderHit) && mode.maxTime && !mode.fixedTime )
 		{
