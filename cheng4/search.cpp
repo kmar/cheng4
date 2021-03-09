@@ -421,7 +421,7 @@ template< bool pv, bool incheck, bool donull >
 			fscore = ttBetter;
 		// beta razoring
 		Score razEval;
-		if ( useRazoring && !exclude && depth <= 6 && (razEval = fscore - betaMargins[depth]) > alpha && !ScorePack::isMate(beta) )
+		if ( useRazoring && donull && !exclude && depth <= 6 && (razEval = fscore - betaMargins[depth]) > alpha && !ScorePack::isMate(beta) )
 			return razEval;
 	}
 
