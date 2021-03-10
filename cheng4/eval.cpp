@@ -1158,6 +1158,19 @@ template< Color c > void Eval::evalSpecial( const Board &b )
 
 void Eval::execRecog( const Board &b, MaterialKey mk, const Recognizer *recogs, size_t numRecogs )
 {
+	// linear scan is ~1.5% faster (engine overall)
+#if 1
+	for (size_t i=0; i<numRecogs; i++)
+	{
+		const Recognizer &r = recogs[i];
+		if ( mk == r.key )
+		{
+			// found!
+			r.func( b, fscore );
+			return;
+		}
+	}
+#else
 	i32 l = 0;
 	i32 h = (i32)numRecogs-1;
 
@@ -1176,6 +1189,7 @@ void Eval::execRecog( const Board &b, MaterialKey mk, const Recognizer *recogs, 
 		else
 			l = m+1;
 	}
+#endif
 }
 
 // eval eg recognizers
