@@ -552,7 +552,7 @@ template< bool pv, bool incheck, bool donull >
 
 		// single evasion extension
 		if (incheck && count == 1 && depth > 8 && !mg.peek())
-			extension = fracOnePly*3/2;
+			extension = std::min<FracDepth>(fracOnePly*3/2, maxDepth*fracOnePly);
 
 		FracDepth newDepth = fdepth - fracOnePly + extension;
 
