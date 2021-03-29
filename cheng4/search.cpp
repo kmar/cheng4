@@ -514,8 +514,10 @@ template< bool pv, bool incheck, bool donull >
 
 	Move hashmove = stack[ply].killers.hashMove;
 
+	const bool isMateScout = !pv && ScorePack::isMate(beta);
+
 	// note: avoiding singular if a recapture already lost a tiny amount of elo
-	bool trySingular = useSingular && exclude == mcNone && depth > 6 && depth+1 < maxDepth &&
+	bool trySingular = useSingular && exclude == mcNone && !isMateScout && depth > 6 && depth+1 < maxDepth &&
 		(lte.u.s.bound & 3) >= btLower && hashmove &&
 		board.isLegal<incheck, false>(hashmove, board.pins());
 
