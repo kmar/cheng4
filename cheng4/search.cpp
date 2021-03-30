@@ -468,13 +468,13 @@ template< bool pv, bool incheck, bool donull >
 
 		if ( score >= beta )
 		{
-			if ( depth <= 6 )
+			if ( depth < 6 )
 				return ScorePack::isMate(score) ? beta : score;
 
-			// using nullmove reductions instead!
-			depth = depth*2/3;
-			fdepth = fdepth*2/3;
-			assert( depth > 0 );
+			Score vscore = search< 0, 0, 0>( ply, (depth-5) * fracOnePly, alpha, beta);
+
+			if (vscore >= beta)
+				return ScorePack::isMate(score) ? beta : score;
 		}
 	}
 
