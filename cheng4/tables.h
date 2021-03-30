@@ -25,7 +25,7 @@ or as public domain (where applicable)
 
 #include "chtypes.h"
 
-#ifndef __ANDROID__
+#if !defined(__ANDROID__) && !defined(__ARM_ARCH)
 #	define USE_POPCNT
 #endif
 
@@ -245,7 +245,7 @@ done:
 		"cc", "eax"
 			);
 		return (uint)res;
-	#elif defined(__GNUC__) && defined(IS_X64)
+	#elif defined(__GNUC__) && defined(IS_X64) && !defined(__ARM_ARCH)
 		u64 res;
 		asm(
 			"bsrq %1, %0" :
