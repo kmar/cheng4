@@ -471,7 +471,7 @@ template< bool pv, bool incheck, bool donull >
 			if ( depth < 6 )
 				return ScorePack::isMate(score) ? beta : score;
 
-			Score vscore = search< 0, 0, 0>( ply, (depth-5) * fracOnePly, alpha, beta);
+			Score vscore = search< 0, 0, 0>( ply, (std::min(depth-5, depth*2/3)) * fracOnePly, alpha, beta);
 
 			if (vscore >= beta)
 				return ScorePack::isMate(score) ? beta : score;
