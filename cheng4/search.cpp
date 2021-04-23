@@ -403,7 +403,7 @@ template< bool pv, bool incheck, bool donull >
 		{
 			Move ttmove = stack[ply].current = stack[ply].killers.hashMove;
 
-			if ( ttmove )
+			if ( ttmove && (board.inCheck() ? board.isLegal<1, 0>(ttmove, board.pins()) : board.isLegal<0, 0>(ttmove, board.pins())) )
 			{
 				if (ply > 0 && stack[ply-1].current != mcNull)
 					history.addCounter(board, stack[ply-1].current, ttmove);
