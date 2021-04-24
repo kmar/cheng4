@@ -155,7 +155,7 @@ struct Search
 	bool volatile ponderHit;		// ponderhit!
 
 	size_t maxThreads;				// maximum number of helper threads allowed (i.e 0 = none; 1 thread total)
-									// defaults to 63
+									// defaults to 511
 	volatile bool eloLimit;			// elo limit master flag
 	volatile u32 maxElo;			// 2500 = full
 	volatile Score contemptFactor;	// contempt factor

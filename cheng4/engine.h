@@ -176,7 +176,7 @@ public:
 	// set number of threads, default is 1
 	void setThreads( uint nt );
 
-	// limit number of threads, default is 64
+	// limit number of threads, default is 512
 	void limitThreads( uint maxt );
 
 	// set multipv mode, default is 1

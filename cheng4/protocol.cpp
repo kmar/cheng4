@@ -1078,7 +1078,7 @@ bool Protocol::parseUCI( const std::string &line )
 		sendRaw( "option name OwnBook type check default false" ); sendEOL();
 		sendRaw( "option name MultiPV type spin min 1 max 256 default 1" ); sendEOL();
 		sendRaw( "option name UCI_Chess960 type check default false" ); sendEOL();
-		sendRaw( "option name Threads type spin min 1 max 64 default 1" ); sendEOL();
+		sendRaw( "option name Threads type spin min 1 max 512 default 1" ); sendEOL();
 		sendRaw( "option name UCI_LimitStrength type check default false" ); sendEOL();
 		sendRaw( "option name UCI_Elo type spin min 800 max 2500 default 2500" ); sendEOL();
 		sendRaw( "option name NullMove type check default true" ); sendEOL();
@@ -1614,7 +1614,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 		sendRaw(
 			"feature name=0 san=0 usermove=0 time=1 sigint=0 sigterm=0 pause=0 reuse=1 analyze=1 colors=0 setboard=1 "
 			"nps=1 smp=1 debug=0 draw=0 playother=1 variants=\"normal,fischerandom\" ics=0 memory=1 ping=0 "
-			"option=\"Clear Hash -button\" option=\"Hash -spin 32 1 " maxHash "\" option=\"Threads -spin 1 1 64\" "
+			"option=\"Clear Hash -button\" option=\"Hash -spin 32 1 " maxHash "\" option=\"Threads -spin 1 1 512\" "
 			"option=\"OwnBook -check 0\" option=\"LimitStrength -check 0\" option=\"Elo -spin 2500 800 2500\" "
 			"option=\"MultiPV -spin 1 1 256\" option=\"NullMove -check 1\" option=\"Contempt -spin 0 -100 100\" myname=\""
 		);

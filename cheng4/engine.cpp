@@ -438,7 +438,7 @@ void Engine::setThreads( uint nt )
 	mainThread->search.setThreads( nt-1 );
 }
 
-// limit number of threads, default is 64
+// limit number of threads, default is 512
 void Engine::limitThreads( uint maxt )
 {
 	abortSearch();
