@@ -639,6 +639,7 @@ protected:
 	MoveCount genMoveCount;			// number of already generated moves
 
 	Move nextMove;					// used by peek
+	Move previous;					// used by countermove
 
 	// score and sort specific moves
 	void scoreCaptures();

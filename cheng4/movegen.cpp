@@ -143,6 +143,7 @@ MoveGen::MoveGen( const Board &b_ )
 	, history(0)
 	, genMoveCount(0)
 	, nextMove(mcNone)
+	, previous(mcNull)
 {
 	dcMask = board.discovered();
 	pin = board.pins();
@@ -156,6 +157,7 @@ MoveGen::MoveGen(const Board &b_, const Killer &killer_, const History &history_
 	, history(&history_)
 	, genMoveCount(0)
 	, nextMove(mcNone)
+	, previous(history_.previous)
 {
 	dcMask = board.discovered();
 	pin = board.pins();
@@ -238,7 +240,7 @@ loop:
 		genMoves[ genMoveCount++ ] = res;
 		break;
 	case mpCounter:
-		res = history->getCounter(board, history->previous);
+		res = history->getCounter(board, previous);
 		phPtr++;
 		if ( !res || alreadyGenerated(res) ||
 			!(board.inCheck() ? board.isLegal<1,0>( res, pins() ) : board.isLegal<0,0>( res, pins() ) ) )
