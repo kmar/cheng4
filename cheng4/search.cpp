@@ -280,16 +280,6 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 
 		bool ischeck = board.isCheck( m, mg.discovered() );
 
-		// delta/qsearch futility
-#ifndef USE_TUNING
-		if ( useFutility && !pv && !incheck && !ischeck && board.canPrune(m) )
-		{
-			Score fscore = ev + board.moveGain( m );
-			if ( fscore + 200 <= alpha )
-				continue;
-		}
-#endif
-
 		UndoInfo ui;
 		board.doMove( m, ui, ischeck );
 		rep.push( board.sig(), !board.fifty() );
@@ -545,11 +535,6 @@ template< bool pv, bool incheck, bool donull >
 
 		// singular/recapture extension
 		if ((doSingular && count==1) || (MovePack::isCapture(m) && MovePack::to(m) == recapTarget))
-			extension = fracOnePly;
-
-		// extend good SEE queen checks a full ply
-		// cures some of the tactical blindness
-		if (!pv && ischeck && depth >= 6 && (board.pieces(board.turn(), ptQueen) & Tables::oneShlTab[MovePack::from(m)]) && board.see<1>(m) >= 0)
 			extension = fracOnePly;
 
 		// single evasion extension
@@ -1180,8 +1165,9 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 			// aspiration search
 			Score prevScore = lastIteration;
 
-			Score alpha = lastIteration - 15;
-			Score beta = lastIteration + 15;
+			Score window = 15;
+			Score alpha = lastIteration - window;
+			Score beta = lastIteration + window;
 
 			i32 maxTime = mode.maxTime;
 			bool blunderCheck = false;
@@ -1208,11 +1194,15 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 					lastIteration = score;
 					break;
 				}
+
+				window *= 2;
+
 				if ( score <= alpha )
 				{
 					// fail low
-					alpha = (alpha - lastIteration)*2;
-					alpha += lastIteration;
+					alpha -= window;
+					beta -= window/3;
+
 					// fail low after fail high triggers blunder check - saw Cheng lose 1 game because of this
 					if ( failHigh || abs( score - prevScore ) >= 30 )
 					{
@@ -1225,8 +1215,8 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 				{
 					failHigh = true;
 					// fail high
-					beta = (beta - lastIteration)<<1;
-					beta += lastIteration;
+					beta += window;
+					alpha += window/3;
 				}
 			}
 			if ( blunderCheck )
