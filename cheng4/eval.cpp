@@ -661,7 +661,7 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 		// offset king out of edges, so we always have a 8-square mask
 		Square kp = b.king(c);
 
-		checkPotential[c] = (u32)BitOp::popCount(Magic::queenAttm(kp, occ) & ~occ);
+		checkPotential[c] = (u32)BitOp::popCount<pcm>(Magic::queenAttm(kp, occ) & ~occ);
 		assert(checkPotential[c] >= 0 && checkPotential[c] < 28);
 
 		File kf = SquarePack::file(kp);
