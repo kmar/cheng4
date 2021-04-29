@@ -40,7 +40,7 @@ or as public domain (where applicable)
 #include <fstream>
 
 #ifdef IS_X64
-#	define maxHash "16384"
+#	define maxHash "65536"
 #else
 #	define maxHash	"1024"
 #endif
