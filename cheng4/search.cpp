@@ -1200,6 +1200,9 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 				if ( score <= alpha )
 				{
 					// fail low
+					while (alpha - window < -scInfinity)
+						window /= 2;
+
 					alpha -= window;
 					beta -= window/3;
 
@@ -1215,6 +1218,9 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 				{
 					failHigh = true;
 					// fail high
+					while (beta + window > scInfinity)
+						window /= 2;
+
 					beta += window;
 					alpha += window/3;
 				}
