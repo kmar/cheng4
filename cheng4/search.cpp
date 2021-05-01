@@ -149,9 +149,10 @@ bool Search::timeOut()
 			// report nodes now
 			i32 dt = ms - startTicks;
 			info.reset();
-			info.flags |= sifNodes | sifNPS;
+			info.flags |= sifNodes | sifNPS | sifTime;
 			info.nodes = smpNodes();
 			info.nps = dt ? info.nodes * 1000 / dt : 0;
+			info.time = (Time)dt;
 			sendInfo();
 			nodeTicks = ms;
 
@@ -1105,6 +1106,12 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 
 	for ( Depth d = 1; rootMoves.count && d <= depthLimit; d++ )
 	{
+		// reset selDepth
+		selDepth = 0;
+
+		for (size_t i=0; i<smpThreads.size(); i++)
+			smpThreads[i]->search.selDepth = 0;
+
 		i32 curTicks = Timer::getMillisec();
 		i32 lastIterationDelta = curTicks - lastIterationStart;
 		lastIterationStart = curTicks;
