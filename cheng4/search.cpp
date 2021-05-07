@@ -359,14 +359,11 @@ template< bool pv, bool incheck, bool donull >
 	if ( ply > selDepth )
 		selDepth = ply;
 
-	if (!exclude)
-	{
-		// mate distance pruning
-		alpha = std::max( alpha, ScorePack::checkMated(ply) );
-		beta = std::min( beta, ScorePack::mateIn(ply) );
-		if ( alpha >= beta )
-			return alpha;
-	}
+	// mate distance pruning
+	alpha = std::max( alpha, ScorePack::checkMated(ply) );
+	beta = std::min( beta, ScorePack::mateIn(ply) );
+	if ( alpha >= beta )
+		return alpha;
 
 	// check for timeout
 	if ( !(searchFlags & sfNoTimeout) && timeOut() )
@@ -505,15 +502,20 @@ template< bool pv, bool incheck, bool donull >
 
 	Move hashmove = stack[ply].killers.hashMove;
 
-	const bool isMateScout = !pv && ScorePack::isMate(beta);
+	Score smargin = singularMargin;
+	Score singularAlpha = alpha-smargin-1;
+
+	const bool isMateScout = ScorePack::isMate(singularAlpha);
 
 	// note: avoiding singular if a recapture already lost a tiny amount of elo
+	// isWin limit helps to stabilize fine #70, isMate isn't enough
+	// the problem is not scout search but the extension afterwards (TT pressure?)
 	bool trySingular = useSingular && exclude == mcNone && !isMateScout && depth > 6 && depth+1 < maxDepth &&
-		(lte.u.s.bound & 3) >= btLower && hashmove &&
+		(lte.u.s.bound & 3) >= btLower && hashmove && !ScorePack::isWin(lte.u.s.score) &&
 		board.isLegal<incheck, false>(hashmove, board.pins());
 
 	bool doSingular = trySingular &&
-		search<false, incheck, false>(ply, fdepth/3, alpha-singularMargin-1,  alpha - singularMargin, hashmove) < alpha - singularMargin;
+		search<false, incheck, false>(ply, fdepth/3, singularAlpha,  singularAlpha+1, hashmove) <= singularAlpha;
 
 	while ( (m = mg.next()) != mcNone )
 	{

@@ -139,7 +139,7 @@ Score TransTable::probeEval( Signature sig, Ply ply, Score val, const TransEntry
 		return scInvalid;
 	BoundType bt = (BoundType)(lte.u.s.bound & 3);
 	Score score = ScorePack::unpackHash( lte.u.s.score, ply );
-	score = clamp<Score>(score, -scMate+1, scMate-1);
+	// note: do not clamp score here or Cheng fails to resolve some mates!
 	switch( bt )
 	{
 	case btExact:
@@ -181,6 +181,7 @@ void TransTable::store( Signature sig, Age age, Move move, Score score, HashBoun
 			// same entry found => use that!
 			if ( move == mcNone )
 				move = lte.u.s.move;
+
 			be = te;
 			break;
 		}

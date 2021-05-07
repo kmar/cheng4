@@ -118,7 +118,8 @@ enum ScoreConstants
 	scInfinity		= 32767-256,		// infinity (note: must have a reserve here when storing rel. mates in 16-bits
 										// (hashtable)
 	scMate			= scInfinity - 1000,// everything above and including this is a mate
-	scDraw			= 0					// draw score
+	scDraw			= 0,				// draw score
+	scWin			= 6400				// win score: this is for kpk, certain win is 12800
 };
 
 // various limits
@@ -466,6 +467,10 @@ struct ScorePack
 	static inline bool isMate( Score score )
 	{
 		return abs( score ) >= scMate;
+	}
+	static inline bool isWin(Score score)
+	{
+		return abs(score) >= scWin;
 	}
 	// is valid score?
 	static inline bool isValid( Score score )
