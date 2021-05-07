@@ -681,6 +681,10 @@ void Protocol::sendPV( const SearchInfo &si, uint index, Score score, enum Bound
 				b.doMove( pv[i], ui, b.isCheck( pv[i], b.discovered() ) );
 			}
 			sendStr.width(1);
+
+			// report mates at the end of the PV as text
+			if (ScorePack::isMate(score))
+				sendStr << " ;" << uciScore(score);
 		}
 		break;
 	case ptNative:
