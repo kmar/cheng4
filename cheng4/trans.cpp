@@ -44,6 +44,13 @@ TransTable::TransTable() : allocEntries(0)
 void TransTable::clear()
 {
 	memset( entries, 0, sizeof(TransEntry) * size );
+	clearHashFull();
+}
+
+void TransTable::clearHashFull()
+{
+	memset(hashFullBits, 0, sizeof(hashFullBits));
+	lastHashFull = 0;
 }
 
 TransTable::~TransTable()
@@ -135,8 +142,9 @@ Score TransTable::probe( Signature sig, Ply ply, Depth depth, Score alpha, Score
 
 Score TransTable::probeEval( Signature sig, Ply ply, Score val, const TransEntry &lte )
 {
-	if ( lte.bhash != sig || lte.u.s.depth < (Depth)-1 )
+	if ( lte.bhash != sig )
 		return scInvalid;
+
 	BoundType bt = (BoundType)(lte.u.s.bound & 3);
 	Score score = ScorePack::unpackHash( lte.u.s.score, ply );
 	// note: do not clamp score here or Cheng fails to resolve some mates!
@@ -145,11 +153,11 @@ Score TransTable::probeEval( Signature sig, Ply ply, Score val, const TransEntry
 	case btExact:
 		return score;
 	case btUpper:
-		if ( score <= val )
+		if ( score < val )
 			return score;
 		break;
 	case btLower:
-		if ( score >= val )
+		if ( score > val )
 			return score;
 		break;
 	default:;
@@ -178,6 +186,13 @@ void TransTable::store( Signature sig, Age age, Move move, Score score, HashBoun
 		lte.bhash ^= lte.u.word2;
 		if ( lte.bhash == sig )
 		{
+			// if PV, always overwrite
+			// otherwise if from same search and draft is significantly higher than current depth, keep it
+			if ( bound != btExact && (Age)(lte.u.s.bound & 0xfc) == age && lte.u.s.depth > 0 && lte.u.s.depth > depth*4 )
+			{
+				return;
+			}
+
 			// same entry found => use that!
 			if ( move == mcNone )
 				move = lte.u.s.move;
@@ -203,6 +218,46 @@ void TransTable::store( Signature sig, Age age, Move move, Score score, HashBoun
 	lte.u.s.score = ScorePack::packHash( score, ply );
 	lte.bhash = sig ^ lte.u.word2;
 	*be = lte;
+}
+
+int TransTable::hashFull(Age age)
+{
+	// skip probing if already full
+	if (lastHashFull >= 1000)
+		return lastHashFull;
+
+	int res = 0;
+
+	size_t idx = 0;
+	size_t step = size / 1000;
+
+	HashBound curAge = (HashBound)age << 2;
+
+	for (int i=0; i<1000; i++, idx += step)
+	{
+		size_t &hf = hashFullBits[i / sizeof(size_t)];
+		assert(i / sizeof(size_t) < sizeof(hashFullBits)/sizeof(size_t));
+		const int bit = i & (8*sizeof(size_t)-1);
+		const size_t mask = size_t(1) << bit;
+
+		if (!(hf & mask))
+		{
+			const TransEntry lte = entries[idx];
+			bool isFull = lte.bhash && (lte.u.s.bound & ~3) == curAge;
+			res += isFull;
+
+			if (isFull)
+				hf |= mask;
+		}
+		else
+			++res;
+	}
+
+	assert(idx <= size);
+
+	lastHashFull = res;
+
+	return res;
 }
 
 }

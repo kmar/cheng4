@@ -149,10 +149,11 @@ bool Search::timeOut()
 			// report nodes now
 			i32 dt = ms - startTicks;
 			info.reset();
-			info.flags |= sifNodes | sifNPS | sifTime;
+			info.flags |= sifNodes | sifNPS | sifTime | sifHashFull;
 			info.nodes = smpNodes();
 			info.nps = dt ? info.nodes * 1000 / dt : 0;
 			info.time = (Time)dt;
+			info.hashFull = tt->hashFull(age);
 			sendInfo();
 			nodeTicks = ms;
 
@@ -216,7 +217,6 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 	if ( !pv && ttScore != scInvalid )
 	{
 		assert( ScorePack::isValid( ttScore ) );
-		stack[ply].current = stack[ply].killers.hashMove;
 		return ttScore;
 	}
 #endif
@@ -224,6 +224,8 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 	Score oalpha;
 	if ( pv )
 		oalpha = alpha;
+
+	Score positionalBias = 0;
 
 	Score ev;
 	Score best;
@@ -262,6 +264,8 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 			return best;			// stand pat
 		if ( best > alpha )
 			alpha = best;
+
+		positionalBias = abs(eval.fastEval(board) - ev);
 	}
 
 	// qsearch limit
@@ -280,6 +284,17 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 		count++;
 
 		bool ischeck = board.isCheck( m, mg.discovered() );
+
+		// delta/qsearch futility
+#ifndef USE_TUNING
+		// delta pruning is bad in endgames => require non-pawn material of more than 2 rooks
+		if ( useFutility && !pv && !incheck && !ischeck && board.canPrune(m) && board.nonPawnMat() > 10 )
+		{
+			Score fscore = ev + board.moveGain( m );
+			if ( fscore + positionalBias + 200 <= alpha )
+				continue;
+		}
+#endif
 
 		UndoInfo ui;
 		board.doMove( m, ui, ischeck );
@@ -389,7 +404,7 @@ template< bool pv, bool incheck, bool donull >
 
 		if (ttScore >= beta)
 		{
-			Move ttmove = stack[ply].current = stack[ply].killers.hashMove;
+			Move ttmove = stack[ply].killers.hashMove;
 
 			if ( ttmove && (board.inCheck() ? board.isLegal<1, 0>(ttmove, board.pins()) : board.isLegal<0, 0>(ttmove, board.pins())) )
 			{
@@ -417,7 +432,7 @@ template< bool pv, bool incheck, bool donull >
 			fscore = ttBetter;
 		// beta razoring
 		Score razEval;
-		if ( useRazoring && donull && !exclude && depth <= 6 && (razEval = fscore - betaMargins[depth]) > alpha && !ScorePack::isMate(beta) )
+		if ( useRazoring && donull && !exclude && depth <= 6 && (razEval = fscore - betaMargins[depth]) > alpha && !ScorePack::isMate(razEval) )
 			return razEval;
 	}
 
@@ -510,6 +525,7 @@ template< bool pv, bool incheck, bool donull >
 	// note: avoiding singular if a recapture already lost a tiny amount of elo
 	// isWin limit helps to stabilize fine #70, isMate isn't enough
 	// the problem is not scout search but the extension afterwards (TT pressure?)
+	// the real problem was my replacement scheme though...
 	bool trySingular = useSingular && exclude == mcNone && !isMateScout && depth > 6 && depth+1 < maxDepth &&
 		(lte.u.s.bound & 3) >= btLower && hashmove && !ScorePack::isWin(lte.u.s.score) &&
 		board.isLegal<incheck, false>(hashmove, board.pins());
@@ -547,7 +563,7 @@ template< bool pv, bool incheck, bool donull >
 		FracDepth newDepth = fdepth - fracOnePly + extension;
 
 		if ( useFutility && !pv && !incheck && mg.phase() >= mpQuietBuffer &&
-			!extension && depth <= 6 && !MovePack::isSpecial(m) && !ScorePack::isMate(beta) &&
+			!extension && depth <= 6 && !MovePack::isSpecial(m) && !ScorePack::isMate(fscore) &&
 			board.canPrune(m) )
 		{
 			// futility pruning
@@ -1021,6 +1037,7 @@ i32 Search::initIteration()
 
 	// increment age
 	age++;
+	tt->clearHashFull();
 
 	return sticks;
 }

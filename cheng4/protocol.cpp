@@ -311,6 +311,136 @@ static NodeCount perft( cheng4::Board &b, Depth depth )
 	return res;
 }
 
+struct TacPosBench
+{
+	const char *fen;
+	const char *move;
+	int minDepth;
+	Score minScore;
+	i32 time;
+};
+
+struct TacPosBenchCbk
+{
+	const TacPosBench *pos;
+	Search *search;
+	i32 startTicks;
+};
+
+static std::string uciScore( Score score );
+
+static void tbcbk(const SearchInfo &si, void *param)
+{
+	const TacPosBenchCbk *tb = (const TacPosBenchCbk *)param;
+
+	if ((si.flags & (sifDepth | sifPV)) != (sifDepth | sifPV))
+		return;
+
+	if (si.depth < tb->pos->minDepth)
+		return;
+
+	Board b;
+	b.fromFEN(tb->pos->fen);
+	Move m = b.fromSAN(std::string(tb->pos->move));
+
+	std::cout << "depth: " << (int)si.depth << " score: " << uciScore(si.pvScore) << " PV: ";
+
+	uint pvidx = 0;
+
+	for (const Move *pv = si.pv; *pv; pv++)
+	{
+		if (pvidx >= si.pvCount)
+			break;
+
+		std::cout << b.toSAN(*pv) << " ";
+		UndoInfo ui;
+		b.doMove(*pv, ui, b.isCheck(*pv, b.discovered()));
+		++pvidx;
+	}
+
+	std::cout << "time: " << (Timer::getMillisec() - tb->startTicks) << " msec" << std::endl;
+
+	if (m != si.pv[0])
+		return;
+
+	if (si.pvScore < tb->pos->minScore)
+		return;
+
+	tb->search->abort();
+}
+
+static void tbench()
+{
+	TacPosBench tb[] =
+	{
+		// actually I think multiple moves win here
+		{"8/4kp2/1p2p3/1P2P1p1/1P4P1/3K4/8/8 b - - 6 57", "f5", 10, 100, 0},
+		{"1rb2rk1/4R1p1/1pqn1pBp/3p4/5Q2/1NP3PP/6PK/4R3 w - - 0 30", "Re1e6", 10, -scInfinity, 0},
+		{"rn1q1rk1/pbpp2pp/1p1bp3/5p2/1PPP4/P2BP3/2QN1PPP/R1B2RK1 b - b3 0 11", "Bxh2+", 10, -scInfinity, 0},
+		{"8/6B1/p5p1/Pp4kp/1P5r/5P1Q/4q1PK/8 w - -", "Qxh4", 10, -scInfinity, 0},
+		{"rn3r2/1bq2p1k/p3p3/1pb1P1Q1/P1p5/2P5/4BPPP/R2R2K1 w - - 5 28", "Bd3", 10, -scInfinity, 0},
+		{"8/2r3p1/2P4p/p2B1P2/Pp3Kp1/7k/1P2r3/3R4 w - - 6 50", "Rh1+", 10, 15, 0},
+		{"2r3rk/p2nBb1p/1pB2P2/1P6/P1PP3b/2Q1N1q1/6N1/2R3K1 b", "Rxc6", 10, -scInfinity, 0},
+		{"rnbq2k1/p1r2p1p/1p1p1Pp1/1BpPn1N1/P7/2P5/6PP/R1B1QRK1 w - -", "Nxh7", 10, -scInfinity, 0},
+		{"3r2k1/5pp1/p1B4p/qp1P4/2n5/r1P3P1/5PKP/2QRR3 w - - 0 27", "d6", 10, -scInfinity, 0},
+		{"1r4r1/3q1npk/2b1pbnp/Rp1p4/1N1P3P/2PQ1pP1/1K3B2/5B1R w - - 0 1", "Qxg6+", 10, -scInfinity, 0},
+		{"rn3r2/1bq2ppk/p3p2p/1pb1P2Q/P1p5/2P2N2/3BBPPP/R2R2K1 w - - 4 20", "Bxh6", 10, -scInfinity, 0},
+		{0, 0, 0, 0, 0}
+	};
+
+	TransTable tt;
+	tt.resize(128*1024*1024);
+
+	int pos = 1;
+
+	i32 startTicks = Timer::getMillisec();
+
+	for (TacPosBench *t = tb; t->fen; t++, pos++)
+	{
+		Search search;
+		search.setHashTable(&tt);
+
+		search.clearHash();
+		search.clearSlots();
+
+		Board b;
+		b.fromFEN(t->fen);
+		search.board = b;
+
+		TacPosBenchCbk cbk;
+		cbk.pos = t;
+		cbk.search = &search;
+		cbk.startTicks = startTicks;
+		search.setCallback(tbcbk, &cbk);
+		std::cout << "position " << pos << " FEN " << t->fen << " (" << t->move << ")" << std::endl;
+
+		search.rep.clear();
+		search.rep.push( b.sig(), 1 );
+
+		t->time = Timer::getMillisec();
+
+		SearchMode sm;
+		sm.reset();
+		search.iterate(b, sm);
+		t->time = Timer::getMillisec() - t->time;
+	}
+
+	std::cout << std::endl;
+
+	std::cout << "results:" << std::endl;
+	pos = 1;
+
+	i32 totalTime = 0;
+
+	for (TacPosBench *t = tb; t->fen; t++, pos++)
+	{
+		std::cout << "position " << pos << " (" << t->move << ") solved in " << t->time << " msec" << std::endl;
+		totalTime += t->time;
+	}
+
+	std::cout << "total time: " << totalTime << " msec" << std::endl;
+}
+
 static bool pbench()
 {
 	uint count = 0;
@@ -485,6 +615,8 @@ void Protocol::searchCallback( const SearchInfo &si )
 		sendNodes( si.nodes );
 	if ( si.flags & sifNPS )
 		sendNPS( si.nps );
+	if (si.flags & sifHashFull)
+		sendHashFull(si.hashFull);
 	if ( si.flags & sifCurIndex )
 		sendCurIndex( si.curIndex, si.curCount );
 	if ( si.flags & sifCurMove )
@@ -566,6 +698,20 @@ void Protocol::sendNPS( NodeCount n )
 	{
 	case ptUCI:
 		sendStr << " nps " << n;
+		break;
+	case ptCECP:
+	case ptNative:
+		break;
+	}
+}
+
+// send hashfull
+void Protocol::sendHashFull( uint hashFull )
+{
+	switch( type )
+	{
+	case ptUCI:
+		sendStr << " hashfull " << hashFull;
 		break;
 	case ptCECP:
 	case ptNative:
@@ -2061,6 +2207,12 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 	{
 		engine.abortSearch();
 		pbench();
+		return 1;
+	}
+	if ( token == "tbench" )
+	{
+		engine.abortSearch();
+		tbench();
 		return 1;
 	}
 	if ( token == "perft" )

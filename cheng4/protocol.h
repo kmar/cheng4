@@ -160,6 +160,8 @@ public:
 	void sendNodes( NodeCount total );
 	// send nps
 	void sendNPS( NodeCount nps );
+	// send hashfull
+	void sendHashFull(uint hashFull);
 	// send time
 	void sendTime( Time time );
 	// send best move

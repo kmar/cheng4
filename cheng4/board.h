@@ -917,9 +917,6 @@ public:
 	// note: before move is made
 	inline bool canPrune( Move m ) const
 	{
-		if (!nonPawnMat(turn()))
-			return false;
-
 		// don't prune passer pushes
 		Square from = MovePack::from( m );
 		Piece p = piece(from);

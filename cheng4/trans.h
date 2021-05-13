@@ -54,6 +54,10 @@ protected:
 	TransEntry *entries;		// aligned entries
 	size_t size;				// size in entries; must be a power of two
 	TransEntry dummy[buckets];	// dummy entry if no space is allocated (1-entry hashtable)
+	// hashfull probed bitset to avoid eating cache misses
+	size_t hashFullBits[(1000+sizeof(size_t)-1)/sizeof(size_t)];
+	// last hashFull count
+	int lastHashFull;
 
 	// alloc buckets entries using dummy
 	void dummyAlloc();
@@ -71,6 +75,8 @@ public:
 
 	// clear hashtable
 	void clear();
+	// clear hashfull
+	void clearHashFull();
 
 	// probe hash table
 	// returns scInvalid if probe failed
@@ -87,6 +93,9 @@ public:
 	// store into hash table
 	// TODO: reorder params
 	void store( Signature sig, Age age, Move move, Score score, HashBound bound, Depth depth, Ply ply );
+
+	// sample hashfull, UCI format, 0..1000
+	int hashFull(Age age);
 };
 
 }
