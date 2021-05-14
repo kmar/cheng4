@@ -527,7 +527,7 @@ template< bool pv, bool incheck, bool donull >
 	// the problem is not scout search but the extension afterwards (TT pressure?)
 	// the real problem was my replacement scheme though...
 	bool trySingular = useSingular && exclude == mcNone && !isMateScout && depth > 6 && depth+1 < maxDepth &&
-		(lte.u.s.bound & 3) >= btLower && hashmove && !ScorePack::isWin(lte.u.s.score) &&
+		(lte.u.s.bound & 3) >= btLower && hashmove && !ScorePack::isWin(lte.u.s.score) && lte.u.s.depth > 0 &&
 		board.isLegal<incheck, false>(hashmove, board.pins());
 
 	bool doSingular = trySingular &&
