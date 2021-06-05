@@ -189,7 +189,7 @@ void TransTable::store( Signature sig, Age age, Move move, Score score, HashBoun
 			// if from same search and draft is significantly higher than current depth, keep it
 			if ( (Age)(lte.u.s.bound & 0xfc) == age && lte.u.s.depth > 0 )
 			{
-				if (bound == btExact ? lte.u.s.depth > depth : lte.u.s.depth > depth*4)
+				if (bound == btExact ? lte.u.s.depth > depth*8 : lte.u.s.depth > depth*4)
 					return;
 			}
 
