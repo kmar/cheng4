@@ -481,20 +481,13 @@ template< bool pv, bool incheck, bool donull >
 		}
 	}
 
-	if (!exclude)
+	if (!exclude && stack[ply].killers.hashMove == mcNone)
 	{
-		// bench-tuned depths (not a great idea but still)
-		if ( pv && depth > 2 && stack[ply].killers.hashMove == mcNone )
+		if (depth > 4)
 		{
-			// IID at pv nodes
-			search< pv, incheck, 0 >( ply, (depth/3) * fracOnePly, alpha, beta );
-			tt->probe( board.sig(), ply, depth, alpha, beta, stack[ply].killers.hashMove );
-		}
-		if ( !pv && depth > 8 && stack[ply].killers.hashMove == mcNone )
-		{
-			// IID at nonpv nodes
-			search< pv, incheck, 0 >( ply, (depth/3) * fracOnePly, alpha, beta );
-			tt->probe( board.sig(), ply, depth, alpha, beta, stack[ply].killers.hashMove );
+			// IIR (idea by Ed Schroeder)
+			depth--;
+			fdepth -= fracOnePly;
 		}
 	}
 
