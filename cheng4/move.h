@@ -32,6 +32,7 @@ namespace cheng4
 enum MoveConstants
 {
 	maxMoves	=	256,
+	// max (bad) captures
 	maxCaptures	=	128
 };
 

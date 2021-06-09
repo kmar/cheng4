@@ -339,8 +339,11 @@ loopcap:
 			if ( alreadyGenerated(res) )
 				goto loopcap;
 
-			// do fast(sign) see
-			if ( board.see<1>(res) < 0 )
+			// do fast(sign) see => also treat underpromotions as bad captures
+
+			const Piece promo = MovePack::promo(res);
+
+			if ( (promo && promo != ptQueen && promo != ptKnight) || board.see<1>(res) < 0 )
 			{
 				// bad capture detected
 				assert( badCapCount < maxCaptures );
