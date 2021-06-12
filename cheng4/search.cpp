@@ -604,7 +604,7 @@ template< bool pv, bool incheck, bool donull >
 				score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
 		}
 
-		if ( score > alpha && (!pv || score < beta || count == 1) )
+		if ( score > alpha )
 			score = ischeck ?
 				-search< pv, 1, !pv >( ply+1, newDepth, -beta, -alpha ) :
 				-search< pv, 0, !pv >( ply+1, newDepth, -beta, -alpha );
