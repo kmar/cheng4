@@ -487,7 +487,7 @@ template< bool pv, bool incheck, bool donull >
 		{
 			// IIR (idea by Ed Schroeder)
 			depth--;
-			fdepth -= fracOnePly;
+			fdepth -= fracOnePly/2;
 		}
 	}
 
