@@ -618,6 +618,16 @@ static const MaterialKey matKBN[ctMax] =
 	(U64C(1) << MATSHIFT( ctWhite, ptBishop )) | (U64C(1) << MATSHIFT( ctWhite, ptKnight )),
 	(U64C(1) << MATSHIFT( ctBlack, ptBishop )) | (U64C(1) << MATSHIFT( ctBlack, ptKnight ))
 };
+static const MaterialKey matKBP[ctMax] =
+{
+	(U64C(1) << MATSHIFT( ctWhite, ptBishop )) | (U64C(1) << MATSHIFT( ctWhite, ptPawn )),
+	(U64C(1) << MATSHIFT( ctBlack, ptBishop )) | (U64C(1) << MATSHIFT( ctBlack, ptPawn ))
+};
+static const MaterialKey matKNP[ctMax] =
+{
+	(U64C(1) << MATSHIFT( ctWhite, ptKnight )) | (U64C(1) << MATSHIFT( ctWhite, ptPawn )),
+	(U64C(1) << MATSHIFT( ctBlack, ptKnight )) | (U64C(1) << MATSHIFT( ctBlack, ptPawn ))
+};
 static const MaterialKey matBishopEGMask =
 	(U64C(63) << MATSHIFT( ctWhite, ptKnight)) |
 	(U64C(63) << MATSHIFT( ctWhite, ptRook)) |

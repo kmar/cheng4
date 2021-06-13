@@ -269,6 +269,10 @@ template< Color c > static void kpkq( const Board &b, FineScore *fscore )
 
 	if (rr == 6)
 	{
+		// if queen gets in front of the pawn, it's game over
+		if (b.pieces(flip(c), ptQueen) & BitOp::shiftForward<c>(b.pieces(c, ptPawn)))
+			return;
+
 		fscore[ phEndgame ] /= 64;
 	}
 }
@@ -297,6 +301,18 @@ static Eval::Recognizer recognizers[ numRecognizers ] =
 };
 
 // EG scale recognizers
+
+template< Color c > static void kpminor( const Board &b, FineScore *fscore )
+{
+	const Color opc = flip(c);
+
+	// scale down minor + pawn vs piece
+	if ( sign<c>()*fscore[ phEndgame ] > 0 && (b.pieces(opc, ptKnight) | b.pieces(opc, ptBishop) | b.pieces(opc, ptRook) | b.pieces(opc, ptQueen)) != 0)
+	{
+		fscore[ phOpening ] /= 4;
+		fscore[ phEndgame ] /= 4;
+	}
+}
 
 template< Color c > static void krminor( const Board &b, FineScore *fscore )
 {
@@ -341,7 +357,7 @@ template< Color c > static void kr( const Board &b, FineScore *fscore )
 	}
 }
 
-static const size_t numScaleRecognizers = 5;
+static const size_t numScaleRecognizers = 7;
 
 static Eval::Recognizer scaleRecognizers[2][ numScaleRecognizers ] =
 {
@@ -350,14 +366,18 @@ static Eval::Recognizer scaleRecognizers[2][ numScaleRecognizers ] =
 		{ matKRB[ctWhite], krminor<ctWhite> },
 		{ matKBB[ctWhite], kbb<ctWhite> },
 		{ matKBN[ctWhite], kbn<ctWhite> },
-		{ matKR[ctWhite], kr<ctWhite> }
+		{ matKR[ctWhite], kr<ctWhite> },
+		{ matKBP[ctWhite], kpminor<ctWhite> },
+		{ matKNP[ctWhite], kpminor<ctWhite> }
 	},
 	{
 		{ matKRN[ctBlack], krminor<ctBlack> },
 		{ matKRB[ctBlack], krminor<ctBlack> },
 		{ matKBB[ctBlack], kbb<ctBlack> },
 		{ matKBN[ctBlack], kbn<ctBlack> },
-		{ matKR[ctBlack], kr<ctBlack> }
+		{ matKR[ctBlack], kr<ctBlack> },
+		{ matKBP[ctBlack], kpminor<ctBlack> },
+		{ matKNP[ctBlack], kpminor<ctBlack> }
 	}
 };
 
