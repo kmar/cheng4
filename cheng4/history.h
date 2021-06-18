@@ -36,10 +36,10 @@ struct History
 	// for counter move queries
 	Move previous;
 
-	// history table [stm][piecetype][square]
-	i16 history[ ctMax ][ ptMax ][ 64 ];
-	// counter move table [stm][piecetype][square]
-	Move counter[ ctMax ][ ptMax ][ 64 ];
+	// history table [stm][piecetype][from][to]
+	i16 history[ ctMax ][ ptMax ][ 64 ][ 64 ];
+	// counter move table [stm][piecetype][from][to]
+	Move counter[ ctMax ][ ptMax ][ 64 ][ 64 ];
 
 	inline History() {}
 	explicit inline History( void * /*zeroInit*/ ) { clear(); }
@@ -56,18 +56,20 @@ struct History
 		if ( m == mcNull )
 			return mcNone;
 
-		Piece p = b.piece( MovePack::from(m) );
+		Square mf = MovePack::from(m);
+		Piece p = b.piece( mf );
 		Color c = PiecePack::color( p );
 		Piece pt = PiecePack::type(p);
 
-		return counter[c][pt][MovePack::to(m)];
+		return counter[c][pt][mf][MovePack::to(m)];
 	}
 
 	// get move ordering score
 	inline i32 score( const Board &b, Move m ) const
 	{
-		Piece p = b.piece( MovePack::from( m ) );
-		return history[ b.turn() ][ PiecePack::type(p) ][ MovePack::to(m) ];
+		Square mf = MovePack::from( m );
+		Piece p = b.piece( mf );
+		return history[ b.turn() ][ PiecePack::type(p) ][ mf ][ MovePack::to(m) ];
 	}
 
 	// clear table

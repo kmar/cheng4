@@ -120,7 +120,7 @@ struct Search
 	};
 
 	Board board;					// board
-	History history;				// history table
+	History *history;				// history table
 	Eval eval;						// eval
 
 	Stack stack[ maxStack ];		// search stack

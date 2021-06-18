@@ -272,8 +272,8 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 	if ( !incheck && depth < minQsDepth )
 		return best;
 
-	history.previous = ply > 0 ? stack[ply-1].current : mcNull;
-	MoveGen mg( board, stack[ply].killers, history, qchecks ? mmQCapsChecks : mmQCaps );
+	history->previous = ply > 0 ? stack[ply-1].current : mcNull;
+	MoveGen mg( board, stack[ply].killers, *history, qchecks ? mmQCapsChecks : mmQCaps );
 	Move m;
 	Move bestMove = mcNone;
 
@@ -409,12 +409,12 @@ template< bool pv, bool incheck, bool donull >
 			if ( ttmove && (board.inCheck() ? board.isLegal<1, 0>(ttmove, board.pins()) : board.isLegal<0, 0>(ttmove, board.pins())) )
 			{
 				if (ply > 0 && stack[ply-1].current != mcNull)
-					history.addCounter(board, stack[ply-1].current, ttmove);
+					history->addCounter(board, stack[ply-1].current, ttmove);
 
 				if ( !MovePack::isSpecial( ttmove ) )
 				{
 					stack[ply].killers.addKiller( ttmove );
-					history.add( board, ttmove, depth );
+					history->add( board, ttmove, depth );
 				}
 			}
 		}
@@ -497,8 +497,8 @@ template< bool pv, bool incheck, bool donull >
 	if ( pv )
 		oalpha = alpha;
 
-	history.previous = ply > 0 ? stack[ply-1].current : mcNull;
-	MoveGen mg( board, stack[ply].killers, history, mmNormal );
+	history->previous = ply > 0 ? stack[ply-1].current : mcNull;
+	MoveGen mg( board, stack[ply].killers, *history, mmNormal );
 	Move m;
 	Move bestMove = mcNone;
 	size_t count = 0;			// move count
@@ -567,7 +567,7 @@ template< bool pv, bool incheck, bool donull >
 
 		i32 hist;
 		if ( !incheck )
-			hist = history.score(board, m);
+			hist = history->score(board, m);
 
 		UndoInfo ui;
 		board.doMove( m, ui, ischeck );
@@ -634,19 +634,19 @@ template< bool pv, bool incheck, bool donull >
 						return score;
 
 					if (ply > 0 && stack[ply-1].current != mcNull)
-						history.addCounter(board, stack[ply-1].current, m);
+						history->addCounter(board, stack[ply-1].current, m);
 
 					if ( !MovePack::isSpecial( m ) )
 					{
 						stack[ply].killers.addKiller( m );
-						history.add( board, m, depth );
+						history->add( board, m, depth );
 						assert( failHistCount > 0 );
 						// this useless if is here only to silence msc static analyzer
 						if ( failHistCount > 0 )
 							failHistCount--;
 					}
 					for (MoveCount i=0; i<failHistCount; i++)
-						history.add( board, failHist[i], -depth);
+						history->add( board, failHist[i], -depth);
 					tt->store( board.sig(), age, m, score, btLower, depth, ply );
 					return score;
 				}
@@ -681,6 +681,7 @@ Search::Search( size_t evalKilo, size_t pawnKilo, size_t matKilo ) : startTicks(
 	outputBest(1), ponderHit(0), maxThreads(511), eloLimit(0), maxElo(2500), contemptFactor(scDraw),
 	minQsDepth(-maxDepth), verbose(1), verboseFixed(1), searchFlags(0), startSearch(0), master(0)
 {
+	history = new History;
 	board.reset();
 	mode.reset();
 	info.reset();
@@ -704,13 +705,14 @@ Search::Search( size_t evalKilo, size_t pawnKilo, size_t matKilo ) : startTicks(
 
 	memset( (void *)&rootMoves, 0, sizeof(rootMoves) );
 
-	history.clear();
+	history->clear();
 }
 
 Search::~Search()
 {
 	setThreads(0);
 	delete[] triPV;
+	delete history;
 }
 
 void Search::setHashTable(cheng4::TransTable *tt_)
@@ -728,7 +730,7 @@ void Search::clearSlots( bool clearEval )
 {
 	if ( clearEval )
 		eval.clear();
-	history.clear();
+	history->clear();
 	memset( stack, 0, sizeof(stack) );
 }
 
@@ -1035,6 +1037,8 @@ i32 Search::initIteration()
 	return sticks;
 }
 
+static History rootHist(0);
+
 Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 {
 	assert( tt );
@@ -1066,7 +1070,6 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 	mode = sm;
 
 	Killer killers(0);
-	History hist(0);
 
 	rootMoves.moves[0].move = mcNone;
 	rootMoves.count = 0;
@@ -1075,8 +1078,7 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 	tt->probe( b.sig(), 0, 0, scDraw, scDraw, killers.hashMove );
 
 	// init root moves
-	hist.previous = mcNull;
-	MoveGen mg( b, killers, hist );
+	MoveGen mg( b, killers, rootHist );
 	Move m;
 	rootMoves.discovered = mg.discovered();
 
@@ -1526,7 +1528,7 @@ void Search::smpSync() const
 		s.board = board;
 		// FIXME: better?
 		s.rep.copyFrom(rep);
-		s.history = history;
+		*s.history = *history;
 		s.rootMoves = rootMoves;
 		// never use timeout for smp helper threads!
 		s.searchFlags = searchFlags | sfNoTimeout;

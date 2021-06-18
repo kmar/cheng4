@@ -38,18 +38,20 @@ void History::clear()
 
 void History::addCounter( const Board &b, Move m, Move cm )
 {
-	Piece p = b.piece( MovePack::from(m) );
+	Square mf = MovePack::from(m);
+	Piece p = b.piece( mf );
 	Color c = PiecePack::color( p );
 	Piece pt = PiecePack::type(p);
 
-	counter[c][pt][MovePack::to(m)] = cm;
+	counter[c][pt][mf][MovePack::to(m)] = cm;
 }
 
 void History::add( const Board &b, Move m, i32 depth )
 {
 	assert( !MovePack::isSpecial(m) );
 
-	Piece p = b.piece( MovePack::from(m) );
+	Square mf = MovePack::from(m);
+	Piece p = b.piece( mf );
 	Color c = PiecePack::color( p );
 	Piece pt = PiecePack::type(p);
 
@@ -61,14 +63,15 @@ void History::add( const Board &b, Move m, i32 depth )
 	if ( depth < 0 )
 		val = -val;
 
-	i16 &h = history[ c ][ pt ][ MovePack::to(m) ];
+	i16 &h = history[ c ][ pt ][ mf ][ MovePack::to(m) ];
 	i32 nval = (i32)h + val;
 	while ( abs(nval) > historyMax )
 	{
 		nval /= 2;
 		for (p=ptPawn; p<=ptKing; p++)
 			for ( uint i=0; i<64; i++ )
-				history[c][p][i] /= 2;
+				for ( uint j=0; j<64; j++ )
+					history[c][p][i][j] /= 2;
 	}
 	h = (i16)nval;
 }
