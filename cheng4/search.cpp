@@ -481,7 +481,7 @@ template< bool pv, bool incheck, bool donull >
 		}
 	}
 
-	if (!exclude && stack[ply].killers.hashMove == mcNone)
+	if ((pv || donull) && !exclude && ply > 0 && stack[ply].killers.hashMove == mcNone)
 	{
 		if (depth > 4)
 		{
