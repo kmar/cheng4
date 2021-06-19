@@ -556,7 +556,7 @@ template< bool pv, bool incheck, bool donull >
 		FracDepth newDepth = fdepth - fracOnePly + extension;
 
 		if ( useFutility && !pv && !incheck && mg.phase() >= mpQuietBuffer &&
-			!extension && depth <= 6 && !MovePack::isSpecial(m) && !ScorePack::isMate(fscore) &&
+			!extension && depth <= 6 && (!MovePack::isSpecial(m) || MovePack::isUnderPromo(m)) && !ScorePack::isMate(fscore) &&
 			board.canPrune(m) )
 		{
 			// futility pruning
@@ -576,7 +576,7 @@ template< bool pv, bool incheck, bool donull >
 		score = alpha+1;
 		if ( pv && count > 1 )
 		{
-			if ( useLMR && !incheck && mg.phase() >= mpQuietBuffer && !MovePack::isSpecial(m) &&
+			if ( useLMR && !incheck && mg.phase() >= mpQuietBuffer && (!MovePack::isSpecial(m) || MovePack::isUnderPromo(m)) &&
 				!ischeck && depth > 2 && !extension )
 			{
 				// LMR at pv nodes

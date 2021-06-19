@@ -124,6 +124,11 @@ struct MovePack
 		return move & mmPromo;
 	}
 
+	static inline bool isUnderPromo( Move move )
+	{
+		return isPromo(move) && promo(move) != ptQueen;
+	}
+
 	// is promotion or ep capture?
 	static inline Move isPromoOrEp( Move move )
 	{
