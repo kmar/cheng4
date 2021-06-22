@@ -309,8 +309,18 @@ template< Color c > static void kpminor( const Board &b, FineScore *fscore )
 	// scale down minor + pawn vs piece
 	if ( sign<c>()*fscore[ phEndgame ] > 0 && (b.pieces(opc, ptKnight) | b.pieces(opc, ptBishop) | b.pieces(opc, ptRook) | b.pieces(opc, ptQueen)) != 0)
 	{
-		fscore[ phOpening ] /= 4;
-		fscore[ phEndgame ] /= 4;
+		// problem is this can be still won if defending king is cut, especially when defending with a knight
+		Bitboard opkm = BitOp::oneShl( b.king( opc ) );
+		Square psq = (Square)BitOp::getLSB( b.pieces( c, ptPawn ) );
+		Bitboard fm = Tables::frontMask[c][psq];
+		fm |= (fm << 1) & L1MASK;
+		fm |= (fm >> 1) & R1MASK;
+
+		if ( fm & opkm )
+		{
+			fscore[ phOpening ] /= 4;
+			fscore[ phEndgame ] /= 4;
+		}
 	}
 }
 
