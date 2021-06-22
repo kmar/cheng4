@@ -177,6 +177,11 @@ public:
 		return curMove;
 	}
 
+	void setMove(uint val)
+	{
+		curMove = val;
+	}
+
 	// increment move counter by 1
 	void incMove();
 
@@ -559,6 +564,11 @@ public:
 	inline uint fifty() const
 	{
 		return bfifty;
+	}
+
+	void setFifty(uint val)
+	{
+		bfifty = (FiftyCount)val;
 	}
 
 	// return side to move

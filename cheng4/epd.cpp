@@ -67,9 +67,59 @@ bool EPDFile::parse( const char *ptr )
 		EPDPosition pos;
 		pos.fen = b.toFEN();
 		ptr = res;
-		for (;;)
+
+		// parse EPD record
+		while (ptr && *ptr)
 		{
 			skipSpaces( ptr );
+
+			if (*ptr == ';')
+			{
+				// skip delimiter
+				++ptr;
+				continue;
+			}
+
+			if (*ptr == '"')
+			{
+				// skip string
+				++ptr;
+				while (*ptr && *ptr != '"')
+					++ptr;
+
+				ptr += *ptr == '"';
+
+				continue;
+			}
+
+			if ( isToken( ptr, "fmvn" ) )
+			{
+				skipSpaces(ptr);
+				// parse integer
+				char *eptr;
+				long num = strtol(ptr, &eptr, 10);
+
+				if (eptr)
+					ptr = eptr;
+
+				b.setMove((uint)num);
+				continue;
+			}
+
+			if ( isToken( ptr, "hmvc" ) )
+			{
+				skipSpaces(ptr);
+				// parse integer
+				char *eptr;
+				long num = strtol(ptr, &eptr, 10);
+
+				if (eptr)
+					ptr = eptr;
+
+				b.setFifty((uint)num);
+				continue;
+			}
+
 			if ( isToken( ptr, "bm" ) )
 			{
 				// parse best moves
@@ -83,6 +133,7 @@ bool EPDFile::parse( const char *ptr )
 				}
 				continue;
 			}
+
 			if ( isToken( ptr, "am" ) )
 			{
 				// parse avoid moves
@@ -96,11 +147,23 @@ bool EPDFile::parse( const char *ptr )
 				}
 				continue;
 			}
-			if ( *ptr == 13 || *ptr == 10 || *ptr == ';')
+
+			if ( *ptr == 13 || *ptr == 10 )
 			{
 				skipUntilEOL( ptr );
 				break;
 			}
+
+			// skip whatever
+			if (isalnum(*ptr))
+			{
+				while (isalnum(*ptr))
+					++ptr;
+
+				continue;
+			}
+
+			++ptr;
 		}
 		positions.push_back( pos );
 	}

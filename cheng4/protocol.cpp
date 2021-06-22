@@ -2316,8 +2316,16 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 	}
 	if ( token == "runepd" )
 	{
-		// epd debug run
-		runEPDSuite( epd, 2 );
+		const char *tmp = line.c_str() + pos;
+		skipSpaces(tmp);
+
+		long depth = 2;
+
+		if (isdigit(*tmp))
+			depth = strtol(tmp, 0, 10);
+
+		// epd debug run, fixed depth
+		runEPDSuite( epd, (Depth)depth);
 		return 1;
 	}
 	if ( token == "pbook" )
