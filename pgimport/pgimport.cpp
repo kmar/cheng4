@@ -88,10 +88,22 @@ struct PGEntry {
    {
 	   if ( key != o.key )
 		   return key < o.key;
-	   if ( count != o.count )
-		   return count > o.count;
 	   return move < o.move;
    }
+};
+
+struct BookSortPred
+{
+	bool operator()(const PGEntry &a, const PGEntry &b) const
+	{
+		if (a.key != b.key)
+			return a.key < b.key;
+
+		if (a.count != b.count)
+			return a.count > b.count;
+
+		return a.move < b.move;
+	}
 };
 
 static inline u8 PGPiece( cheng4::Piece p )
@@ -414,18 +426,42 @@ void convertLine( const char *buf, std::set< PGEntry > &book )
 {
 	Board b;
 	b.reset();
+
+	const char *obuf = buf;
+
 	for (;;)
 	{
-		while (isspace(*buf))
+		while (isspace(*buf) || isdigit(*buf) || *buf == '.')
 			buf++;
-		Move m = b.fromSAN(buf);
-		if ( m == mcNone )
+
+		if (buf[0] == '[')
 			break;
+
+		if (!*buf)
+			break;
+
+		Move m = b.fromSAN(buf);
+
+		if ( m == mcNone )
+		{
+			printf("invalid: %s (original line %s)\n", buf, obuf);
+			break;
+		}
+
 		PGEntry e;
 		e.n = e.sum = 0;
 		e.count = 2;
 		e.move = toPGMove( m, b );
 		e.key = PGHash(b);
+
+		std::set<PGEntry>::iterator it = book.find(e);
+
+		if (it != book.end())
+		{
+			e.count += it->count;
+			book.erase(it);
+		}
+
 		book.insert(e);
 
 		UndoInfo ui;
@@ -439,8 +475,32 @@ void convertBookLines( const char *fnm, const char *ofnm )
 	std::set< PGEntry > book;
 	char buf[4096];
 	FILE *f = fopen(fnm, "r");
-	while ( fgets(buf, sizeof(buf), f) )
+
+	size_t sl = 0;
+
+	while ( fgets(buf+sl, sizeof(buf)-sl, f) )
+	{
+		bool firstdigit = strchr(buf+sl, '.') != 0;//isdigit(buf[sl]);
+
+		sl = strlen(buf);
+
+		while (sl > 0 && buf[sl-1] < 32)
+		{
+			buf[sl-1] = 0;
+			sl--;
+		}
+
+		if (firstdigit)
+		{
+			buf[sl++] = ' ';
+			continue;
+		}
+
+		sl = 0;
+
 		convertLine( buf, book );
+	}
+
 	fclose(f);
 	// now: write out!
 	FILE *f2 = fopen(ofnm, "wb");
@@ -458,12 +518,14 @@ int main( int argc, char **argv )
 {
 	cheng4::Engine::init();
 
-/*	// new: use generic book lines...
-	convertBookLines("booklines.txt", "booklines.bin");
-	return 0;*/
+#if 0
+	// new: use generic book lines...
+	convertBookLines("eco.pgn", "booklines.bin");
+	return 0;
+#endif
 
 	PGBook book;
-	FILE *f2 = fopen("cheng2015.cb", "wb");
+	FILE *f2 = fopen("cheng2021.cb", "wb");
 	FILE *f = fopen(argc > 1 ? argv[1] : "booklines.bin", "rb");
 	if ( !f )
 	{
@@ -510,7 +572,7 @@ int main( int argc, char **argv )
 		poscnt++;
 	}
 	// sort now!
-	std::sort( entries.begin(), entries.end() );
+	std::sort( entries.begin(), entries.end(), BookSortPred() );
 	for (u32 i=0; i<book.entries; i++)
 	{
 		PGEntry &ent = entries[i];
