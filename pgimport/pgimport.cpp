@@ -502,12 +502,22 @@ void convertBookLines( const char *fnm, const char *ofnm )
 	}
 
 	fclose(f);
+
+	// now sort descending by count
+	std::set< PGEntry >::const_iterator ci;
+	std::vector<PGEntry> sorted;
+
+	for ( ci=book.begin(); ci != book.end(); ci++ )
+		sorted.push_back(*ci);
+
+	std::sort(sorted.begin(), sorted.end(), BookSortPred());
+
 	// now: write out!
 	FILE *f2 = fopen(ofnm, "wb");
-	std::set< PGEntry >::const_iterator ci;
-	for ( ci=book.begin(); ci != book.end(); ci++ )
+	std::vector< PGEntry >::const_iterator bci;
+	for ( bci=sorted.begin(); bci != sorted.end(); bci++ )
 	{
-		PGEntry ent = *ci;
+		PGEntry ent = *bci;
 		ent.byteSwap();
 		fwrite( &ent, sizeof(ent), 1, f2 );
 	}
