@@ -33,7 +33,8 @@ namespace cheng4
 {
 
 // don't play moves with percentage score below this
-static const u32 probeThresholdPercent	=	8;
+// used to be 8%, now 1% for more variety
+static const u32 probeThresholdPercent	=	1;
 
 // Polyglot utils:
 
