@@ -530,7 +530,7 @@ int main( int argc, char **argv )
 
 #if 0
 	// new: use generic book lines...
-	convertBookLines("eco.pgn", "booklines.bin");
+	convertBookLines("booklines.txt", "booklines.bin");
 	return 0;
 #endif
 
