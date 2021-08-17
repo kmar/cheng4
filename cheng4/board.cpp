@@ -110,6 +110,148 @@ void Board::clear()
 	update();
 }
 
+void Board::resetFRC(int position)
+{
+	position %= 960;
+
+	if (position < 0)
+		position += 960;
+
+	memset( this, 0, sizeof(*this) );
+	frc = 1;
+	curMove = 1;
+
+	bb[ BBI( ctWhite, ptPawn ) ]	= U64C( 0x00ff000000000000 );
+	bb[ BBI( ctBlack, ptPawn ) ]	= U64C( 0x000000000000ff00 );
+	bb[ bbiWOcc ]					= U64C( 0xffff000000000000 );
+	bb[ bbiBOcc ]					= U64C( 0x000000000000ffff );
+
+	int val = position;
+
+	// reference: https://en.wikipedia.org/wiki/Fischer_random_chess_numbering_scheme, direct derivation
+
+	int tmp = val % 4;
+	val /= 4;
+
+	Bitboard wocc = 0;
+
+	// place light bishops (B, D, F, H)
+	Square wbsq = SquarePack::init(File(2*tmp+1), RANK1);
+
+	wocc |= bb[ BBI( ctWhite, ptBishop ) ] = BitOp::oneShl(wbsq);
+	bb[ BBI( ctBlack, ptBishop ) ] = BitOp::oneShl(wbsq ^ 0x38);
+
+	tmp = val % 4;
+	val /= 4;
+
+	// place dark bishops (A, C, E, G)
+	wbsq = SquarePack::init(File(2*tmp), RANK1);
+
+	wocc |= bb[ BBI( ctWhite, ptBishop ) ] |= BitOp::oneShl(wbsq);
+	bb[ BBI( ctBlack, ptBishop ) ] |= BitOp::oneShl(wbsq ^ 0x38);
+
+	tmp = val % 6;
+	val /= 6;
+
+	// place queens on tmp-th vacated file, starting from a
+	int qcnt = 0;
+
+	for (File qf = AFILE; qf <= HFILE; qf++)
+	{
+		Square wqsq = SquarePack::init(qf, RANK1);
+
+		if (wocc & BitOp::oneShl(wqsq))
+			continue;
+
+		if (qcnt++ == tmp)
+		{
+			// found!
+			wocc |= bb[ BBI( ctWhite, ptQueen ) ] = BitOp::oneShl(wqsq);
+			bb[ BBI( ctBlack, ptQueen ) ] = BitOp::oneShl(wqsq ^ 0x38);
+			break;
+		}
+	}
+
+	// do the same as above, but for knights using a LUT
+
+	const int knightTable[10] =
+	{
+		0x3,
+		0x5,
+		0x9,
+		0x11,
+		0x6,
+		0xa,
+		0x12,
+		0xc,
+		0x14,
+		0x18
+	};
+
+	assert(val < 10);
+	int ntable = knightTable[val];
+
+	// place knights on n-th vacated file (driven by ntable), starting from a
+
+	for (File nf = AFILE; nf <= HFILE; nf++)
+	{
+		Square wnsq = SquarePack::init(nf, RANK1);
+
+		if (wocc & BitOp::oneShl(wnsq))
+			continue;
+
+		if (ntable & 1)
+		{
+			// found!
+			wocc |= bb[ BBI( ctWhite, ptKnight ) ] |= BitOp::oneShl(wnsq);
+			bb[ BBI( ctBlack, ptKnight ) ] |= BitOp::oneShl(wnsq ^ 0x38);
+		}
+
+		ntable >>= 1;
+	}
+
+	// map the remaining files to rook, king, rook
+	File rookFiles[2];
+
+	int cnt = 0;
+
+	for (File f = AFILE; f <= HFILE; f++)
+	{
+		Square sq = SquarePack::init(f, RANK1);
+
+		if (wocc & BitOp::oneShl(sq))
+			continue;
+
+		if (cnt != 1)
+		{
+			rookFiles[cnt/2] = f;
+			wocc |= bb[ BBI( ctWhite, ptRook ) ] |= BitOp::oneShl(sq);
+			bb[ BBI( ctBlack, ptRook ) ] |= BitOp::oneShl(sq ^ 0x38);
+		}
+		else
+		{
+			bkingPos[ ctWhite ] = sq;
+			bkingPos[ ctBlack ] = sq ^ 0x38;
+		}
+
+		++cnt;
+	}
+
+	bcastRights[ ctBlack ] = bcastRights[ ctWhite ] = CastPack::init( rookFiles[1], rookFiles[0] );
+	bfifty = 0;
+	bturn = ctWhite;
+	bep = 0;
+
+	update();
+
+	// last thing to do: disable frc flag if standard position
+	Board tmpb;
+	tmpb.reset();
+
+	if (compare(tmpb))
+		frc = 0;
+}
+
 void Board::reset()
 {
 	memset( this, 0, sizeof(*this) );

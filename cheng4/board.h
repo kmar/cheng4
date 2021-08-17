@@ -520,6 +520,9 @@ public:
 	// reset to initial position
 	void reset();
 
+	// reset to FRC position, indexed from 0 (0..959)
+	void resetFRC(int position);
+
 	// clear bits
 	void clear();
 
