@@ -511,7 +511,8 @@ template< bool pv, bool incheck, bool donull >
 	Move hashmove = stack[ply].killers.hashMove;
 
 	Score smargin = singularMargin;
-	Score singularAlpha = alpha-smargin-1;
+	Score singularAlpha = std::min(alpha, ScorePack::unpackHash(lte.u.s.score, ply));
+	singularAlpha -= smargin+1;
 
 	const bool isMateScout = ScorePack::isMate(singularAlpha);
 
