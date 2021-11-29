@@ -510,22 +510,27 @@ template< bool pv, bool incheck, bool donull >
 
 	Move hashmove = stack[ply].killers.hashMove;
 
-	Score smargin = singularMargin;
-	Score singularAlpha = std::min(alpha, ScorePack::unpackHash(lte.u.s.score, ply));
-	singularAlpha -= smargin+1;
+	bool doSingular = false;
 
-	const bool isMateScout = ScorePack::isMate(singularAlpha);
+	if (hashmove)
+	{
+		Score smargin = singularMargin;
+		Score singularAlpha = std::min(alpha, ScorePack::unpackHash(lte.u.s.score, ply));
+		singularAlpha -= smargin+1;
 
-	// note: avoiding singular if a recapture already lost a tiny amount of elo
-	// isWin limit helps to stabilize fine #70, isMate isn't enough
-	// the problem is not scout search but the extension afterwards (TT pressure?)
-	// the real problem was my replacement scheme though...
-	bool trySingular = useSingular && exclude == mcNone && !isMateScout && depth > 6 && depth+1 < maxDepth &&
-		(lte.u.s.bound & 3) >= btLower && hashmove && !ScorePack::isWin(lte.u.s.score) && lte.u.s.depth > 0 &&
-		board.isLegal<incheck, false>(hashmove, board.pins());
+		const bool isMateScout = ScorePack::isMate(singularAlpha);
 
-	bool doSingular = trySingular &&
-		search<false, incheck, false>(ply, fdepth/3, singularAlpha,  singularAlpha+1, hashmove) <= singularAlpha;
+		// note: avoiding singular if a recapture already lost a tiny amount of elo
+		// isWin limit helps to stabilize fine #70, isMate isn't enough
+		// the problem is not scout search but the extension afterwards (TT pressure?)
+		// the real problem was my replacement scheme though...
+		bool trySingular = useSingular && exclude == mcNone && !isMateScout && depth > 6 && depth+1 < maxDepth &&
+			(lte.u.s.bound & 3) >= btLower && !ScorePack::isWin(lte.u.s.score) && lte.u.s.depth > 0 &&
+			board.isLegal<incheck, false>(hashmove, board.pins());
+
+		doSingular = trySingular &&
+			search<false, incheck, false>(ply, fdepth/3, singularAlpha,  singularAlpha+1, hashmove) <= singularAlpha;
+	}
 
 	while ( (m = mg.next()) != mcNone )
 	{
