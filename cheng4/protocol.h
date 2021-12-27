@@ -124,6 +124,7 @@ class Protocol
 public:
 	ProtoType type;
 	Engine &engine;
+	i32 moveOverheadMs;
 	bool volatile quitFlag;
 
 	Protocol( Engine &eng );

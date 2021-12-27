@@ -514,7 +514,7 @@ static void protoCallback( const SearchInfo &si, void *param )
 
 Protocol::Protocol( Engine &eng ) : multiPV(1), protover(1), analyze(0), force(0), clocksRunning(0), engineColor(ctBlack),
 	invalidState(0), frc(0), edit(0), post(1), fixedTime(0), maxCores(64), adjudicated(0), type( ptNative ),
-	engine(eng), quitFlag(0)
+	engine(eng), moveOverheadMs(100), quitFlag(0)
 {
 	level.reset();
 
@@ -1233,6 +1233,7 @@ bool Protocol::parseUCI( const std::string &line )
 		sendRaw( "option name UCI_Elo type spin min 800 max 2500 default 2500" ); sendEOL();
 		sendRaw( "option name NullMove type check default true" ); sendEOL();
 		sendRaw( "option name Contempt type spin min -100 max 100 default 0" ); sendEOL();
+		sendRaw( "option name MoveOverheadMsec type spin min 0 max 10000 default 100" ); sendEOL();
 #ifdef USE_TUNING
 		for ( size_t i=0; i<TunableParams::paramCount(); i++ )
 		{
@@ -1301,6 +1302,12 @@ bool Protocol::parseUCIOptions( const std::string &line, size_t &pos )
 	{
 		long hm = strtol( value.c_str(), 0, 10 );
 		return engine.setHash( (uint)std::max(1l, hm) );
+	}
+	if ( key == "MoveOverheadMsec")
+	{
+		long mo = strtol( value.c_str(), 0, 10 );
+		moveOverheadMs = std::max<i32>(mo, 0);
+		return 1;
 	}
 	if ( key == "Ponder" )
 	{
@@ -1766,6 +1773,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			"nps=1 smp=1 debug=0 draw=0 playother=1 variants=\"normal,fischerandom\" ics=0 memory=1 ping=0 "
 			"option=\"Clear Hash -button\" option=\"Hash -spin 32 1 " maxHash "\" option=\"Threads -spin 1 1 512\" "
 			"option=\"OwnBook -check 1\" option=\"LimitStrength -check 0\" option=\"Elo -spin 2500 800 2500\" "
+			"option=\"MoveOverheadMsec -spin 100 0 10000\" "
 			"option=\"MultiPV -spin 1 1 256\" option=\"NullMove -check 1\" option=\"Contempt -spin 0 -100 100\" myname=\""
 		);
 		sendRaw( Version::version() );
@@ -1855,6 +1863,12 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			long hsz = std::max( 1l, strtol( line.c_str() + pos, 0, 10 ) );
 			if ( !engine.setHash( (uint)hsz ) )
 				error( "couldn't set hash size", line );
+			return 1;
+		}
+		if ( token == "MoveOverheadMsec")
+		{
+			long mo = strtol( line.c_str() + pos, 0, 10 );
+			moveOverheadMs = std::max<i32>(mo, 0);
 			return 1;
 		}
 		if ( token == "Threads" )
@@ -2354,14 +2368,14 @@ void Protocol::allocTime(i32 mytime, i32 myinc, i32 /*optime*/, i32 /*opinc*/, i
 		// sudden death
 		suddenDeath = 1;
 		movestogo = 25;
-		mytime -= 100;		// reserve
+		mytime -= moveOverheadMs;		// reserve
 	}
 	mvl = (mytime + movestogo * myinc) / movestogo;
 	if ( suddenDeath && mvl > mytime/2 )
 		mvl = mytime/2;
 
 	if ( movestogo == 1 )
-		sm.absLimit = mvl -= 100;	// reserve
+		sm.absLimit = mvl -= moveOverheadMs;	// reserve
 	else
 		sm.absLimit = mytime/4;
 
