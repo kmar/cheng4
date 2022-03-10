@@ -360,11 +360,13 @@ template< bool pv, bool incheck, bool donull >
 	if ( aborting | abortingSmp )
 		return scInvalid;
 
-	Depth depth = (Depth)(fdepth / fracOnePly);
+	Depth depth = (Depth)(fdepth >> fracShift);
 
 	// qsearch
 	if ( depth <= 0 )
 		return qsearch< pv, incheck >( ply, 0, alpha, beta );
+
+	fdepth &= ~(fracOnePly-1);
 
 	uint pvIndex = initPly<pv>( ply );
 	if (!pv)
