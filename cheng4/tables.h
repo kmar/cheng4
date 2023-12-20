@@ -267,6 +267,7 @@ done:
 		unsigned long index;
 		unsigned char isNonzero;
 		isNonzero = _BitScanReverse64(&index, m);
+		(void)isNonzero;
 		return (uint)(index & 0xffffffffu);
 	#else
 		__asm

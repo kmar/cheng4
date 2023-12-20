@@ -2301,7 +2301,7 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 			std::cout << move << " count " << counts[i] << " score " << score << std::endl;
 		}
 		// enumerate moves to avoid
-		std::max(1u, engine.book.enumEntries(b, moves, 1, &counts));
+		engine.book.enumEntries(b, moves, 1, &counts);
 		assert( moves.size() == counts.size() );
 		if ( moves.empty() )
 			return 1;
