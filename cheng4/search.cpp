@@ -291,7 +291,7 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 		if ( useFutility && !pv && !incheck && !ischeck && board.canPrune(m) && board.nonPawnMat() > 10 )
 		{
 			Score fscore = ev + board.moveGain( m );
-			if ( fscore + positionalBias + 200 <= alpha )
+			if ( fscore + positionalBias + 100 <= alpha )
 				continue;
 		}
 #endif
