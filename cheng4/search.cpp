@@ -590,7 +590,7 @@ template< bool pv, bool incheck, bool donull >
 			{
 				// LMR at pv nodes
 				FracDepth reduction = lmrFormula(depth, lmrCount);
-				reduction >>= int(hist > 0 || !board.canReduce(m));
+				reduction -= fracOnePly * (hist > 0 || !board.canReduce(m) /*|| MovePack::isSpecial(m)*/);
 
 				if (reduction > 0)
 					score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
@@ -607,7 +607,7 @@ template< bool pv, bool incheck, bool donull >
 		{
 			// LMR at nonpv nodes
 			FracDepth reduction = lmrFormula(depth, lmrCount);
-			reduction >>= int(hist > 0 || !board.canReduce(m) || MovePack::isSpecial(m));
+			reduction -= fracOnePly * (hist > 0 || !board.canReduce(m) /*|| MovePack::isSpecial(m)*/);
 
 			if (reduction > 0)
 				score = -search< 0, 0, 1 >( ply+1, newDepth - reduction, -alpha-1, -alpha );
@@ -707,7 +707,7 @@ Search::Search( size_t evalKilo, size_t pawnKilo, size_t matKilo ) : startTicks(
 	eval.clear();
 
 	// init stack
-	memset( stack, 0, sizeof(stack) );
+	memset( (void *)stack, 0, sizeof(stack) );
 	// allocate triPV
 	triPV = new Move[maxTriPV];
 	memset( triPV, 0, sizeof(Move)*maxTriPV );
@@ -740,7 +740,7 @@ void Search::clearSlots( bool clearEval )
 	if ( clearEval )
 		eval.clear();
 	history->clear();
-	memset( stack, 0, sizeof(stack) );
+	memset( (void *)stack, 0, sizeof(stack) );
 }
 
 void Search::sendPV( const RootMove &rm, Depth depth, Score score, Score alpha, Score beta, uint mpvindex )
