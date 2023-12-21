@@ -32,6 +32,34 @@ or as public domain (where applicable)
 #include "protocol.h"
 #include <iostream>
 
+#ifdef _WIN32
+#include <Windows.h>
+
+// stdin handling in windows console is retarded - this is dumb but works as expected
+bool getline_win32(std::string &line)
+{
+	line.clear();
+
+	HANDLE stdh = GetStdHandle(STD_INPUT_HANDLE);
+
+	for (;;)
+	{
+		char ch;
+		DWORD nr = 0;
+
+		if (!ReadFile(stdh, &ch, 1, &nr, 0) || nr == 0)
+			return false;
+
+		if (ch == 10 || ch == 13)
+			break;
+
+		line += (char)ch;
+	}
+
+	return true;
+}
+#endif
+
 int main( int argc, char **argv )
 {
 	// disable I/O buffering
@@ -51,9 +79,14 @@ int main( int argc, char **argv )
 	while ( !proto->shouldQuit() )
 	{
 		std::string line;
+#ifdef _WIN32
+		if (!getline_win32(line))
+			line = "quit";
+#else
 		std::getline( std::cin, line );
 		if ( !std::cin.good() )
 			line = "quit";
+#endif
 		proto->parse( line );
 	}
 
