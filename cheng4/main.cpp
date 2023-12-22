@@ -51,7 +51,12 @@ bool getline_win32(std::string &line)
 			return false;
 
 		if (ch == 10 || ch == 13)
+		{
+			if (line.empty())
+				continue;
+
 			break;
+		}
 
 		line += (char)ch;
 	}
