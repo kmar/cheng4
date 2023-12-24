@@ -219,6 +219,15 @@ done:
 #endif
 	}
 
+	static inline u64 rowFlip( u64 m )
+	{
+#ifdef _MSC_VER
+		return _byteswap_uint64(m);
+#else
+		return __builtin_bswap64(m);
+#endif
+	}
+
 	static inline Square popBit( u64 &m )
 	{
 		assert( m );

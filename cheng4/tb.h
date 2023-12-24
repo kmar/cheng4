@@ -21,39 +21,29 @@ or as public domain (where applicable)
   3. This notice may not be removed or altered from any source distribution.
 */
 
-// everything glued together into one cpp file aka unity build
+#pragma once
 
-#ifdef _MSC_VER
-	#undef _CRT_SECURE_NO_WARNINGS
-	#undef _HAS_EXCEPTIONS
-	#undef _SECURE_SCL
-	#define _CRT_SECURE_NO_WARNINGS
-	#define _HAS_EXCEPTIONS		0
-	#define _SECURE_SCL			0
-#endif
+namespace cheng4
+{
 
-#include "board.cpp"
-#include "book.cpp"
-#include "bookzobrist.cpp"
-#include "engine.cpp"
-#include "eval.cpp"
-#include "filterpgn.cpp"
-#include "history.cpp"
-#include "kpk.cpp"
-#include "magic.cpp"
-#include "main.cpp"
-#include "move.cpp"
-#include "movegen.cpp"
-#include "protocol.cpp"
-#include "psq.cpp"
-#include "search.cpp"
-#include "see.cpp"
-#include "tables.cpp"
-#include "thread.cpp"
-#include "trans.cpp"
-#include "tune.cpp"
-#include "utils.cpp"
-#include "version.cpp"
-#include "zobrist.cpp"
-#include "epd.cpp"
-#include "tb.cpp"
+class Board;
+
+enum TbProbeResult
+{
+	tbResInvalid = -1,
+	tbResLoss = 0,
+	tbResBlessedLoss,
+	tbResDraw,
+	tbResCursedWin,
+	tbResWin
+};
+
+int tbMaxPieces();
+int tbNumWDL();
+
+bool tbInit(const char *path);
+void tbDone();
+
+TbProbeResult tbProbeWDL(const Board &board);
+
+}

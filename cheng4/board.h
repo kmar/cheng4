@@ -593,6 +593,12 @@ public:
 		return castRights( turn() ) != 0;
 	}
 
+	// return true if any side can castle
+	inline bool canCastleAny() const
+	{
+		return (castRights(ctWhite) | castRights(ctBlack)) != 0;
+	}
+
 	// return occupied mask (all)
 	inline Bitboard occupied() const
 	{

@@ -202,6 +202,9 @@ public:
 
 	// get opening book
 	const Book &getBook() const;
+
+	// init tablebases
+	bool initTb(const char *paths, const char *infoPrefix);
 };
 
 }

@@ -29,6 +29,7 @@ or as public domain (where applicable)
 #include "tune.h"
 #include "utils.h"
 #include "filterpgn.h"
+#include "tb.h"
 #include <deque>
 #include <cctype>
 #include <algorithm>
@@ -615,6 +616,8 @@ void Protocol::searchCallback( const SearchInfo &si )
 		sendNodes( si.nodes );
 	if ( si.flags & sifNPS )
 		sendNPS( si.nps );
+	if ( si.flags & sifTB )
+		sendTBHits( si.tbHits );
 	if (si.flags & sifHashFull)
 		sendHashFull(si.hashFull);
 	if ( si.flags & sifCurIndex )
@@ -698,6 +701,20 @@ void Protocol::sendNPS( NodeCount n )
 	{
 	case ptUCI:
 		sendStr << " nps " << n;
+		break;
+	case ptCECP:
+	case ptNative:
+		break;
+	}
+}
+
+// send tablebase hits
+void Protocol::sendTBHits( u64 tbHits )
+{
+	switch( type )
+	{
+	case ptUCI:
+		sendStr << " tbhits " << tbHits;
 		break;
 	case ptCECP:
 	case ptNative:
@@ -1234,6 +1251,7 @@ bool Protocol::parseUCI( const std::string &line )
 		sendRaw( "option name NullMove type check default true" ); sendEOL();
 		sendRaw( "option name Contempt type spin min -100 max 100 default 0" ); sendEOL();
 		sendRaw( "option name MoveOverheadMsec type spin min 0 max 10000 default 100" ); sendEOL();
+		sendRaw( "option name SyzygyPath type string default <empty>" ); sendEOL();
 #ifdef USE_TUNING
 		for ( size_t i=0; i<TunableParams::paramCount(); i++ )
 		{
@@ -1308,6 +1326,10 @@ bool Protocol::parseUCIOptions( const std::string &line, size_t &pos )
 		long mo = strtol( value.c_str(), 0, 10 );
 		moveOverheadMs = std::max<i32>(mo, 0);
 		return 1;
+	}
+	if ( key == "SyzygyPath" )
+	{
+		return engine.initTb(value.c_str(), "info string");
 	}
 	if ( key == "Ponder" )
 	{
@@ -1774,6 +1796,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			"option=\"Clear Hash -button\" option=\"Hash -spin 32 1 " maxHash "\" option=\"Threads -spin 1 1 512\" "
 			"option=\"OwnBook -check 1\" option=\"LimitStrength -check 0\" option=\"Elo -spin 2500 800 2500\" "
 			"option=\"MoveOverheadMsec -spin 100 0 10000\" "
+			"option=\"SyzygyPath -string\" "
 			"option=\"MultiPV -spin 1 1 256\" option=\"NullMove -check 1\" option=\"Contempt -spin 0 -100 100\" myname=\""
 		);
 		sendRaw( Version::version() );
@@ -1870,6 +1893,10 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			long mo = strtol( line.c_str() + pos, 0, 10 );
 			moveOverheadMs = std::max<i32>(mo, 0);
 			return 1;
+		}
+		if ( token == "SyzygyPath" )
+		{
+			return engine.initTb(line.c_str(), "telluser");
 		}
 		if ( token == "Threads" )
 		{
@@ -2208,6 +2235,29 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 		engine.board().dump();
 		Score evl = engine.mainThread->search.eval.eval( engine.board() );
 		std::cout << "eval: " << evl << std::endl;
+
+		TbProbeResult pres = tbProbeWDL(engine.board());
+
+		switch(pres)
+		{
+		case tbResLoss:
+			std::cout << "tb loss" << std::endl;
+			break;
+		case tbResBlessedLoss:
+			std::cout << "tb blessed loss" << std::endl;
+			break;
+		case tbResDraw:
+			std::cout << "tb draw" << std::endl;
+			break;
+		case tbResCursedWin:
+			std::cout << "tb cursed win" << std::endl;
+			break;
+		case tbResWin:
+			std::cout << "tb win" << std::endl;
+			break;
+		default:;
+		}
+
 		std::cout.flush();
 		return 1;
 	}

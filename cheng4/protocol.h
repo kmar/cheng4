@@ -130,8 +130,6 @@ public:
 	Protocol( Engine &eng );
 	~Protocol();
 
-	void newIteration();
-
 	// called from search
 	void searchCallback( const SearchInfo &si );
 
@@ -161,6 +159,8 @@ public:
 	void sendNodes( NodeCount total );
 	// send nps
 	void sendNPS( NodeCount nps );
+	// send tablebase hits
+	void sendTBHits( u64 tbHits );
 	// send hashfull
 	void sendHashFull(uint hashFull);
 	// send time
@@ -175,8 +175,6 @@ public:
 	void sendCurMove( Move move );
 	// send hash full (permill)
 	void sendHash( uint full );
-	// send TB hits
-	void sendTBHits( u64 hits );
 
 	// parse line from GUI
 	bool parse( const std::string &line );

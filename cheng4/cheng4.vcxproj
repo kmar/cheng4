@@ -772,6 +772,7 @@
     <ClCompile Include="search.cpp" />
     <ClCompile Include="see.cpp" />
     <ClCompile Include="tables.cpp" />
+    <ClCompile Include="tb.cpp" />
     <ClCompile Include="thread.cpp" />
     <ClCompile Include="trans.cpp" />
     <ClCompile Include="tune.cpp" />
@@ -800,6 +801,7 @@
     <ClInclude Include="repetition.h" />
     <ClInclude Include="search.h" />
     <ClInclude Include="tables.h" />
+    <ClInclude Include="tb.h" />
     <ClInclude Include="thread.h" />
     <ClInclude Include="trans.h" />
     <ClInclude Include="tune.h" />

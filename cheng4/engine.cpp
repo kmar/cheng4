@@ -26,6 +26,8 @@ or as public domain (where applicable)
 #include "thread.h"
 #include "movegen.h"
 #include "tune.h"
+#include "tb.h"
+
 #include <memory.h>
 #include <iostream>
 
@@ -125,6 +127,7 @@ Engine::~Engine()
 	abortSearch();
 	delete tt;
 	mainThread->kill();
+	tbDone();
 }
 
 // run engine (no allocation done until this is called)
@@ -496,6 +499,20 @@ void Engine::setContempt( Score contempt )
 const Book &Engine::getBook() const
 {
 	return book;
+}
+
+// init tablebases
+bool Engine::initTb(const char *paths, const char *infoPrefix)
+{
+	abortSearch();
+	bool res = tbInit(paths);
+
+	if (res)
+		std::cout << infoPrefix <<  " tablebases initialized, " << tbMaxPieces() << " pieces, " << tbNumWDL() << " WDL files found" << std::endl;
+	else
+		std::cout << infoPrefix << " tablebase init failed" << std::endl;
+
+	return res;
 }
 
 }

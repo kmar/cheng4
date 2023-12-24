@@ -137,6 +137,7 @@ struct Search
 	TransTable *tt;					// transposition table (shared)
 	SearchMode mode;				// search mode
 	NodeCount nodes;
+	u64 tbHits;
 	Age age;
 
 	// lazy SMP helper threads (always desired_threads-1)
@@ -367,6 +368,9 @@ struct Search
 	// return number of nodes searched
 	inline NodeCount smpNodes() const;
 
+	// return tablebase hits
+	inline u64 smpTbHits() const;
+
 	// static init
 	static void init();
 
@@ -412,6 +416,14 @@ inline NodeCount Search::smpNodes() const
 	NodeCount res = nodes;
 	for ( size_t i=0; i<smpThreads.size(); i++)
 		res += smpThreads[i]->search.nodes;
+	return res;
+}
+
+inline u64 Search::smpTbHits() const
+{
+	u64 res = tbHits;
+	for ( size_t i=0; i<smpThreads.size(); i++)
+		res += smpThreads[i]->search.tbHits;
 	return res;
 }
 

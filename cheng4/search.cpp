@@ -25,6 +25,7 @@ or as public domain (where applicable)
 #include "movegen.h"
 #include "thread.h"
 #include "tune.h"
+#include "tb.h"
 #include <algorithm>
 #include <cassert>
 #include <memory.h>
@@ -151,6 +152,12 @@ bool Search::timeOut()
 			info.reset();
 			info.flags |= sifNodes | sifNPS | sifTime | sifHashFull;
 			info.nodes = smpNodes();
+
+			info.tbHits = smpTbHits();
+
+			if (info.tbHits)
+				info.flags |= sifTB;
+
 			info.nps = dt ? info.nodes * 1000 / dt : 0;
 			info.time = (Time)dt;
 			info.hashFull = tt->hashFull(age);
@@ -421,7 +428,28 @@ template< bool pv, bool incheck, bool donull >
 			}
 		}
 
-		return ttScore;					// tt cutoff
+		// tt cutoff
+		return ttScore;
+	}
+
+	// probe tablebases
+	if (board.fifty() == 0 && !board.canCastleAny())
+	{
+		uint numMen = BitOp::hasHwPopCount() ? BitOp::popCount<pcmHardware>(board.occupied()) : BitOp::popCount<pcmNormal>(board.occupied());
+
+		if (numMen <= (uint)tbMaxPieces())
+		{
+			TbProbeResult tbRes = tbProbeWDL(board);
+
+			tbHits += tbRes != tbResInvalid;
+
+			if (tbRes == tbResDraw)
+			{
+				// store TT
+				tt->store( board.sig(), age, mcNone, scDraw, btExact, depth, ply );
+				return scDraw;
+			}
+		}
 	}
 
 	Score fscore;
@@ -759,6 +787,12 @@ void Search::sendPV( const RootMove &rm, Depth depth, Score score, Score alpha, 
 		si.pvCount = rm.pvCount;
 		si.pv = rm.pv;
 		si.nodes = smpNodes();
+
+		si.tbHits = smpTbHits();
+
+		if (si.tbHits)
+			si.flags |= sifTB;
+
 		si.nps = dt ? si.nodes * 1000 / dt : 0;
 		si.time = (Time)dt;
 		Ply sd = selDepth;
@@ -1038,6 +1072,7 @@ i32 Search::initIteration()
 	nodeTicks = startTicks = sticks;
 
 	nodes = 0;
+	tbHits = 0;
 
 	// increment age
 	age++;
@@ -1333,6 +1368,12 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 		info.reset();
 		info.flags |= sifTime | sifNodes | sifNPS;
 		info.nodes = smpNodes();
+
+		info.tbHits = smpTbHits();
+
+		if (info.tbHits)
+			info.flags |= sifTB;
+
 		info.nps = dt ? info.nodes * 1000 / dt : 0;
 		info.time = (Time)dt;
 		sendInfo();
