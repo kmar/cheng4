@@ -23,6 +23,8 @@ or as public domain (where applicable)
 
 #pragma once
 
+#include "chtypes.h"
+
 namespace cheng4
 {
 
@@ -45,5 +47,11 @@ bool tbInit(const char *path);
 void tbDone();
 
 TbProbeResult tbProbeWDL(const Board &board);
+// terminator for tbmoves: TB_RESULT_FAILED
+TbProbeResult tbProbeRoot(const Board &board, unsigned *tbmoves = 0);
+
+// convert tb root moves (if any) to cheng moves and scores
+// returns number of out moves
+int tbConvertRootMoves(const Board &board, const unsigned *tbmoves, Move *moves, Score *scores = 0);
 
 }

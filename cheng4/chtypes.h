@@ -119,7 +119,8 @@ enum ScoreConstants
 										// (hashtable)
 	scMate			= scInfinity - 1000,// everything above and including this is a mate
 	scDraw			= 0,				// draw score
-	scWin			= 6400				// win score: this is for kpk, certain win is 12800
+	scWin			= 6400,				// win score: this is for kpk, certain win is 12800
+	scTbWin			= 25000				// tablebase win score
 };
 
 // various limits

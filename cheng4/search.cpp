@@ -443,11 +443,35 @@ template< bool pv, bool incheck, bool donull >
 
 			tbHits += tbRes != tbResInvalid;
 
-			if (tbRes == tbResDraw)
+			Score tbScore = scInvalid;
+
+			switch(tbRes)
 			{
-				// store TT
-				tt->store( board.sig(), age, mcNone, scDraw, btExact, depth, ply );
-				return scDraw;
+			case tbResBlessedLoss:
+				tbScore = scDraw-1;
+				break;
+			case tbResCursedWin:
+				tbScore = scDraw+1;
+				break;
+			case tbResDraw:
+				tbScore = scDraw;
+				break;
+			case tbResWin:
+				tbScore = scTbWin - 100;
+				break;
+			case tbResLoss:
+				tbScore = -scTbWin + 100;
+				break;
+			default:;
+			}
+
+			if (tbScore != scInvalid)
+			{
+				// store TT, exact
+				tt->store( board.sig(), age, mcNone, tbScore, btExact, depth, ply );
+
+				if (tbRes == tbResDraw)
+					return tbScore;
 			}
 		}
 	}
@@ -816,6 +840,22 @@ void Search::flushCachedPV( size_t totalMoves )
 	}
 }
 
+static void searchOverrideTBScore(Move rm, Score &score, int tbMoveCount, const Move *tbMoves, const Score *tbScores)
+{
+	// if we found a mate, just use that
+	if (score != -scInfinity && ScorePack::isMate(score))
+		return;
+
+	for (int i=0; i<tbMoveCount; i++)
+	{
+		if (tbMoves[i] == rm)
+		{
+			if (tbScores[i] != scInvalid)
+				score = tbScores[i];
+		}
+	}
+}
+
 // do root search
 Score Search::root( Depth depth, Score alpha, Score beta )
 {
@@ -835,6 +875,36 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 
 	Score best = scInvalid;
 	Move bestm = mcNone;
+
+	// tb lookup now
+	Move tbMoves[maxMoves];
+	Score tbScores[maxMoves];
+	int tbMoveCount = 0;
+
+	// tablebase root probe and score
+	if (!board.canCastleAny())
+	{
+		uint numMen = BitOp::hasHwPopCount() ? BitOp::popCount<pcmHardware>(board.occupied()) : BitOp::popCount<pcmNormal>(board.occupied());
+
+		if (numMen <= (uint)tbMaxPieces())
+		{
+			unsigned ltbMoves[maxMoves];
+			TbProbeResult tbres = tbProbeRoot(board, ltbMoves);
+
+			if (tbres != tbResInvalid)
+				tbMoveCount = tbConvertRootMoves(board, ltbMoves, tbMoves, tbScores);
+
+			for (size_t i=0; i<rootMoves.count; i++)
+				searchOverrideTBScore(rootMoves.sorted[i]->move, rootMoves.sorted[i]->score, tbMoveCount, tbMoves, tbScores);
+		}
+	}
+
+	if (tbMoveCount > 0)
+	{
+		// disable aspiration for root tbhits
+		alpha = -scInfinity;
+		beta = scInfinity;
+	}
 
 	// first thing to do: sort root moves
 	std::stable_sort( rootMoves.sorted, rootMoves.sorted + rootMoves.count, rootPred );
@@ -903,6 +973,9 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 			return scInvalid;
 		if ( abortingSmp )
 			break;
+
+		if (tbMoveCount)
+			searchOverrideTBScore(rm.move, score, tbMoveCount, tbMoves, tbScores);
 
 		rm.nodes = nodes - onodes;
 

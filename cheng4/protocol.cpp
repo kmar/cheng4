@@ -2236,7 +2236,12 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 		Score evl = engine.mainThread->search.eval.eval( engine.board() );
 		std::cout << "eval: " << evl << std::endl;
 
-		TbProbeResult pres = tbProbeWDL(engine.board());
+		unsigned tbmoves[maxMoves];
+		Move moves[maxMoves];
+		Score scores[maxMoves];
+
+		TbProbeResult pres = tbProbeRoot(engine.board(), tbmoves);
+		int moveCount = tbConvertRootMoves(engine.board(), tbmoves, moves, scores);
 
 		switch(pres)
 		{
@@ -2256,6 +2261,41 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 			std::cout << "tb win" << std::endl;
 			break;
 		default:;
+		}
+
+		if (moveCount > 0)
+		{
+			MoveGen mg(engine.board());
+
+			Move rm[maxMoves];
+			int rmCount = 0;
+
+			Move m;
+
+			while ((m = mg.next()) != mcNone)
+				rm[rmCount++] = m;
+
+			assert(rmCount == moveCount && "invalid tb move count vs root move count!");
+
+			for (int i=0; i<rmCount; i++)
+			{
+				Score score = scInvalid;
+
+				for (int j=0; j<moveCount; j++)
+				{
+					if (moves[j] == rm[i])
+					{
+						score = scores[j];
+						break;
+					}
+				}
+
+				std::cout << engine.board().toSAN(rm[i]);
+
+				assert(score != scInvalid && "invalid move => probably move conversion error!");
+
+				std::cout << " score " << score << std::endl;
+			}
 		}
 
 		std::cout.flush();
