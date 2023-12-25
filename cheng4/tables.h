@@ -356,7 +356,7 @@ done:
 
 	static inline uint popCount( u64 val )
 	{
-		return popCount< pcmNormal >( val );
+		return hwPopCnt ? popCount< pcmHardware >( val ) : popCount< pcmNormal >( val );
 	}
 
 	// shift bitboard one rank forward

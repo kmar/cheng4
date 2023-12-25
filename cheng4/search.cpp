@@ -435,7 +435,7 @@ template< bool pv, bool incheck, bool donull >
 	// probe tablebases
 	if (!(searchFlags & sfNoTablebase) && board.fifty() == 0 && !board.canCastleAny())
 	{
-		uint numMen = BitOp::hasHwPopCount() ? BitOp::popCount<pcmHardware>(board.occupied()) : BitOp::popCount<pcmNormal>(board.occupied());
+		uint numMen = BitOp::popCount(board.occupied());
 
 		if (numMen <= (uint)tbMaxPieces())
 		{
@@ -886,7 +886,7 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 	// tablebase root probe and score
 	if (!(searchFlags & sfNoTablebase) && !board.canCastleAny())
 	{
-		uint numMen = BitOp::hasHwPopCount() ? BitOp::popCount<pcmHardware>(board.occupied()) : BitOp::popCount<pcmNormal>(board.occupied());
+		uint numMen = BitOp::popCount(board.occupied());
 
 		if (numMen <= (uint)tbMaxPieces())
 		{

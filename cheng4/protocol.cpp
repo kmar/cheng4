@@ -257,6 +257,8 @@ static void bench()
 	TransTable *tt = new TransTable;
 	tt->resize( 1*1048576 );
 	s->setHashTable(tt);
+	// bench must be deterministic with or without tbs
+	s->disableTablebase(true);
 	Board b;
 	SearchMode sm;
 	sm.reset();
