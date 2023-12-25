@@ -56,7 +56,8 @@ struct SearchMode
 enum SearchFlags
 {
 	sfNoTimeout		=	1,
-	sfNoNullMove	=	2
+	sfNoNullMove	=	2,
+	sfNoTablebase	=	4
 };
 
 enum SearchInfoFlags
@@ -357,6 +358,9 @@ struct Search
 
 	// enable nullmove flag
 	void enableNullMove( bool enable );
+
+	// disable tablebase flag
+	void disableTablebase( bool flag );
 
 	// start root smp search
 	void smpStart( Depth depth, Score alpha, Score beta );

@@ -205,6 +205,9 @@ public:
 
 	// init tablebases
 	bool initTb(const char *paths, const char *infoPrefix);
+
+	// enable tablebases
+	void enableTb(bool flag);
 };
 
 }

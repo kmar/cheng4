@@ -1252,6 +1252,7 @@ bool Protocol::parseUCI( const std::string &line )
 		sendRaw( "option name Contempt type spin min -100 max 100 default 0" ); sendEOL();
 		sendRaw( "option name MoveOverheadMsec type spin min 0 max 10000 default 100" ); sendEOL();
 		sendRaw( "option name SyzygyPath type string default <empty>" ); sendEOL();
+		sendRaw( "option name SyzygyEnable type check default true" ); sendEOL();
 #ifdef USE_TUNING
 		for ( size_t i=0; i<TunableParams::paramCount(); i++ )
 		{
@@ -1330,6 +1331,11 @@ bool Protocol::parseUCIOptions( const std::string &line, size_t &pos )
 	if ( key == "SyzygyPath" )
 	{
 		return engine.initTb(value.c_str(), "info string");
+	}
+	if ( key == "SyzygyEnable" )
+	{
+		engine.enableTb( value != "false" );
+		return 1;
 	}
 	if ( key == "Ponder" )
 	{
@@ -1796,7 +1802,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			"option=\"Clear Hash -button\" option=\"Hash -spin 32 1 " maxHash "\" option=\"Threads -spin 1 1 512\" "
 			"option=\"OwnBook -check 1\" option=\"LimitStrength -check 0\" option=\"Elo -spin 2500 800 2500\" "
 			"option=\"MoveOverheadMsec -spin 100 0 10000\" "
-			"option=\"SyzygyPath -string\" "
+			"option=\"SyzygyPath -string\" option=\"SyzygyEnable -check 1\" "
 			"option=\"MultiPV -spin 1 1 256\" option=\"NullMove -check 1\" option=\"Contempt -spin 0 -100 100\" myname=\""
 		);
 		sendRaw( Version::version() );
@@ -1896,7 +1902,13 @@ bool Protocol::parseCECPInternal( const std::string &line )
 		}
 		if ( token == "SyzygyPath" )
 		{
-			return engine.initTb(line.c_str(), "telluser");
+			return engine.initTb(line.c_str() + pos, "telluser");
+		}
+		if ( token == "SyzygyEnable" )
+		{
+			long flag = strtol( line.c_str() + pos, 0, 10 );
+			engine.enableTb( flag != 0 );
+			return 1;
 		}
 		if ( token == "Threads" )
 		{
@@ -2290,9 +2302,10 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 					}
 				}
 
-				std::cout << engine.board().toSAN(rm[i]);
+				if (score == scInvalid)
+					continue;
 
-				assert(score != scInvalid && "invalid move => probably move conversion error!");
+				std::cout << engine.board().toSAN(rm[i]);
 
 				std::cout << " score " << score << std::endl;
 			}

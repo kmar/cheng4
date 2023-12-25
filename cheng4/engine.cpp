@@ -515,4 +515,9 @@ bool Engine::initTb(const char *paths, const char *infoPrefix)
 	return res;
 }
 
+void Engine::enableTb(bool flag)
+{
+	mainThread->search.disableTablebase(!flag);
+}
+
 }

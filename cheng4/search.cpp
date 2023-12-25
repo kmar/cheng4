@@ -433,7 +433,7 @@ template< bool pv, bool incheck, bool donull >
 	}
 
 	// probe tablebases
-	if (board.fifty() == 0 && !board.canCastleAny())
+	if (!(searchFlags & sfNoTablebase) && board.fifty() == 0 && !board.canCastleAny())
 	{
 		uint numMen = BitOp::hasHwPopCount() ? BitOp::popCount<pcmHardware>(board.occupied()) : BitOp::popCount<pcmNormal>(board.occupied());
 
@@ -852,6 +852,8 @@ static void searchOverrideTBScore(Move rm, Score &score, int tbMoveCount, const 
 		{
 			if (tbScores[i] != scInvalid)
 				score = tbScores[i];
+
+			break;
 		}
 	}
 }
@@ -882,7 +884,7 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 	int tbMoveCount = 0;
 
 	// tablebase root probe and score
-	if (!board.canCastleAny())
+	if (!(searchFlags & sfNoTablebase) && !board.canCastleAny())
 	{
 		uint numMen = BitOp::hasHwPopCount() ? BitOp::popCount<pcmHardware>(board.occupied()) : BitOp::popCount<pcmNormal>(board.occupied());
 
@@ -894,7 +896,8 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 			if (tbres != tbResInvalid)
 				tbMoveCount = tbConvertRootMoves(board, ltbMoves, tbMoves, tbScores);
 
-			for (size_t i=0; i<rootMoves.count; i++)
+			// only override all for depth 1
+			for (size_t i=0; depth == 1 && i<rootMoves.count; i++)
 				searchOverrideTBScore(rootMoves.sorted[i]->move, rootMoves.sorted[i]->score, tbMoveCount, tbMoves, tbScores);
 		}
 	}
@@ -902,7 +905,7 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 	if (tbMoveCount > 0)
 	{
 		// disable aspiration for root tbhits
-		alpha = -scInfinity;
+		oalpha = alpha = -scInfinity;
 		beta = scInfinity;
 	}
 
@@ -1616,6 +1619,13 @@ void Search::enableTimeOut( bool enable )
 		searchFlags &= ~sfNoTimeout;
 }
 
+void Search::disableTablebase( bool flag )
+{
+	if ( flag )
+		searchFlags |= sfNoTablebase;
+	else
+		searchFlags &= ~sfNoTablebase;
+}
 
 // enable nullmove
 void Search::enableNullMove( bool enable )

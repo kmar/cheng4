@@ -111,18 +111,6 @@ enum BoundType
 	btExact				// exact
 };
 
-enum ScoreConstants
-{
-	scInvalidMask	= ~32767,			// invalid score mask
-	scInvalid 		= -32768,			// invalid score
-	scInfinity		= 32767-256,		// infinity (note: must have a reserve here when storing rel. mates in 16-bits
-										// (hashtable)
-	scMate			= scInfinity - 1000,// everything above and including this is a mate
-	scDraw			= 0,				// draw score
-	scWin			= 6400,				// win score: this is for kpk, certain win is 12800
-	scTbWin			= 25000				// tablebase win score
-};
-
 // various limits
 enum Limits
 {
@@ -136,6 +124,18 @@ enum Limits
 
 	maxStrength =	2500,				// maximum elo strength for elo limit
 	minStrength =	800					// minimum elo strength for elo limit
+};
+
+enum ScoreConstants
+{
+	scInvalidMask	= ~32767,			// invalid score mask
+	scInvalid 		= -32768,			// invalid score
+	scInfinity		= 32767-256,		// infinity (note: must have a reserve here when storing rel. mates in 16-bits
+										// (hashtable)
+	scMate			= scInfinity - maxPly,// everything above and including this is a mate
+	scDraw			= 0,				// draw score
+	scWin			= 6400,				// win score: this is for kpk, certain win is 12800
+	scTbWin			= 25000				// tablebase win score
 };
 
 // fractional ply constants
