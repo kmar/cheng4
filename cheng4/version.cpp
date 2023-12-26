@@ -30,7 +30,7 @@ namespace cheng4
 
 std::string Version::version()
 {
-	return "Cheng 4.42 dev";
+	return "Cheng 4.42";
 }
 
 std::string Version::author()
