@@ -1904,7 +1904,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 		}
 		if ( token == "SyzygyPath" )
 		{
-			return engine.initTb(line.c_str() + pos, "telluser");
+			return engine.initTb(line.c_str() + pos, "#");
 		}
 		if ( token == "SyzygyEnable" )
 		{
