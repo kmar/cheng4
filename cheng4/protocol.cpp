@@ -1804,7 +1804,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			"option=\"Clear Hash -button\" option=\"Hash -spin 32 1 " maxHash "\" option=\"Threads -spin 1 1 512\" "
 			"option=\"OwnBook -check 1\" option=\"LimitStrength -check 0\" option=\"Elo -spin 2500 800 2500\" "
 			"option=\"MoveOverheadMsec -spin 100 0 10000\" "
-			"option=\"SyzygyPath -string\" option=\"SyzygyEnable -check 1\" "
+			"option=\"SyzygyPath -string <empty>\" option=\"SyzygyEnable -check 1\" "
 			"option=\"MultiPV -spin 1 1 256\" option=\"NullMove -check 1\" option=\"Contempt -spin 0 -100 100\" myname=\""
 		);
 		sendRaw( Version::version() );
