@@ -21,13 +21,6 @@ or as public domain (where applicable)
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include <memory.h>
-#include "magic.h"
-#include "movegen.h"
-#include "history.h"
-#include "zobrist.h"
-#include "psq.h"
-#include "search.h"
 #include "engine.h"
 #include "protocol.h"
 #include "utils.h"
