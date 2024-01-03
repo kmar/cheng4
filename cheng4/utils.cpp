@@ -26,6 +26,12 @@ or as public domain (where applicable)
 #ifndef _MSC_VER
 #include <stdint.h>
 #endif
+#include <iostream>
+#include <cstdio>
+
+#ifdef _WIN32
+#	include <Windows.h>
+#endif
 
 namespace cheng4
 {
@@ -88,6 +94,57 @@ void skipUntilEOL( const char *&ptr )
     ptr += 2;
   else
     ptr++;
+}
+
+void disableIOBuffering()
+{
+	std::cin.rdbuf()->pubsetbuf(0, 0);
+	std::cout.rdbuf()->pubsetbuf(0, 0);
+	setbuf( stdin, 0 );
+	setbuf( stdout, 0 );
+}
+
+#ifdef _WIN32
+// stdin handling in windows console is retarded - this is dumb but works as expected
+bool getline_win32(std::string &line)
+{
+	line.clear();
+
+	HANDLE stdh = GetStdHandle(STD_INPUT_HANDLE);
+
+	for (;;)
+	{
+		char ch;
+		DWORD nr = 0;
+
+		if (!ReadFile(stdh, &ch, 1, &nr, 0) || nr == 0)
+			return false;
+
+		if (ch == 10 || ch == 13)
+		{
+			if (line.empty())
+				continue;
+
+			break;
+		}
+
+		line += (char)ch;
+	}
+
+	return true;
+}
+#endif
+
+void getline(std::string &line)
+{
+#ifdef _WIN32
+	if (!getline_win32(line))
+		line = "quit";
+#else
+	std::getline( std::cin, line );
+	if ( !std::cin.good() )
+		line = "quit";
+#endif
 }
 
 }

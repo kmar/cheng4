@@ -24,12 +24,15 @@ or as public domain (where applicable)
 #pragma once
 
 #include <cstddef>
+#include <string>
 
 // various utility functions that didn't fit elsewhere
 
 namespace cheng4
 {
 
+// disable IO buffering on stdin/stdout
+void disableIOBuffering();
 // returns true if input is power of two
 bool isPow2( size_t sz );
 // round size to nearest power of two
@@ -48,5 +51,7 @@ inline T clamp(T val, T minv, T maxv)
 {
 	return val < minv ? minv : val > maxv ? maxv : val;
 }
+
+void getline(std::string &line);
 
 }

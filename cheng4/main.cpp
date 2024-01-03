@@ -30,48 +30,12 @@ or as public domain (where applicable)
 #include "search.h"
 #include "engine.h"
 #include "protocol.h"
-#include <iostream>
-
-#ifdef _WIN32
-#include <Windows.h>
-
-// stdin handling in windows console is retarded - this is dumb but works as expected
-bool getline_win32(std::string &line)
-{
-	line.clear();
-
-	HANDLE stdh = GetStdHandle(STD_INPUT_HANDLE);
-
-	for (;;)
-	{
-		char ch;
-		DWORD nr = 0;
-
-		if (!ReadFile(stdh, &ch, 1, &nr, 0) || nr == 0)
-			return false;
-
-		if (ch == 10 || ch == 13)
-		{
-			if (line.empty())
-				continue;
-
-			break;
-		}
-
-		line += (char)ch;
-	}
-
-	return true;
-}
-#endif
+#include "utils.h"
 
 int main( int argc, char **argv )
 {
 	// disable I/O buffering
-	std::cin.rdbuf()->pubsetbuf(0, 0);
-	std::cout.rdbuf()->pubsetbuf(0, 0);
-	setbuf( stdin, 0 );
-	setbuf( stdout, 0 );
+	cheng4::disableIOBuffering();
 
 	// static init
 	cheng4::Engine::init( argc-1, const_cast<const char **>(argv)+1 );
@@ -84,14 +48,7 @@ int main( int argc, char **argv )
 	while ( !proto->shouldQuit() )
 	{
 		std::string line;
-#ifdef _WIN32
-		if (!getline_win32(line))
-			line = "quit";
-#else
-		std::getline( std::cin, line );
-		if ( !std::cin.good() )
-			line = "quit";
-#endif
+		cheng4::getline(line);
 		proto->parse( line );
 	}
 
