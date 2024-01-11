@@ -107,21 +107,6 @@ struct NetLayer : NetLayerBase
 
 			const float *w = weights + i*outputSize;
 
-#if 0
-			if (!(outputSize & 3))
-			{
-				for (int j=0; j<outputSize/4; j++)
-				{
-					auto dst4 = _mm_load_ps(tmp+4*j);
-					auto w4 = _mm_load_ps(w+4*j);
-					auto tmp4 = _mm_add_ps(dst4, w4);
-					_mm_store_ps(tmp+4*j, tmp4);
-				}
-
-				continue;
-			}
-
-#endif
 #	if defined(__clang__)
 			_Pragma("clang loop vectorize(enable)")
 #	endif
@@ -148,25 +133,6 @@ struct NetLayer : NetLayerBase
 
 			auto inputw = input[i];
 
-			// this needs to be vectorized!
-#if 0
-			if (!(outputSize & 3))
-			{
-				auto inputw4 = _mm_set1_ps(inputw);
-
-				for (int j=0; j<outputSize/4; j++)
-				{
-					auto dst4 = _mm_load_ps(tmp+4*j);
-					auto w4 = _mm_load_ps(w+4*j);
-					auto tmp4 = _mm_mul_ps(inputw4, w4);
-					tmp4 = _mm_add_ps(dst4, tmp4);
-					_mm_store_ps(tmp+4*j, tmp4);
-				}
-
-				continue;
-			}
-
-#endif
 #	if defined(__clang__)
 			_Pragma("clang loop vectorize(enable)")
 #	endif
@@ -331,7 +297,7 @@ bool Network::load(const char *filename)
 
 bool Network::load_buffer(const void *ptr, int size)
 {
-	if (size != weight_size * sizeof(float))
+	if (size != weight_size * (int)sizeof(float))
 		return false;
 
 	memcpy(weights.data() + weight_index, ptr, weight_size * sizeof(float));
