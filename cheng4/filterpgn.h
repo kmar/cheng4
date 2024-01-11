@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2012-2015, 2020-2021, 2023 Martin Sedlak
+  Copyright (C) 2012-2015, 2020-2021, 2023-2024 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -24,8 +24,11 @@ or as public domain (where applicable)
 #pragma once
 
 #include "board.h"
+#include "search.h"
 #include <string>
 #include <vector>
+#include <set>
+#include <unordered_set>
 
 namespace cheng4
 {
@@ -53,12 +56,18 @@ class FilterPgn
 		void clear();
 	};
 public:
+	FilterPgn();
+
 	bool parse(const char *fname);
 	bool write(const char *fname);
 private:
 	LexState ls;
 	Game game;
 	Game globalGame;
+	std::unordered_set<Signature> globalDups;
+
+	TransTable tt;
+	Search s;
 
 	bool parseTag(std::string &key, std::string &value );
 	bool parseString(std::string &str);

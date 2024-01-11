@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2012-2015, 2020-2021, 2023 Martin Sedlak
+  Copyright (C) 2012-2015, 2020-2021, 2023-2024 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -21,21 +21,23 @@ or as public domain (where applicable)
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "version.h"
+#pragma once
+
+#include "board.h"
+#include <vector>
 
 namespace cheng4
 {
 
-// Version
-
-std::string Version::version()
+struct LabelFEN
 {
-	return "Cheng 4.43";
-}
+	std::vector<Board> boards;
+	std::vector<double> outcomes;
+	std::vector<Score> labels;
+	std::vector<Score> evals;
 
-std::string Version::author()
-{
-	return "Martin Sedlak";
-}
+	bool load(const char *filename);
+	bool process(const char *outfilename);
+};
 
 }

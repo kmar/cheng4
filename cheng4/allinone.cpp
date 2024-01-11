@@ -57,3 +57,5 @@ or as public domain (where applicable)
 #include "zobrist.cpp"
 #include "epd.cpp"
 #include "tb.cpp"
+#include "labelfen.cpp"
+#include "net.cpp"

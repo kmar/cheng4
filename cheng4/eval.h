@@ -25,6 +25,7 @@ or as public domain (where applicable)
 
 #include "board.h"
 #include "utils.h"
+#include "net.h"
 #include <memory.h>
 
 namespace cheng4
@@ -182,7 +183,13 @@ struct Eval
 	// clear eval/pawn/material caches
 	void clear();
 
+	// use legacy handcrafted eval?
+	static volatile bool useHCE;
+
 private:
+	// new: net!
+	Network net;
+
 	Score contemptFactor[ctMax];
 	// scores for game phases
 	FineScore fscore[phMax];

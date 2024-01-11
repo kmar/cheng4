@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2012-2015, 2020-2021, 2023 Martin Sedlak
+  Copyright (C) 2012-2015, 2020-2021, 2023-2024 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,6 +25,7 @@ or as public domain (where applicable)
 #include "movegen.h"
 #include "utils.h"
 #include <memory.h>
+#include <algorithm>
 
 namespace cheng4
 {
@@ -2253,6 +2254,180 @@ void Board::calcEvasMask()
 		// & ~kp to avoid self-captures of king
 		bb[ bbiEvMask ] |= Tables::between[ kp ][ sq ] & BitOp::noneShl(kp);
 	} else bb[ bbiEvMask ] = 0;
+}
+
+int Board::netIndices(i32 *inds) const
+{
+	int res = 0;
+
+	// 736: not mirrored
+	Color c = bturn;
+	Square ksq = bkingPos[c];
+	Square mirror = 0x38 * (c == ctBlack);
+
+	Color opc = flip(c);
+	Square opksq = bkingPos[opc];
+
+	i32 base = 0;
+
+	// king/opp king go first
+	ksq ^= mirror;
+	inds[res++] = ksq;
+	base += 64;
+	inds[res++] = (opksq ^ mirror) + base;
+	base += 64;
+
+	// pawns will be a bit tricky as we only want specific squares
+
+	Bitboard tmp;
+	tmp = pieces(c, ptPawn);
+	tmp &= ~pawnPromoSquares;
+
+	while (tmp)
+	{
+		Square sq = BitOp::popBit(tmp);
+		sq ^= mirror;
+		inds[res++] = base + sq - 8;
+	}
+
+	base += 48;
+
+	tmp = pieces(opc, ptPawn);
+	tmp &= ~pawnPromoSquares;
+
+	while (tmp)
+	{
+		Square sq = BitOp::popBit(tmp);
+		sq ^= mirror;
+		inds[res++] = base + sq - 8;
+	}
+
+	base += 48;
+
+	// the rest should be easy enough
+	for (Piece p = ptKnight; p < ptKing; p++)
+	{
+		tmp = pieces(c, p);
+
+		while (tmp)
+		{
+			Square sq = BitOp::popBit(tmp);
+			sq ^= mirror;
+			inds[res++] = base + sq;
+		}
+
+		base += 64;
+
+		tmp = pieces(opc, p);
+
+		while (tmp)
+		{
+			Square sq = BitOp::popBit(tmp);
+			sq ^= mirror;
+			inds[res++] = base + sq;
+		}
+
+		base += 64;
+	}
+
+	std::sort(inds, inds + res);
+
+	assert(base == 736 && res <= 64);
+
+	assert(validateNetIndices(res, inds));
+
+	return res;
+}
+
+bool Board::validateNetIndices(int ninds, const i32 *inds) const
+{
+	// at least 2 kings
+	if (ninds < 2)
+		return false;
+
+	Color c = bturn;
+	Square mirror = 0x38 * (c == ctBlack);
+
+	Color opc = flip(c);
+
+	Board tmpb;
+	tmpb.clear();
+	memset(tmpb.bpieces, 0, sizeof(tmpb.bpieces));
+
+	for (int i=0; i<ninds; i++)
+	{
+		i32 idx = inds[i];
+
+		i32 base = 0;
+
+		if (idx >= base && idx < base + 64)
+		{
+			Square sq = Square(idx - base) ^ mirror;
+			tmpb.setPiece(c, ptKing, sq);
+			continue;
+		}
+
+		base += 64;
+
+		if (idx >= base && idx < base+64)
+		{
+			Square sq = Square(idx - base) ^ mirror;
+			tmpb.setPiece(opc, ptKing, sq);
+		}
+
+		base += 64;
+
+		if (idx >= base && idx < base + 48)
+		{
+			Square sq = Square(idx - base + 8) ^ mirror;
+			tmpb.setPiece(c, ptPawn, sq);
+		}
+
+		base += 48;
+
+		if (idx >= base && idx < base + 48)
+		{
+			Square sq = Square(idx - base + 8) ^ mirror;
+			tmpb.setPiece(opc, ptPawn, sq);
+		}
+
+		base += 48;
+
+		for (Piece p = ptKnight; p < ptKing; p++)
+		{
+			if (idx >= base && idx < base+64)
+			{
+				Square sq = Square(idx - base) ^ mirror;
+				tmpb.setPiece(c, p, sq);
+			}
+
+			base += 64;
+
+			if (idx >= base && idx < base+64)
+			{
+				Square sq = Square(idx - base) ^ mirror;
+				tmpb.setPiece(opc, p, sq);
+			}
+
+			base += 64;
+		}
+	}
+
+	tmpb.updateBitboards();
+
+	if (bkingPos[0] != tmpb.bkingPos[0] || bkingPos[1] != tmpb.bkingPos[1])
+		return false;
+
+	for (Piece p=ptPawn; p<ptKing; p++)
+	{
+		if (tmpb.pieces(ctWhite, p) != pieces(ctWhite, p))
+			return false;
+
+		if (tmpb.pieces(ctBlack, p) != pieces(ctBlack, p))
+			return false;
+	}
+
+	return true;
 }
 
 // instantiate

@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="board.cpp" />
+    <ClCompile Include="book.cpp" />
+    <ClCompile Include="bookzobrist.cpp" />
+    <ClCompile Include="engine.cpp" />
+    <ClCompile Include="epd.cpp" />
+    <ClCompile Include="eval.cpp" />
+    <ClCompile Include="filterpgn.cpp" />
+    <ClCompile Include="history.cpp" />
+    <ClCompile Include="kpk.cpp" />
+    <ClCompile Include="magic.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="move.cpp" />
+    <ClCompile Include="movegen.cpp" />
+    <ClCompile Include="protocol.cpp" />
+    <ClCompile Include="psq.cpp" />
+    <ClCompile Include="search.cpp" />
+    <ClCompile Include="see.cpp" />
+    <ClCompile Include="tables.cpp" />
+    <ClCompile Include="thread.cpp" />
+    <ClCompile Include="trans.cpp" />
+    <ClCompile Include="tune.cpp" />
+    <ClCompile Include="utils.cpp" />
+    <ClCompile Include="version.cpp" />
+    <ClCompile Include="zobrist.cpp" />
+    <ClCompile Include="tb.cpp" />
+    <ClCompile Include="labelfen.cpp" />
+    <ClCompile Include="net.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="board.h" />
+    <ClInclude Include="book.h" />
+    <ClInclude Include="bookzobrist.h" />
+    <ClInclude Include="chtypes.h" />
+    <ClInclude Include="engine.h" />
+    <ClInclude Include="epd.h" />
+    <ClInclude Include="eval.h" />
+    <ClInclude Include="filterpgn.h" />
+    <ClInclude Include="history.h" />
+    <ClInclude Include="killer.h" />
+    <ClInclude Include="kpk.h" />
+    <ClInclude Include="magic.h" />
+    <ClInclude Include="move.h" />
+    <ClInclude Include="movegen.h" />
+    <ClInclude Include="prng.h" />
+    <ClInclude Include="protocol.h" />
+    <ClInclude Include="psq.h" />
+    <ClInclude Include="repetition.h" />
+    <ClInclude Include="search.h" />
+    <ClInclude Include="tables.h" />
+    <ClInclude Include="thread.h" />
+    <ClInclude Include="trans.h" />
+    <ClInclude Include="tune.h" />
+    <ClInclude Include="types.h" />
+    <ClInclude Include="utils.h" />
+    <ClInclude Include="version.h" />
+    <ClInclude Include="zobrist.h" />
+    <ClInclude Include="pyrrhic\stdendian.h">
+      <Filter>pyrrhic</Filter>
+    </ClInclude>
+    <ClInclude Include="pyrrhic\tbconfig.h">
+      <Filter>pyrrhic</Filter>
+    </ClInclude>
+    <ClInclude Include="pyrrhic\tbprobe.h">
+      <Filter>pyrrhic</Filter>
+    </ClInclude>
+    <ClInclude Include="tb.h" />
+    <ClInclude Include="labelfen.h" />
+    <ClInclude Include="net.h" />
+    <ClInclude Include="shuffle.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="pyrrhic">
+      <UniqueIdentifier>{fe2770de-557f-4875-bc47-a1daebd74828}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2012-2015, 2020-2021, 2023 Martin Sedlak
+  Copyright (C) 2012-2015, 2020-2021, 2023-2024 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -23,6 +23,8 @@ or as public domain (where applicable)
 
 #include "filterpgn.h"
 #include "board.h"
+#include "search.h"
+#include "shuffle.h"
 #include <set>
 #include <vector>
 #include <iostream>
@@ -42,6 +44,12 @@ void FilterPgn::Game::clear()
 }
 
 // FilterPgn
+
+FilterPgn::FilterPgn()
+{
+	tt.resize(1);
+	s.setHashTable(&tt);
+}
 
 bool FilterPgn::write(const char *fname)
 {
@@ -78,13 +86,18 @@ bool FilterPgn::parse(const char *fname)
 	ls.ptr = ptr;
 	ls.top = top;
 
+	bool forfeit = 0;
 	bool parseRes = 1;
 	std::string key, value, comment;
 
 	globalGame.clear();
+	globalDups.clear();
 	game.clear();
 
 	int ch;
+	int totalPos = 0;
+	int forfeits = 0;
+	int illegals = 0;
 	// 0 = tags, 1 = game
 	int state = 0;
 	while ( (ch = peekChar()) >= 0 )
@@ -106,8 +119,26 @@ bool FilterPgn::parse(const char *fname)
 			if (key == "FEN" && !game.board.fromFEN(value.c_str()))
 				fprintf(stderr, "invalid FEN: %s\n", value.c_str());
 
+			// ignore time forfeits and illegal moves
+			if (key == "Termination")
+			{
+				bool isForfeit = value == "time forfeit";
+				bool isIllegal = value == "illegal move";
+
+				if (isForfeit || isIllegal)
+				{
+					forfeit = 1;
+					game.result = -1;
+
+					if (isForfeit)
+						++forfeits;
+					else
+						++illegals;
+				}
+			}
+
 			// we're only interested in result so far
-			if (key == "Result")
+			if (key == "Result" && !forfeit)
 			{
 				if (value == "1/2-1/2")
 					game.result = 0.5;
@@ -165,11 +196,21 @@ bool FilterPgn::parse(const char *fname)
 		game.board.doMove(m, ui, ischeck);
 		if ( game.board.turn() == ctWhite )
 			game.board.incMove();
+
 		Position pos;
 		pos.fen = game.board.toFEN();
 		pos.outcome = game.result;
 		game.positions.push_back(pos);
+
+		++totalPos;
+
+		if (!(totalPos & 131071))
+			printf("%d positions\n", totalPos);
 	}
+
+	printf("%d time forfeits skipped\n", forfeits);
+	printf("%d illegal moves skipped\n", illegals);
+
 	flushGame();
 	delete[] buf;
 	return parseRes;
@@ -177,13 +218,67 @@ bool FilterPgn::parse(const char *fname)
 
 void FilterPgn::flushGame()
 {
+	if (game.result < 0)
+		return;
+
+	std::vector<Position> pos;
+	pos.reserve(game.positions.size());
+
+	s.clearHash();
+	s.clearSlots();
+
 	for (size_t i=0; i<game.positions.size(); i++)
 	{
 		const Position &p = game.positions[i];
-		if (p.outcome >= 0)
+
+		s.board.fromFEN(p.fen.c_str());
+		s.board.resetMoveCount();
+
+		Score sc;
+
+		// skip trivial draws
+		if (s.board.isDraw())
+			continue;
+
+		if (s.board.inCheck())
 		{
-			globalGame.positions.push_back(p);
+			// ignore when in check => couldn't call eval in that case
+			continue;
 		}
+		else
+			sc = s.qsearch<1, 0>(0, 0, -scInfinity, scInfinity);
+
+		Score sce = s.eval.eval(s.board);
+
+		// ignore non-quiet positions
+		if (sce != sc)
+			continue;
+
+		// ignore games without outcome
+		if (p.outcome < 0)
+			continue;
+
+		pos.push_back(p);
+	}
+
+	if (pos.empty())
+		return;
+
+	static FastRandom rng;
+	// shuffle!
+	ShuffleArray<Position, FastRandom>(&pos[0], &pos.back()+1, rng);
+
+	for (auto &&it : pos)
+	{
+		s.board.fromFEN(it.fen.c_str());
+		s.board.resetMoveCount();
+
+		// remove dup positions
+		if (globalDups.find(s.board.sig()) != globalDups.end())
+			continue;
+
+		globalDups.insert(s.board.sig());
+		globalGame.positions.push_back(it);
 	}
 }
 

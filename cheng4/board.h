@@ -2,7 +2,7 @@
 You can use this program under the terms of either the following zlib-compatible license
 or as public domain (where applicable)
 
-  Copyright (C) 2012-2015, 2020-2021, 2023 Martin Sedlak
+  Copyright (C) 2012-2015, 2020-2021, 2023-2024 Martin Sedlak
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -171,6 +171,12 @@ protected:
 	void calcEvasMask();
 
 public:
+
+	void resetMoveCount()
+	{
+		bfifty = 0;
+		curMove = 1;
+	}
 
 	inline uint move() const
 	{
@@ -572,6 +578,12 @@ public:
 	void setFifty(uint val)
 	{
 		bfifty = (FiftyCount)val;
+	}
+
+	// reset 50 move rule counter
+	void resetFifty()
+	{
+		bfifty = 0;
 	}
 
 	// return side to move
@@ -976,6 +988,13 @@ public:
 		Score res = Tables::gainPromo[ MovePack::promo(m) ];
 		return res + Tables::gainCap[ PiecePack::type( piece( MovePack::to(m) ) ) ] * (MovePack::isCapture(m) != 0);
 	}
+
+	// note: up to 64 will be set
+	// returns number of indices
+	// note: indices not sorted
+	int netIndices(i32 *inds) const;
+	// simple post-validation
+	bool validateNetIndices(int ninds, const i32 *inds) const;
 };
 
 }

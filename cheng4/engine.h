@@ -208,6 +208,9 @@ public:
 
 	// enable tablebases
 	void enableTb(bool flag);
+
+	// use legacy HCE (handcrafted eval)
+	void useHCE(bool flag);
 };
 
 }

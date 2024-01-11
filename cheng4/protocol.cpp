@@ -29,6 +29,7 @@ or as public domain (where applicable)
 #include "tune.h"
 #include "utils.h"
 #include "filterpgn.h"
+#include "labelfen.h"
 #include "tb.h"
 #include <deque>
 #include <cctype>
@@ -495,6 +496,20 @@ static void filterPgn( const char *fname )
 	}
 	if (!fp.write("filterPgn_out.fen"))
 		std::cout << "failed to write filterPgn_out.fen" << std::endl;
+	else
+		std::cout << "all ok" << std::endl;
+}
+
+static void labelFen( const char *fname )
+{
+	LabelFEN lf;
+	if (!lf.load(fname))
+	{
+		std::cout << "failed to parse " << fname << std::endl;
+		return;
+	}
+	if (!lf.process("labelFEN_out.bin"))
+		std::cout << "failed to write labelFEN_out.bin" << std::endl;
 	else
 		std::cout << "all ok" << std::endl;
 }
@@ -1255,6 +1270,7 @@ bool Protocol::parseUCI( const std::string &line )
 		sendRaw( "option name MoveOverheadMsec type spin min 0 max 10000 default 100" ); sendEOL();
 		sendRaw( "option name SyzygyPath type string default <empty>" ); sendEOL();
 		sendRaw( "option name SyzygyEnable type check default true" ); sendEOL();
+		sendRaw( "option name UseHCE type check default false" ); sendEOL();
 #ifdef USE_TUNING
 		for ( size_t i=0; i<TunableParams::paramCount(); i++ )
 		{
@@ -1337,6 +1353,11 @@ bool Protocol::parseUCIOptions( const std::string &line, size_t &pos )
 	if ( key == "SyzygyEnable" )
 	{
 		engine.enableTb( value != "false" );
+		return 1;
+	}
+	if ( key == "UseHCE" )
+	{
+		engine.useHCE( value != "false" );
 		return 1;
 	}
 	if ( key == "Ponder" )
@@ -1804,7 +1825,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			"option=\"Clear Hash -button\" option=\"Hash -spin 32 1 " maxHash "\" option=\"Threads -spin 1 1 512\" "
 			"option=\"OwnBook -check 1\" option=\"LimitStrength -check 0\" option=\"Elo -spin 2500 800 2500\" "
 			"option=\"MoveOverheadMsec -spin 100 0 10000\" "
-			"option=\"SyzygyPath -string <empty>\" option=\"SyzygyEnable -check 1\" "
+			"option=\"SyzygyPath -string <empty>\" option=\"SyzygyEnable -check 1\" option=\"UseHCE -check 0\" "
 			"option=\"MultiPV -spin 1 1 256\" option=\"NullMove -check 1\" option=\"Contempt -spin 0 -100 100\" myname=\""
 		);
 		sendRaw( Version::version() );
@@ -1910,6 +1931,12 @@ bool Protocol::parseCECPInternal( const std::string &line )
 		{
 			long flag = strtol( line.c_str() + pos, 0, 10 );
 			engine.enableTb( flag != 0 );
+			return 1;
+		}
+		if ( token == "UseHCE" )
+		{
+			long flag = strtol( line.c_str() + pos, 0, 10 );
+			engine.useHCE( flag != 0 );
 			return 1;
 		}
 		if ( token == "Threads" )
@@ -2422,6 +2449,12 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 	{
 		// filter pgn
 		filterPgn( line.c_str() + pos );
+		return 1;
+	}
+	if ( token == "labelfen" )
+	{
+		// label fen
+		labelFen( line.c_str() + pos );
 		return 1;
 	}
 	if ( token == "loadepd" )

@@ -28,10 +28,15 @@ or as public domain (where applicable)
 #include "tune.h"
 #include <memory.h>
 #include <algorithm>
+#include <cmath>
 #include <new>
 
 namespace cheng4
 {
+
+#include "nets/net_embed.h"
+
+volatile bool Eval::useHCE = false;
 
 // eval helper
 static const Piece ptAll = ptNone;
@@ -503,6 +508,27 @@ Eval::Eval() : occ(0), pe(0)
 	attackers[ctWhite] = attackers[ctBlack] = 0;
 	rookVertAttacks[ctWhite] = rookVertAttacks[ctBlack] = 0;
 	memset( attm, 0, sizeof(attm) );
+
+	const int sizes[] = {736, 3*64, 1*4, 1};
+	
+	if (!net.init_topology(sizes, 4))
+		assert(0 && "net topo init failed!");
+
+#	if 0
+	if (!net.load("d:/mar/crabaware/torchtest/best.net"))
+	{
+		std::cout << "failed to load netfile!" << std::endl;
+		abort();
+	}
+#	else
+	if (!net.load_buffer(NET_DATA, NET_DATA_SIZE))
+	{
+		std::cout << "failed to load netfile!" << std::endl;
+		abort();
+	}
+#	endif
+
+	net.transpose_weights();
 }
 
 void Eval::setContempt( Score contempt )
@@ -666,6 +692,33 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 	EvalCacheEntry *ec = ecache.index( b.sig() );
 	if ( ec->sig == b.sig() )
 		return ec->score;					// hit => nothing to do
+
+	if (!useHCE)
+	{
+		i32 inds[64];
+		i32 ninds = b.netIndices(inds);
+
+		float inp[736];
+		float outp;
+		net.forward_nz(inp, 736, inds, ninds, &outp, 1);
+		outp = net.to_centipawns(outp);
+		Score sc = (Score)floor(outp*1/*00*/ + 0.5f);
+		Score corr = sign(b.turn()) * ScorePack::initFine(sc);
+
+		fscore[phOpening] = corr;
+		fscore[phEndgame] = corr;
+
+		corr = ScorePack::interpolate(0, corr, corr);
+
+		// adjust according to stm
+		corr *= sign(b.turn());
+
+		// store to eval cache
+		ec->sig = b.sig();
+		ec->score = corr;
+		return corr;
+	}
+											
 	// probe pawn hash
 	pe = phash.index( b.pawnSig() );
 

@@ -520,4 +520,9 @@ void Engine::enableTb(bool flag)
 	mainThread->search.disableTablebase(!flag);
 }
 
+void Engine::useHCE(bool flag)
+{
+	Eval::useHCE = flag;
+}
+
 }
