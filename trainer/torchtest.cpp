@@ -36,8 +36,6 @@ or as public domain (where applicable)
 
 #include "../cheng4/net.h"
 
-// TODO: use CUDA and GPU
-
 // as big as we can fit into memory
 constexpr int BATCH_SIZE = 1024*1024*1;
 constexpr int INPUT_SIZE = 736;
@@ -51,6 +49,9 @@ constexpr char NET_FILENAME[] = "test.net";
 
 // last cheng HCE K for texel tuning
 constexpr double HCE_K = 1.25098;
+
+// profile batch time?
+constexpr bool profile = false;
 
 // convert eval score (cp) to win prob
 double sigmoid(double s)
@@ -200,13 +201,6 @@ void load_trainfile(const char *fn)
 
 	for (;;)
 	{
-#ifdef _DEBUG
-		if (positions.size() > 2000)
-		{
-			positions.resize(2000);
-			break;
-		}
-#endif
 		int16_t tmp;
 
 		mem_read_int(tmp);
@@ -244,6 +238,11 @@ void load_trainfile(const char *fn)
 		}
 
 		positions.emplace_back(std::move(p));
+
+#ifdef _DEBUG
+		if (positions.size() >= 2'000'000)
+			break;
+#endif
 	}
 
 	// deterministic shuffle
@@ -415,6 +414,16 @@ void net_trainer::train(network &net, int epochs)
 {
 	netref = &net;
 
+	// somehow, CUDA crashes libtorch...
+	auto device = at::kCUDA;
+	constexpr auto cpudevice = at::kCPU;
+
+	if (!torch::cuda::is_available())
+	{
+		printf("CUDA not available!\n");
+		device = cpudevice;
+	}
+
 	//torch::optim::SGD optimizer(net.parameters(), 0.1);
 
 	torch::optim::AdamOptions opts;
@@ -432,10 +441,14 @@ void net_trainer::train(network &net, int epochs)
 		printf("starting epoch %d, lr=%0.6lf\n", 1+epoch, lr);
 		size_t idx = 0;
 
+		auto cstart = clock();
+
 		std::vector<float> tmp;
 
 		double loss_sum = 0.0;
 		size_t batch_count = 0;
+
+		net.to(device);
 
 		// for each batch:
 		for (size_t i=0; i<positions.size(); i += BATCH_SIZE)
@@ -463,6 +476,9 @@ void net_trainer::train(network &net, int epochs)
 
 			pack_tensor(target, tmp.data());
 
+			input_batch = input_batch.to(device);
+			target = target.to(device);
+
 			optimizer.zero_grad();
 
 			auto prediction = net.forward(input_batch);
@@ -480,13 +496,24 @@ void net_trainer::train(network &net, int epochs)
 				std::cout << "Epoch: " << (epoch+1) << " | Batch: " << batch_count << "/" << num_batches
                   << " | Loss: " << batch_loss << " | Error: " << std::sqrt(batch_loss)*100 << "%" << std::endl;
 
+				auto tc = clock();
+				auto delta = tc - cstart;
+
+				if (profile)
+					printf("took %g sec\n", (double)delta / CLOCKS_PER_SEC);
+
+				cstart = tc;
+
+				net.to(cpudevice);
 				net.save_file(NET_FILENAME);
+				net.to(device);
 			}
 
 			loss_sum += batch_loss;
 			++batch_count;
 		}
 
+		net.to(cpudevice);
 		net.save_file(NET_FILENAME);
 
 		printf("done_epoch %d: Loss %0.6lf | Error: %0.2lf%%\n", epoch+1, loss_sum / batch_count, std::sqrt(loss_sum / batch_count)*100);
