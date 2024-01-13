@@ -522,6 +522,8 @@ void Engine::enableTb(bool flag)
 
 void Engine::useHCE(bool flag)
 {
+	// note: calls abortsearch
+	clearHash();
 	Eval::useHCE = flag;
 }
 
