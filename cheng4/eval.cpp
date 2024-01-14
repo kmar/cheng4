@@ -509,9 +509,9 @@ Eval::Eval() : occ(0), pe(0)
 	rookVertAttacks[ctWhite] = rookVertAttacks[ctBlack] = 0;
 	memset( attm, 0, sizeof(attm) );
 
-	const int sizes[] = {736, 3*64, 1*4, 1};
+	const int sizes[] = {topo0, topo1, topoLayers == 2 ? 1 : topo2, 1};
 	
-	if (!net.init_topology(sizes, 4))
+	if (!net.init_topology(sizes, 1+topoLayers))
 		assert(0 && "net topo init failed!");
 
 #	if 0
@@ -558,6 +558,51 @@ void Eval::clear()
 	ecache.clear();
 	phash.clear();
 	mhash.clear();
+}
+
+void Eval::netCacheAddIndex(Color stm, int index)
+{
+	if (useHCE)
+		return;
+
+	// is this correct, actually?
+	int findex = Board::flipNetIndex(index);
+	assert(index == Board::flipNetIndex(findex));
+
+	int windex = stm == ctWhite ? index : findex;
+	int bindex = stm == ctWhite ? findex : index;
+
+	net.cache_add_index(netCache[ctWhite], windex);
+	net.cache_add_index(netCache[ctBlack], bindex);
+}
+
+void Eval::netCacheSubIndex(Color stm, int index)
+{
+	if (useHCE)
+		return;
+
+	int findex = Board::flipNetIndex(index);
+	assert(index == Board::flipNetIndex(findex));
+
+	int windex = stm == ctWhite ? index : findex;
+	int bindex = stm == ctWhite ? findex : index;
+
+	net.cache_sub_index(netCache[ctWhite], windex);
+	net.cache_sub_index(netCache[ctBlack], bindex);
+}
+
+void Eval::updateNetCache(const Board &b)
+{
+	if (useHCE)
+		return;
+
+	i32 inds[768];
+
+	for (Color c = ctWhite; c <= ctBlack; c++)
+	{
+		int count = b.netIndicesStm(c, inds);
+		net.cache_init(inds, count, netCache[c]);
+	}
 }
 
 template< Color c > static inline bool isBareKing( const Board &b )
@@ -669,6 +714,73 @@ template< Color c > void Eval::evalBlindBishop( const Board &b )
 			fscore[ phEndgame ] /= 16;
 		}
 	}
+}
+
+Score Eval::ievalNet(const Board &b)
+{
+	// probe eval cache first
+	EvalCacheEntry *ec = ecache.index( b.sig() );
+	if ( ec->sig == b.sig() )
+		return ec->score;					// hit => nothing to do
+
+	float cacheOutp;
+
+	if (1)
+	{
+		net.forward_cache(netCache[b.turn()], &cacheOutp, 1);
+#if 0
+		// okay, works with this but not incrementally ... I suspect undo!
+		updateNetCache(b);
+		net.forward_cache(netCache[b.turn()], &cacheOutp, 1);
+#endif
+	}
+
+#if 0
+	i32 inds[64];
+	i32 ninds = b.netIndices(inds);
+
+	float inp[736];
+	float outp;
+	net.forward_nz(inp, 736, inds, ninds, &outp, 1);
+
+	assert(abs(outp-cacheOutp) < 1e-4f);
+#endif
+	float outp = cacheOutp;
+
+	outp = net.to_centipawns(outp);
+	Score sc = (Score)floor(outp*1/*00*/ + 0.5f);
+	Score corr = sign(b.turn()) * ScorePack::initFine(sc);
+
+	fscore[phOpening] = corr;
+	fscore[phEndgame] = corr;
+
+	corr = ScorePack::interpolate(0, corr, corr);
+
+	// adjust according to stm
+	corr *= sign(b.turn());
+
+	// store to eval cache
+	ec->sig = b.sig();
+	ec->score = corr;
+
+	return corr;
+}
+
+Score Eval::evalNet( const Board &b, Score alpha, Score beta )
+{
+	if (useHCE)
+		return eval(b, alpha, beta);
+
+	Score res = ievalNet(b);
+
+	res *= evalProgress(b);
+	res /= 256;
+
+	// stm bonus
+	res += stmBonus;
+	// contempt
+	res += contemptFactor[b.turn()];
+	return res;
 }
 
 Score Eval::eval( const Board &b, Score alpha, Score beta )

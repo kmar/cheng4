@@ -120,11 +120,17 @@ struct Search
 		u32 pad[3];					// pad structure to 32 bytes
 	};
 
+	struct NetCacheStack
+	{
+		NetCache cache[ctMax];
+	};
+
 	Board board;					// board
 	History *history;				// history table
 	Eval eval;						// eval
 
 	Stack stack[ maxStack ];		// search stack
+	std::vector<NetCacheStack> cacheStack;
 
 	RepHash rep;					// repetition stack
 	i32 startTicks;					// start ticks

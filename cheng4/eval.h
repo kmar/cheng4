@@ -81,12 +81,16 @@ template< typename Signature, typename Entry > struct EvalHash
 	{
 		return entries + ((size_t)sig & (size-1));
 	}
+
 private:
 	Entry *entries;			// entries
 	Entry *allocEntries;	// allocated entries
 	size_t size;			// must be a power of two
 
 	Entry dummy;
+
+	// net layer 0 eval cache for specific stm
+	NetCache netCache[ctMax];
 
 	void dummyAlloc()
 	{
@@ -167,6 +171,9 @@ struct Eval
 	// returns final centipawn evaluation from stm's point of view
 	Score eval( const Board &b, Score alpha = -scInfinity, Score beta = +scInfinity );
 
+	// fast net eval inside search using net cache
+	Score evalNet( const Board &b, Score alpha = -scInfinity, Score beta = +scInfinity );
+
 	// returns fast evaluation (psq only)
 	Score fastEval( const Board &b );
 
@@ -183,12 +190,35 @@ struct Eval
 	// clear eval/pawn/material caches
 	void clear();
 
+	// update net cache
+	void updateNetCache(const Board &b);
+
+	// incremental cache updates
+	void netCacheAddIndex(Color stm, int index);
+	void netCacheSubIndex(Color stm, int index);
+
+	inline void netInitUndo(UndoInfo &ui, NetCache *dst)
+	{
+		if (!useHCE)
+		{
+			ui.eval = this;
+			memcpy(dst, netCache, ctMax*sizeof(NetCache));
+		}
+	}
+
+	inline void netDoneUndo(const NetCache *src)
+	{
+		if (!useHCE)
+			memcpy(netCache, src, ctMax*sizeof(NetCache));
+	}
+
 	// use legacy handcrafted eval?
 	static volatile bool useHCE;
 
 private:
 	// new: net!
 	Network net;
+	NetCache netCache[ctMax];
 
 	Score contemptFactor[ctMax];
 	// scores for game phases
@@ -212,6 +242,8 @@ private:
 	PawnHash phash;
 	// note: not used (yet); I never actually finished this
 	MaterialHash mhash;
+
+	Score ievalNet(const Board &b);
 
 	template< PopCountMode pcm > Score ieval( const Board &b, Score alpha = -scInfinity, Score beta = +scInfinity );
 

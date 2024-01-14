@@ -24,6 +24,7 @@ or as public domain (where applicable)
 #include "board.h"
 #include "movegen.h"
 #include "utils.h"
+#include "eval.h"
 #include <memory.h>
 #include <algorithm>
 
@@ -961,6 +962,18 @@ void Board::doCastlingMove( Move move, UndoInfo &ui, bool ischeck )
 	bdmat[ phOpening ] += PSq::tables[ phOpening ][ color ][ ptRook ][ rto ];
 	bdmat[ phEndgame ] += PSq::tables[ phEndgame ][ color ][ ptRook ][ rto ];
 
+	if (ui.eval)
+	{
+		i32 kfidx = netIndex(turn(), color, ptKing, kfrom);
+		i32 rfidx = netIndex(turn(), color, ptRook, rfrom);
+		i32 ktidx = netIndex(turn(), color, ptKing, kto);
+		i32 rtidx = netIndex(turn(), color, ptRook, rto);
+		ui.eval->netCacheSubIndex(turn(), kfidx);
+		ui.eval->netCacheSubIndex(turn(), rfidx);
+		ui.eval->netCacheAddIndex(turn(), ktidx);
+		ui.eval->netCacheAddIndex(turn(), rtidx);
+	}
+
 	// note: xor is important here
 	Bitboard kft = BitOp::oneShl( kfrom ) ^ BitOp::oneShl( kto );
 	Bitboard rft = BitOp::oneShl( rfrom ) ^ BitOp::oneShl( rto );
@@ -1147,8 +1160,12 @@ void Board::undoMove( const UndoInfo &ui )
 	// restore pieces
 	for (u8 i=0; i<ui.pieceCount; i++)
 	{
-		assert( PiecePack::type( ui.pieces[i] ) <= ptKing );
-		bpieces[ ui.squares[i] ] = ui.pieces[i];
+		Square sq = ui.squares[i];
+
+		Piece newp = ui.pieces[i];
+
+		assert( PiecePack::type( newp ) <= ptKing );
+		bpieces[ sq ] = newp;
 	}
 
 	// restore turn flag
@@ -2256,7 +2273,39 @@ void Board::calcEvasMask()
 	} else bb[ bbiEvMask ] = 0;
 }
 
-int Board::netIndex(Color stm, Color c, PieceType pt, Square sq) const
+i32 Board::flipNetIndex(i32 index)
+{
+	// ouch, I did something really DUMB with my indices! should've gone for all white, then all black instead of mixed!
+	// this will cost me perf
+	if (index < 128)
+		index ^= 64 ^ 0x38;
+	else if (index < 128+48)
+	{
+		// wpawn
+		index -= 128-8;
+		index ^= 0x38;
+		index += 128-8+48;
+	}
+	else if (index < 128+2*48)
+	{
+		// bpawn
+		index -= 128-8+48;
+		index ^= 0x38;
+		index += 128-8;
+	}
+	else
+	{
+		index -= 128+2*48;
+		index ^= 64 ^ 0x38;
+		index += 128+2*48;
+	}
+
+	assert(index >= 0 && index < 736);
+
+	return index;
+}
+
+i32 Board::netIndex(Color stm, Color c, PieceType pt, Square sq) const
 {
 	assert(pt >= ptPawn && pt <= ptKing);
 	assert(!(sq & ~63));
@@ -2302,6 +2351,15 @@ int Board::netIndex(Color stm, Color c, PieceType pt, Square sq) const
 // just here to validate that individual netIndex works
 int Board::netIndicesDebug(i32 *inds) const
 {
+	int res = netIndicesStm(turn(), inds);
+
+	assert(validateNetIndices(res, inds));
+
+	return res;
+}
+
+int Board::netIndicesStm(Color stm, i32 *inds) const
+{
 	Bitboard occ = occupied();
 
 	int res = 0;
@@ -2310,13 +2368,10 @@ int Board::netIndicesDebug(i32 *inds) const
 	{
 		Square sq = BitOp::popBit(occ);
 		Piece p = piece(sq);
-		inds[res++] = netIndex(turn(), PiecePack::color(p), (PieceType)PiecePack::type(p), sq);
+		inds[res++] = netIndex(stm, PiecePack::color(p), (PieceType)PiecePack::type(p), sq);
 	}
 
 	std::sort(inds, inds + res);
-
-	assert(validateNetIndices(res, inds));
-
 	return res;
 }
 
@@ -2492,6 +2547,277 @@ bool Board::validateNetIndices(int ninds, const i32 *inds) const
 	}
 
 	return true;
+}
+
+template< Color color, bool capture, Piece ptype >
+void Board::doMoveTemplate( Move move, Square from, Square to, UndoInfo &ui, bool isCheck )
+{
+	assert( !MovePack::isCastling( move ) );
+	assert( color == bturn );
+	assert( from != to );
+
+	initUndo( ui );
+	bfifty++;
+
+	if ( inCheck() )
+		ui.saveBB( bbiEvMask, bb[ bbiEvMask ] );
+
+	// update hash
+	// move piece
+	Bitboard tomask;
+	Bitboard frommask;
+	Bitboard ftmask;
+
+	u8 bbi;
+
+	bbi = bbiWOcc + color;
+	ui.saveBB( bbi, bb[ bbi ] );
+	bb[ bbi ] ^= ( ftmask = (frommask = BitOp::oneShl( from )) | (tomask = BitOp::oneShl(to)) );
+
+	Piece toPiece;
+
+	// prepare to update pieces on board
+	ui.savePiece( from, toPiece = piece(from) );
+	ui.savePiece( to, piece(to) );
+
+	assert( PiecePack::type( toPiece ) );
+
+	// hash update
+	bhash ^= Zobrist::piece[ color ][ ptype ][ from ];
+
+	if ( capture || ptype == ptPawn )
+		// irreversible move
+		saveIrreversible( ui );
+
+	if ( capture )
+		// save material key
+		ui.saveBB( bbiMat, bb[ bbiMat ] );
+
+	if ( ptype == ptPawn )
+	{
+		bpawnHash ^= Zobrist::piece[ color ][ ptPawn ][ from ];
+		Piece promo = MovePack::promo( move );
+		if ( promo )
+		{
+			if ( !capture )
+				// save material key
+				ui.saveBB( bbiMat, bb[ bbiMat ] );
+
+			assert( promo <= ptQueen );
+			toPiece &= pmColor;
+			toPiece |= promo;
+			bhash ^= Zobrist::piece[ color ][ promo ][ to ];
+
+			bbi = BBI( color, ptPawn );
+			ui.saveBB( bbi, bb[ bbi ] );
+			bb[ bbi ] ^= frommask;
+
+			bbi = BBI( color, promo );
+			ui.saveBB( bbi, bb[ bbi ] );
+			bb[ bbi ] ^= tomask;
+
+			// update material key
+			bb[ bbiMat ] -= BitOp::oneShl( MATSHIFT( color, ptPawn) );
+			bb[ bbiMat ] += BitOp::oneShl( MATSHIFT( color, promo) );
+
+			// update non-pawn material
+			saveNPMat<0>( ui );
+			bnpmat[ color ] += Tables::npValue[ promo ];
+		}
+		else
+		{
+			bbi = BBI( color, ptype );
+			ui.saveBB( bbi, bb[ bbi ] );
+			bb[ bbi ] ^= ftmask;
+
+			Signature tosig = Zobrist::piece[ color ][ ptPawn ][ to ];
+			bhash ^= tosig;
+			bpawnHash ^= tosig;
+		}
+	} else
+	{
+		if ( ptype != ptKing )
+		{
+			bbi = BBI( color, ptype );
+			ui.saveBB( bbi, bb[ bbi ] );
+			bb[ bbi ] ^= ftmask;
+		}
+
+		bhash ^= Zobrist::piece[ color ][ ptype ][ to ];
+	}
+
+	CastRights cr;
+
+	if ( ptype == ptKing || ptype ==ptRook )
+		cr = castRights( color );
+
+	if ( ptype == ptKing )
+	{
+		saveKingState( ui );
+		saveCastling<0>( ui );
+		if ( cr )
+		{
+			// losing all castling rights
+			bhash ^= Zobrist::cast[ color ][ cr ];
+			bcastRights[ color ] = 0;
+		}
+	} else if ( ptype == ptRook && cr )
+	{
+		// lose castling rights
+		if ( SquarePack::relRank< color >( from ) == RANK1 )
+		{
+			File rf = SquarePack::file( from );
+			File kf = SquarePack::file( king(color) );
+			if ( (rf > kf && rf == CastPack::shortFile(cr))
+				|| (rf < kf && rf == CastPack::longFile(cr)) )
+			{
+				saveCastling<0>(ui);
+				bhash ^= Zobrist::cast[ color ][ cr ];
+				bcastRights[ color ] = CastPack::loseFile( SquarePack::file( from ), cr );
+				bhash ^= Zobrist::cast[ color ][ castRights( color ) ];
+			}
+		}
+	}
+
+	if ( capture )
+	{
+		// a capture needs even more careful handling
+		Square cto = (ptype == ptPawn && MovePack::isEpCapture(move) ) ?
+			SquarePack::epTarget( epSquare(), from ) : to;
+
+		Piece cap = piece( cto );
+
+		Piece captype = PiecePack::type( cap );
+		assert( captype >= ptPawn && captype < ptKing );
+
+		// update material key
+		bb[ bbiMat ] -= BitOp::oneShl( MATSHIFT( flip(color), captype ) );
+
+		// update delta material
+		bdmat[ phOpening ] -= PSq::tables[ phOpening ][ flip(color) ][ captype ][ cto ];
+		bdmat[ phEndgame ] -= PSq::tables[ phEndgame ][ flip(color) ][ captype ][ cto ];
+
+		if (ui.eval)
+			ui.eval->netCacheSubIndex(turn(), netIndex(turn(), flip(color), (PieceType)captype, cto));
+
+		if ( captype == ptRook )
+		{
+			// lose appropriate castling rights (note: opponent loses)
+			Color opc = flip(color);
+			CastRights tcr = castRights( opc );
+			if ( tcr && SquarePack::relRank< (color^1) >( to ) == RANK1 )
+			{
+				File f = SquarePack::file( to );
+				if ( CastPack::longFile( tcr ) == f )
+				{
+					saveCastling<1>(ui);
+					bhash ^= Zobrist::cast[ opc ][ tcr ];
+					bcastRights[opc] = CastPack::loseLong( tcr );
+					bhash ^= Zobrist::cast[ opc ][ castRights( opc ) ];
+				}
+				else if ( CastPack::shortFile( tcr ) == f )
+				{
+					saveCastling<1>(ui);
+					bhash ^= Zobrist::cast[ opc ][ tcr ];
+					bcastRights[opc] = CastPack::loseShort( tcr );
+					bhash ^= Zobrist::cast[ opc ][ castRights( opc ) ];
+				}
+			}
+		}
+		Signature tosig = Zobrist::piece[ flip(color) ][ captype ][ cto ];
+		bhash ^= tosig;
+		if ( captype == ptPawn )
+			bpawnHash ^= tosig;
+
+		Bitboard capmask = (ptype == ptPawn ? BitOp::oneShl( cto ) : tomask);
+
+		bbi = bbiBOcc - color;
+		ui.saveBB( bbi, bb[bbi] );
+		bb[ bbi ] ^= capmask;
+
+		bbi = BBI( flip(color), captype );
+		ui.saveBB( bbi, bb[bbi] );
+		bb[ bbi ] ^= capmask;
+
+		// update total non-pawn material on board
+		saveNPMat< ptype == ptPawn>( ui );
+		bnpmat[ flip(color) ] -= Tables::npValue[ captype ];
+
+		if ( ptype == ptPawn && cto != to )
+		{
+			assert( MovePack::isEpCapture( move ) );
+			// ep capture
+			ui.savePiece( cto, cap );
+			bpieces[ cto ] = ptNone;
+		}
+	}
+
+	// finish updating board pieces
+	bpieces[to] = toPiece;
+	bpieces[from] = ptNone;
+
+	// update delta material
+
+	toPiece &= pmType;
+
+	bdmat[ phOpening ] -= PSq::tables[ phOpening ][ color ][ ptype ][ from ];
+	bdmat[ phEndgame ] -= PSq::tables[ phEndgame ][ color ][ ptype ][ from ];
+
+	bdmat[ phOpening ] += PSq::tables[ phOpening ][ color ][ toPiece ][ to ];
+	bdmat[ phEndgame ] += PSq::tables[ phEndgame ][ color ][ toPiece ][ to ];
+
+	if (ui.eval)
+	{
+		ui.eval->netCacheSubIndex(turn(), netIndex(turn(), color, (PieceType)ptype, from));
+		ui.eval->netCacheAddIndex(turn(), netIndex(turn(), color, (PieceType)toPiece, to));
+	}
+
+	if ( ptype == ptKing )
+		bkingPos[ color ] = to;
+
+	// update check state
+	if ( bcheck != isCheck )
+	{
+		if ( ptype != ptKing )
+			saveKingState( ui );
+		bcheck = isCheck;
+	}
+
+	// update ep square
+	if ( bep )
+	{
+		bhash ^= Zobrist::epFile[ SquarePack::file( bep ) ];
+		bep = 0;
+	}
+	if ( ptype == ptPawn )
+	{
+		Rank rf = SquarePack::rank( from );
+		Rank rt = SquarePack::rank( to );
+		if ( !((rf - rt) & 1) )
+		{
+			// pawn push by two => update ep square
+			bep = SquarePack::advanceRank< color, -1 >( to );
+			// only set ep square if pawn can be ep-captured
+			// note: this slows my pawn-push movegen a tiny bit BUT it avoid dup hashes in useless cases,
+			// especially useful for books
+			if ( Tables::pawnAttm[color][bep] & pieces( flip(color), ptPawn ) )
+				bhash ^= Zobrist::epFile[ SquarePack::file( bep ) ];
+			else bep = 0;
+		}
+	}
+
+	// finally change stm
+	bhash ^= Zobrist::turn;
+	bturn = flip( bturn );
+
+	if ( isCheck )
+		calcEvasMask();
+
+	assert( !( (pieces( ctWhite, ptPawn)|pieces( ctBlack, ptPawn)) & pawnPromoSquares ) );
+	assert( bcheck == doesAttack<1>( flip(bturn), king( bturn ) ) );
+	assert( bhash == recomputeHash() );
+	assert( bpawnHash == recomputePawnHash() );
+	assert( isValid() );
 }
 
 // instantiate

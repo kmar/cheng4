@@ -31,6 +31,13 @@ or as public domain (where applicable)
 namespace cheng4
 {
 
+#if defined(__clang__)
+#	define AUTO_VECTORIZE_LOOP _Pragma("clang loop vectorize(enable)")
+#else
+#	define AUTO_VECTORIZE_LOOP
+#endif
+
+
 static constexpr int MAX_LAYER_SIZE = 768;
 
 template<int inputSize, int outputSize, bool last>
@@ -91,15 +98,11 @@ struct NetLayer : NetLayerBase
 		return outputSize;
 	}
 
-	// restricted feedforward with many zero weights
-	// inputIndex = indices with non-zero weights (=1.0)
-	void forward_restricted(const i32 *inputIndex, int indexCount, float *output) override
+	void cache_init(const i32 *inputIndex, int indexCount, NetCache &cache) override
 	{
-		float tmp[MAX_LAYER_SIZE];
+		float *tmp = cache.cache;
 
 		memcpy(tmp, bias, outputSize*sizeof(float));
-/*		for (int i=0; i<outputSize; i++)
-			tmp[i] = bias[i];*/
 
 		for (int c=0; c<indexCount; c++)
 		{
@@ -107,13 +110,62 @@ struct NetLayer : NetLayerBase
 
 			const float *w = weights + i*outputSize;
 
-#	if defined(__clang__)
-			_Pragma("clang loop vectorize(enable)")
-#	endif
+			AUTO_VECTORIZE_LOOP
+			for (int j=0; j<outputSize; j++)
+				tmp[j] += w[j];
+		}
+	}
+
+	void cache_add_index(NetCache &cache, i32 index) override
+	{
+		float *tmp = cache.cache;
+		const float *w = weights + index*outputSize;
+
+		AUTO_VECTORIZE_LOOP
+		for (int j=0; j<outputSize; j++)
+			tmp[j] += w[j];
+	}
+
+	void cache_sub_index(NetCache &cache, i32 index) override
+	{
+		float *tmp = cache.cache;
+		const float *w = weights + index*outputSize;
+
+		AUTO_VECTORIZE_LOOP
+		for (int j=0; j<outputSize; j++)
+			tmp[j] -= w[j];
+	}
+
+	// forward, cached
+	void forward_cache(const NetCache &cache, float *output) override
+	{
+		const float *tmp = cache.cache;
+
+		AUTO_VECTORIZE_LOOP
+		for (int i=0; i<outputSize; i++)
+			output[i] = activate(tmp[i]);
+	}
+
+	// restricted feedforward with many zero weights
+	// inputIndex = indices with non-zero weights (=1.0)
+	void forward_restricted(const i32 *inputIndex, int indexCount, float *output) override
+	{
+		float tmp[MAX_LAYER_SIZE];
+
+		memcpy(tmp, bias, outputSize*sizeof(float));
+
+		for (int c=0; c<indexCount; c++)
+		{
+			int i = inputIndex[c];
+
+			const float *w = weights + i*outputSize;
+
+			AUTO_VECTORIZE_LOOP
 			for (int j=0; j<outputSize; j++)
 				tmp[j] += w[j];
 		}
 
+		AUTO_VECTORIZE_LOOP
 		for (int i=0; i<outputSize; i++)
 			output[i] = activate(tmp[i]);
 	}
@@ -124,8 +176,6 @@ struct NetLayer : NetLayerBase
 		float tmp[MAX_LAYER_SIZE];
 
 		memcpy(tmp, bias, outputSize*sizeof(float));
-		/*for (int i=0; i<outputSize; i++)
-			tmp[i] = bias[i];*/
 
 		for (int i=0; i<inputSize; i++)
 		{
@@ -133,13 +183,12 @@ struct NetLayer : NetLayerBase
 
 			auto inputw = input[i];
 
-#	if defined(__clang__)
-			_Pragma("clang loop vectorize(enable)")
-#	endif
+			AUTO_VECTORIZE_LOOP
 			for (int j=0; j<outputSize; j++)
 				tmp[j] += inputw * w[j];
 		}
 
+		AUTO_VECTORIZE_LOOP
 		for (int i=0; i<outputSize; i++)
 			output[i] = activate(tmp[i]);
 	}
@@ -151,7 +200,12 @@ Network::~Network()
 		delete it;
 }
 
-void Network::forward_nz(const float *inp, int inpsize, i32 *nonzero, int nzcount, float *outp, int outpsize)
+void Network::cache_init(const i32 *nonzero, int nzcount, NetCache &cache)
+{
+	layers[0]->cache_init(nonzero, nzcount, cache);
+}
+
+void Network::forward_nz(const float *inp, int inpsize, const i32 *nonzero, int nzcount, float *outp, int outpsize)
 {
 	assert(inpsize >= layers[0]->getInputSize());
 	assert(outpsize >= layers[layers.size()-1]->getOutputSize());
@@ -162,17 +216,17 @@ void Network::forward_nz(const float *inp, int inpsize, i32 *nonzero, int nzcoun
 
 	float temp[MAX_LAYER_SIZE];
 	float temp2[MAX_LAYER_SIZE];
-	i32 *nz = nonzero;
 
 	for (int i=0; i<(int)layers.size(); i++)
 	{
 		if (i == 0)
-			layers[i]->forward_restricted(nz, nzcount, temp);
+			layers[i]->forward_restricted(nonzero, nzcount, temp);
 		else
 			layers[i]->forward(inp, temp);
 
 		auto osz = layers[i]->getOutputSize();
 
+		AUTO_VECTORIZE_LOOP
 		for (int j=0; j<osz; j++)
 			temp2[j] = temp[j];
 
@@ -181,8 +235,53 @@ void Network::forward_nz(const float *inp, int inpsize, i32 *nonzero, int nzcoun
 
 	int osz = layers[layers.size()-1]->getOutputSize();
 
+	AUTO_VECTORIZE_LOOP
 	for (int j=0; j<osz; j++)
 		outp[j] = temp[j];
+}
+
+void Network::forward_cache(const NetCache &cache, float *outp, int outpsize)
+{
+	assert(outpsize >= layers[layers.size()-1]->getOutputSize());
+	(void)outpsize;
+	assert(outpsize >= layers[layers.size()-1]->getOutputSize());
+
+	float temp[MAX_LAYER_SIZE];
+	float temp2[MAX_LAYER_SIZE];
+
+	const float *inp = nullptr;
+
+	for (int i=0; i<(int)layers.size(); i++)
+	{
+		if (i == 0)
+			layers[i]->forward_cache(cache, temp);
+		else
+			layers[i]->forward(inp, temp);
+
+		auto osz = layers[i]->getOutputSize();
+
+		AUTO_VECTORIZE_LOOP
+		for (int j=0; j<osz; j++)
+			temp2[j] = temp[j];
+
+		inp = temp2;
+	}
+
+	int osz = layers[layers.size()-1]->getOutputSize();
+
+	AUTO_VECTORIZE_LOOP
+	for (int j=0; j<osz; j++)
+		outp[j] = temp[j];
+}
+
+void Network::cache_add_index(NetCache &cache, i32 index)
+{
+	layers[0]->cache_add_index(cache, index);
+}
+
+void Network::cache_sub_index(NetCache &cache, i32 index)
+{
+	layers[0]->cache_sub_index(cache, index);
 }
 
 struct LayerDesc
@@ -198,9 +297,15 @@ struct LayerDesc
 // we only support these fixed layer topologies
 static LayerDesc layerDesc[] =
 {
-	NET_FIXED_LAYER_DESC(736, 64*3, false),
-	NET_FIXED_LAYER_DESC(64*3, 4*1, false),
-	NET_FIXED_LAYER_DESC(4*1, 1, true)
+	NET_FIXED_LAYER_DESC(topo0, topo1, false),
+	NET_FIXED_LAYER_DESC(topo1, topo2, false),
+	NET_FIXED_LAYER_DESC(topo2, 1, true)
+};
+
+static LayerDesc layerDesc2[] =
+{
+	NET_FIXED_LAYER_DESC(topo0, topo1, false),
+	NET_FIXED_LAYER_DESC(topo1, 1, true)
 };
 
 #undef NET_FIXED_LAYER_DESC
@@ -240,7 +345,9 @@ bool Network::init_topology(const int *sizes, int count)
 	int widx = weight_index;
 	int bidx = bias_index;
 
-	const int numLayouts = int(sizeof(layerDesc)/sizeof(layerDesc[0]));
+	const int numLayouts = topoLayers;
+
+	const auto *layerDescPtr = topoLayers > 2 ? layerDesc : layerDesc2;
 
 	for (int i=0; i<count-1; i++)
 	{
@@ -250,7 +357,7 @@ bool Network::init_topology(const int *sizes, int count)
 
 		for (int j=0; j<numLayouts; j++)
 		{
-			const LayerDesc *l = &layerDesc[j];
+			const LayerDesc *l = &layerDescPtr[j];
 
 			if (sizes[i] == l->insize && sizes[i+1] == l->outsize && islast == l->last)
 			{
@@ -264,8 +371,7 @@ bool Network::init_topology(const int *sizes, int count)
 
 		layers[i] = nlayer;
 
-		layers[i]->init(weights.data() + widx, weights.data() + bidx/*,
-			sizes[i], sizes[i+1], i+1 == count-1*/);
+		layers[i]->init(weights.data() + widx, weights.data() + bidx);
 
 		widx += sizes[i] * sizes[i+1];
 		bidx += sizes[i+1];
@@ -318,7 +424,7 @@ float Network::to_centipawns(float w)
 	constexpr float HCE_K = 1.25098f;
 
 	float res = (-173.718f/HCE_K) * logf(1.0f / w - 1.0f);
-	return res;// < -12800.0f ? -12800.0f : res > 12800.0f ? 12800.0f : res;
+	return res;
 }
 
 }

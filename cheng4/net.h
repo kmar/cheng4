@@ -29,6 +29,18 @@ or as public domain (where applicable)
 namespace cheng4
 {
 
+enum Topology
+{
+	topo0 = 736,
+	topo1 = 192,
+	topo2 = 4,
+
+	topoLayers = 3
+};
+
+// layer 1 bitplane fast update cache
+struct NetCache;
+
 struct NetLayerBase
 {
 	// weights now transposed
@@ -36,13 +48,26 @@ struct NetLayerBase
 	float *bias = nullptr;
 
 	virtual ~NetLayerBase() {}
+
 	virtual void init(float *wvec, float *bvec)=0;
 	virtual void transpose_weights() = 0;
 	virtual void transpose_biases() = 0;
 	virtual void forward_restricted(const i32 *inputIndex, int indexCount, float *output)=0;
+	virtual void forward_cache(const NetCache &cache, float *output)=0;
 	virtual void forward(const float *input, float *output)=0;
+
+	virtual void cache_init(const i32 *inputIndex, int indexCount, NetCache &cache)=0;
+	virtual void cache_add_index(NetCache &cache, i32 index) = 0;
+	virtual void cache_sub_index(NetCache &cache, i32 index) = 0;
+
 	virtual int getInputSize() const = 0;
 	virtual int getOutputSize() const = 0;
+};
+
+struct NetCache
+{
+	// actual cache for layer 1 output, including biases
+	float cache[topo1];
 };
 
 struct Network
@@ -65,7 +90,14 @@ struct Network
 
 	bool init_topology(const int *sizes, int count);
 
-	void forward_nz(const float *inp, int inpsize, i32 *nonzero, int nzcount, float *outp, int outpsize);
+	void forward_cache(const NetCache &cache, float *outp, int outpsize);
+
+	void forward_nz(const float *inp, int inpsize, const i32 *nonzero, int nzcount, float *outp, int outpsize);
+
+	void cache_init(const i32 *nonzero, int nzcount, NetCache &cache);
+
+	void cache_add_index(NetCache &cache, i32 index);
+	void cache_sub_index(NetCache &cache, i32 index);
 
 	void transpose_weights();
 

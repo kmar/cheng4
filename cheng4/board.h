@@ -38,6 +38,8 @@ namespace cheng4
 
 class MoveGen;
 
+struct NetCache;
+
 typedef uint UndoMask;
 
 enum UndoFlags
@@ -49,9 +51,12 @@ enum UndoFlags
 };
 
 class Board;
+struct Eval;
 
 struct UndoInfo
 {
+	// holds NetCache
+	Eval *eval;
 	UndoMask flags;				// undo flags
 	// ep square will be restored
 	Signature bhash;			// board hash (always)
@@ -69,6 +74,11 @@ struct UndoInfo
 	CastRights castRights[2];	// original castling rights (if needed)
 	u8 kingPos;					// original king position (always)
 	bool check;					// original in check flag (always)
+
+	inline UndoInfo()
+		: eval(nullptr)
+	{
+	}
 
 	inline void clear()
 	{
@@ -250,266 +260,7 @@ public:
 	}
 
 	template< Color color, bool capture, Piece ptype >
-		void doMoveTemplate( Move move, Square from, Square to, UndoInfo &ui, bool isCheck )
-	{
-		assert( !MovePack::isCastling( move ) );
-		assert( color == bturn );
-		assert( from != to );
-
-		initUndo( ui );
-		bfifty++;
-
-		if ( inCheck() )
-			ui.saveBB( bbiEvMask, bb[ bbiEvMask ] );
-
-		// update hash
-		// move piece
-		Bitboard tomask;
-		Bitboard frommask;
-		Bitboard ftmask;
-
-		u8 bbi;
-
-		bbi = bbiWOcc + color;
-		ui.saveBB( bbi, bb[ bbi ] );
-		bb[ bbi ] ^= ( ftmask = (frommask = BitOp::oneShl( from )) | (tomask = BitOp::oneShl(to)) );
-
-		Piece toPiece;
-
-		// prepare to update pieces on board
-		ui.savePiece( from, toPiece = piece(from) );
-		ui.savePiece( to, piece(to) );
-
-		assert( PiecePack::type( toPiece ) );
-
-		// hash update
-		bhash ^= Zobrist::piece[ color ][ ptype ][ from ];
-
-		if ( capture || ptype == ptPawn )
-			// irreversible move
-			saveIrreversible( ui );
-
-		if ( capture )
-			// save material key
-			ui.saveBB( bbiMat, bb[ bbiMat ] );
-
-		if ( ptype == ptPawn )
-		{
-			bpawnHash ^= Zobrist::piece[ color ][ ptPawn ][ from ];
-			Piece promo = MovePack::promo( move );
-			if ( promo )
-			{
-				if ( !capture )
-					// save material key
-					ui.saveBB( bbiMat, bb[ bbiMat ] );
-
-				assert( promo <= ptQueen );
-				toPiece &= pmColor;
-				toPiece |= promo;
-				bhash ^= Zobrist::piece[ color ][ promo ][ to ];
-
-				bbi = BBI( color, ptPawn );
-				ui.saveBB( bbi, bb[ bbi ] );
-				bb[ bbi ] ^= frommask;
-
-				bbi = BBI( color, promo );
-				ui.saveBB( bbi, bb[ bbi ] );
-				bb[ bbi ] ^= tomask;
-
-				// update material key
-				bb[ bbiMat ] -= BitOp::oneShl( MATSHIFT( color, ptPawn) );
-				bb[ bbiMat ] += BitOp::oneShl( MATSHIFT( color, promo) );
-
-				// update non-pawn material
-				saveNPMat<0>( ui );
-				bnpmat[ color ] += Tables::npValue[ promo ];
-			}
-			else
-			{
-				bbi = BBI( color, ptype );
-				ui.saveBB( bbi, bb[ bbi ] );
-				bb[ bbi ] ^= ftmask;
-
-				Signature tosig = Zobrist::piece[ color ][ ptPawn ][ to ];
-				bhash ^= tosig;
-				bpawnHash ^= tosig;
-			}
-		} else
-		{
-			if ( ptype != ptKing )
-			{
-				bbi = BBI( color, ptype );
-				ui.saveBB( bbi, bb[ bbi ] );
-				bb[ bbi ] ^= ftmask;
-			}
-
-			bhash ^= Zobrist::piece[ color ][ ptype ][ to ];
-		}
-
-		CastRights cr;
-
-		if ( ptype == ptKing || ptype ==ptRook )
-			cr = castRights( color );
-
-		if ( ptype == ptKing )
-		{
-			saveKingState( ui );
-			saveCastling<0>( ui );
-			if ( cr )
-			{
-				// losing all castling rights
-				bhash ^= Zobrist::cast[ color ][ cr ];
-				bcastRights[ color ] = 0;
-			}
-		} else if ( ptype == ptRook && cr )
-		{
-			// lose castling rights
-			if ( SquarePack::relRank< color >( from ) == RANK1 )
-			{
-				File rf = SquarePack::file( from );
-				File kf = SquarePack::file( king(color) );
-				if ( (rf > kf && rf == CastPack::shortFile(cr))
-					|| (rf < kf && rf == CastPack::longFile(cr)) )
-				{
-					saveCastling<0>(ui);
-					bhash ^= Zobrist::cast[ color ][ cr ];
-					bcastRights[ color ] = CastPack::loseFile( SquarePack::file( from ), cr );
-					bhash ^= Zobrist::cast[ color ][ castRights( color ) ];
-				}
-			}
-		}
-
-		if ( capture )
-		{
-			// a capture needs even more careful handling
-			Square cto = (ptype == ptPawn && MovePack::isEpCapture(move) ) ?
-				SquarePack::epTarget( epSquare(), from ) : to;
-
-			Piece cap = piece( cto );
-
-			Piece captype = PiecePack::type( cap );
-			assert( captype >= ptPawn && captype < ptKing );
-
-			// update material key
-			bb[ bbiMat ] -= BitOp::oneShl( MATSHIFT( flip(color), captype ) );
-
-			// update delta material
-			bdmat[ phOpening ] -= PSq::tables[ phOpening ][ flip(color) ][ captype ][ cto ];
-			bdmat[ phEndgame ] -= PSq::tables[ phEndgame ][ flip(color) ][ captype ][ cto ];
-
-			if ( captype == ptRook )
-			{
-				// lose appropriate castling rights (note: opponent loses)
-				Color opc = flip(color);
-				CastRights tcr = castRights( opc );
-				if ( tcr && SquarePack::relRank< (color^1) >( to ) == RANK1 )
-				{
-					File f = SquarePack::file( to );
-					if ( CastPack::longFile( tcr ) == f )
-					{
-						saveCastling<1>(ui);
-						bhash ^= Zobrist::cast[ opc ][ tcr ];
-						bcastRights[opc] = CastPack::loseLong( tcr );
-						bhash ^= Zobrist::cast[ opc ][ castRights( opc ) ];
-					}
-					else if ( CastPack::shortFile( tcr ) == f )
-					{
-						saveCastling<1>(ui);
-						bhash ^= Zobrist::cast[ opc ][ tcr ];
-						bcastRights[opc] = CastPack::loseShort( tcr );
-						bhash ^= Zobrist::cast[ opc ][ castRights( opc ) ];
-					}
-				}
-			}
-			Signature tosig = Zobrist::piece[ flip(color) ][ captype ][ cto ];
-			bhash ^= tosig;
-			if ( captype == ptPawn )
-				bpawnHash ^= tosig;
-
-			Bitboard capmask = (ptype == ptPawn ? BitOp::oneShl( cto ) : tomask);
-
-			bbi = bbiBOcc - color;
-			ui.saveBB( bbi, bb[bbi] );
-			bb[ bbi ] ^= capmask;
-
-			bbi = BBI( flip(color), captype );
-			ui.saveBB( bbi, bb[bbi] );
-			bb[ bbi ] ^= capmask;
-
-			// update total non-pawn material on board
-			saveNPMat< ptype == ptPawn>( ui );
-			bnpmat[ flip(color) ] -= Tables::npValue[ captype ];
-
-			if ( ptype == ptPawn && cto != to )
-			{
-				assert( MovePack::isEpCapture( move ) );
-				// ep capture
-				ui.savePiece( cto, cap );
-				bpieces[ cto ] = ptNone;
-			}
-		}
-
-		// finish updating board pieces
-		bpieces[to] = toPiece;
-		bpieces[from] = ptNone;
-
-		// update delta material
-
-		toPiece &= pmType;
-
-		bdmat[ phOpening ] -= PSq::tables[ phOpening ][ color ][ ptype ][ from ];
-		bdmat[ phEndgame ] -= PSq::tables[ phEndgame ][ color ][ ptype ][ from ];
-
-		bdmat[ phOpening ] += PSq::tables[ phOpening ][ color ][ toPiece ][ to ];
-		bdmat[ phEndgame ] += PSq::tables[ phEndgame ][ color ][ toPiece ][ to ];
-
-		if ( ptype == ptKing )
-			bkingPos[ color ] = to;
-
-		// update check state
-		if ( bcheck != isCheck )
-		{
-			if ( ptype != ptKing )
-				saveKingState( ui );
-			bcheck = isCheck;
-		}
-
-		// update ep square
-		if ( bep )
-		{
-			bhash ^= Zobrist::epFile[ SquarePack::file( bep ) ];
-			bep = 0;
-		}
-		if ( ptype == ptPawn )
-		{
-			Rank rf = SquarePack::rank( from );
-			Rank rt = SquarePack::rank( to );
-			if ( !((rf - rt) & 1) )
-			{
-				// pawn push by two => update ep square
-				bep = SquarePack::advanceRank< color, -1 >( to );
-				// only set ep square if pawn can be ep-captured
-				// note: this slows my pawn-push movegen a tiny bit BUT it avoid dup hashes in useless cases,
-				// especially useful for books
-				if ( Tables::pawnAttm[color][bep] & pieces( flip(color), ptPawn ) )
-					bhash ^= Zobrist::epFile[ SquarePack::file( bep ) ];
-				else bep = 0;
-			}
-		}
-
-		// finally change stm
-		bhash ^= Zobrist::turn;
-		bturn = flip( bturn );
-
-		if ( isCheck )
-			calcEvasMask();
-
-		assert( !( (pieces( ctWhite, ptPawn)|pieces( ctBlack, ptPawn)) & pawnPromoSquares ) );
-		assert( bcheck == doesAttack<1>( flip(bturn), king( bturn ) ) );
-		assert( bhash == recomputeHash() );
-		assert( bpawnHash == recomputePawnHash() );
-		assert( isValid() );
-	}
+		void doMoveTemplate( Move move, Square from, Square to, UndoInfo &ui, bool isCheck );
 
 	// do move
 	void doMove( Move move, UndoInfo &ui, bool isCheck );
@@ -991,7 +742,13 @@ public:
 
 	// get net index for a single piece on a specific square
 	// side to move, piece color, piece type, piece square
-	int netIndex(Color stm, Color c, PieceType pt, Square sq) const;
+	i32 netIndex(Color stm, Color c, PieceType pt, Square sq) const;
+
+	// flip net index
+	static i32 flipNetIndex(i32 index);
+
+	// get net indices from a specific point of view
+	int netIndicesStm(Color stm, i32 *inds) const;
 
 	// note: up to 64 will be set
 	// returns number of indices
