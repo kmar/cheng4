@@ -38,9 +38,7 @@ or as public domain (where applicable)
 
 // as big as we can fit into memory
 constexpr int BATCH_SIZE = 1024*1024*1;
-constexpr int INPUT_SIZE = 736;
-
-// we'll do 736-192-4-1 for now
+constexpr int INPUT_SIZE = cheng4::topo0;
 
 // 1% per epoch
 constexpr double EPOCH_LR_DECAY_RATE = 0.99;
@@ -307,9 +305,9 @@ struct network : torch::nn::Module
 };
 
 network::network()
-	: layer0{INPUT_SIZE, 192}
-	, layer1{192, 4}
-	, layer2{4, 1}
+	: layer0{INPUT_SIZE, cheng4::topo1}
+	, layer1{cheng4::topo1, cheng4::topo2}
+	, layer2{cheng4::topo2, 1}
 {
 	register_module("layer0", layer0);
 	register_module("layer1", layer1);
@@ -543,7 +541,7 @@ int main()
 	size_t test_set_size = test_set.size();
 
 	cheng4::Network cnet;
-	const int sizes[] = {736, 192, 4, 1};
+	const int sizes[] = {cheng4::topo0, cheng4::topo1, cheng4::topo2, 1};
 
 	cnet.init_topology(sizes, 4);
 	cnet.load(NET_FILENAME);

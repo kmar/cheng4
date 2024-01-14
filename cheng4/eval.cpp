@@ -510,7 +510,7 @@ Eval::Eval() : occ(0), pe(0)
 	memset( attm, 0, sizeof(attm) );
 
 	const int sizes[] = {topo0, topo1, topoLayers == 2 ? 1 : topo2, 1};
-	
+
 	if (!net.init_topology(sizes, 1+topoLayers))
 		assert(0 && "net topo init failed!");
 
@@ -723,29 +723,9 @@ Score Eval::ievalNet(const Board &b)
 	if ( ec->sig == b.sig() )
 		return ec->score;					// hit => nothing to do
 
-	float cacheOutp;
-
-	if (1)
-	{
-		net.forward_cache(netCache[b.turn()], &cacheOutp, 1);
-#if 0
-		// okay, works with this but not incrementally ... I suspect undo!
-		updateNetCache(b);
-		net.forward_cache(netCache[b.turn()], &cacheOutp, 1);
-#endif
-	}
-
-#if 0
-	i32 inds[64];
-	i32 ninds = b.netIndices(inds);
-
-	float inp[736];
 	float outp;
-	net.forward_nz(inp, 736, inds, ninds, &outp, 1);
 
-	assert(abs(outp-cacheOutp) < 1e-4f);
-#endif
-	float outp = cacheOutp;
+	net.forward_cache(netCache[b.turn()], &outp, 1);
 
 	outp = net.to_centipawns(outp);
 	Score sc = (Score)floor(outp*1/*00*/ + 0.5f);
@@ -830,7 +810,7 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 		ec->score = corr;
 		return corr;
 	}
-											
+
 	// probe pawn hash
 	pe = phash.index( b.pawnSig() );
 
