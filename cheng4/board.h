@@ -989,12 +989,19 @@ public:
 		return res + Tables::gainCap[ PiecePack::type( piece( MovePack::to(m) ) ) ] * (MovePack::isCapture(m) != 0);
 	}
 
+	// get net index for a single piece on a specific square
+	// side to move, piece color, piece type, piece square
+	int netIndex(Color stm, Color c, PieceType pt, Square sq) const;
+
 	// note: up to 64 will be set
 	// returns number of indices
 	// note: indices not sorted
 	int netIndices(i32 *inds) const;
 	// simple post-validation
 	bool validateNetIndices(int ninds, const i32 *inds) const;
+
+	// using netIndex to validate
+	int netIndicesDebug(i32 *inds) const;
 };
 
 }

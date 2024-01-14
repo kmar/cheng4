@@ -2256,6 +2256,70 @@ void Board::calcEvasMask()
 	} else bb[ bbiEvMask ] = 0;
 }
 
+int Board::netIndex(Color stm, Color c, PieceType pt, Square sq) const
+{
+	assert(pt >= ptPawn && pt <= ptKing);
+	assert(!(sq & ~63));
+	assert(!(c & ~1));
+	assert(!(stm & ~1));
+
+	c ^= stm;
+
+	Square mirror = 0x38 * (stm == ctBlack);
+	sq ^= mirror;
+
+	switch(pt)
+	{
+	case ptKing:
+	{
+		// base = 0
+		sq += 64*(c == ctBlack);
+		return sq;
+	}
+
+	case ptPawn:
+	{
+		assert(!SquarePack::isRank1Or8(sq));
+		// base = 128
+		return 128 + sq-8 + 48*(c == ctBlack);
+	}
+
+	case ptKnight:
+	case ptBishop:
+	case ptRook:
+	case ptQueen:
+	{
+		// base
+		int base = 128 + 2*48 + (pt - ptKnight)*128;
+		return base + sq + 64*(c == ctBlack);
+	}
+
+	default:
+		return -1;
+	}
+}
+
+// just here to validate that individual netIndex works
+int Board::netIndicesDebug(i32 *inds) const
+{
+	Bitboard occ = occupied();
+
+	int res = 0;
+
+	while (occ)
+	{
+		Square sq = BitOp::popBit(occ);
+		Piece p = piece(sq);
+		inds[res++] = netIndex(turn(), PiecePack::color(p), (PieceType)PiecePack::type(p), sq);
+	}
+
+	std::sort(inds, inds + res);
+
+	assert(validateNetIndices(res, inds));
+
+	return res;
+}
+
 int Board::netIndices(i32 *inds) const
 {
 	int res = 0;
