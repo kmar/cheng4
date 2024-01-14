@@ -122,15 +122,22 @@ void shuffle_positions(bool noseed = false)
 	}
 }
 
+void unpack_position_fast(void *dstp, const labeled_position &pos)
+{
+	auto *dst = static_cast<float *>(dstp);
+
+	for (auto idx : pos.indices)
+		dst[idx] = 1.0f;
+}
+
 void unpack_position(void *dstp, const labeled_position &pos)
 {
-	auto dst = static_cast<float *>(dstp);
+	auto *dst = static_cast<float *>(dstp);
 
 	for (int i=0; i<INPUT_SIZE; i++)
 		dst[i] = 0.0f;
 
-	for (auto idx : pos.indices)
-		dst[idx] = 1.0f;
+	unpack_position_fast(dst, pos);
 }
 
 static size_t tensor_size(torch::Tensor t)
@@ -443,8 +450,6 @@ void net_trainer::train(network &net, int epochs)
 
 		auto cstart = clock();
 
-		std::vector<float> tmp;
-
 		double loss_sum = 0.0;
 		size_t batch_count = 0;
 
@@ -458,23 +463,17 @@ void net_trainer::train(network &net, int epochs)
 			// okay, now we must create batch tensor and fill it with data
 			torch::Tensor input_batch = torch::zeros({(int)count, INPUT_SIZE});
 
-			tmp.resize(INPUT_SIZE * count);
-			std::fill(tmp.begin(), tmp.end(), 0.0f);
-
-			for (size_t j=0; j<count; j++)
-				unpack_position(&tmp[j*INPUT_SIZE], positions[i+j]);
-
-			pack_tensor(input_batch, tmp.data());
-
-			tmp.resize(count);
-			std::fill(tmp.begin(), tmp.end(), 0.0f);
-
-			for (size_t j=0; j<count; j++)
-				tmp[j] = label_position(positions[i+j]);
-
 			torch::Tensor target = torch::zeros({(int)count, 1});
 
-			pack_tensor(target, tmp.data());
+			float *itensor = static_cast<float *>(input_batch.mutable_data_ptr());
+			float *ttensor = static_cast<float *>(target.mutable_data_ptr());
+
+			#pragma omp parallel for
+			for (int j=0; j<(int)count; j++)
+			{
+				unpack_position_fast(&itensor[j*INPUT_SIZE], positions[i+j]);
+				ttensor[j] = label_position(positions[i+j]);
+			}
 
 			input_batch = input_batch.to(device);
 			target = target.to(device);
