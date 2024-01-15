@@ -52,9 +52,10 @@ constexpr double HCE_K = 1.25098;
 constexpr bool profile = false;
 
 // convert eval score (cp) to win prob
-double sigmoid(double s)
+template<typename T>
+T sigmoid(T s)
 {
-	return 1.0 / (1.0 + std::pow(10.0, -HCE_K*s/400.0));
+	return 1.0 / (1.0 + pow(10.0, -HCE_K*s/400.0));
 }
 
 // convert win prob back to score (cp)
@@ -94,12 +95,13 @@ std::vector<labeled_position> test_set;
 float label_position(const labeled_position &p)
 {
 	float res;
+	// label: pawn score (1.0 = pawn)
 	res = p.label;
-	// convert from centipawns
-	res = (float)sigmoid(res*100.0f);
-	float outcome = ((float)p.outcome - 1.0f) / 2.0f + 0.5f;
+	// assume 20.0 pawns = win
+	float outcome = ((float)p.outcome - 1.0f) * 20.0f;
 	// mix search and outcome, 50%
 	res = res * 0.5f + outcome * 0.5f;
+
 	return res;
 }
 
@@ -480,7 +482,7 @@ void net_trainer::train(network &net, int epochs)
 
 			auto prediction = net.forward(input_batch);
 
-			torch::Tensor loss = torch::mse_loss(prediction, target);
+			torch::Tensor loss = torch::mse_loss(::sigmoid(prediction*100.0f), ::sigmoid(target*100.0f));
 
 			loss.backward();
 			optimizer.step();
@@ -571,10 +573,6 @@ int main()
 		printf("\tCHENG: inferred_value: %0.4lf\n", outp[0]);
 		printf("\tlabel: %0.4lf\n", label_position(p));
 		printf("\terror: %0.4lf\n", std::abs(label_position(p) - utensor[0]));
-
-		// /100 to convert from centipawns to pawns
-		printf("\tpawn_inferred_value: %0.4lf\n", inverse_sigmoid(utensor[0])/100.0);
-		printf("\tpawn_label: %0.4lf\n", inverse_sigmoid(label_position(p))/100.0);
 	}
 
 	return 0;

@@ -515,7 +515,7 @@ Eval::Eval() : occ(0), pe(0)
 		assert(0 && "net topo init failed!");
 
 #	if 0
-	if (!net.load("d:/mar/crabaware/torchtest/best.net"))
+	if (!net.load("d:/mar/crabaware/github/cheng4_hce/cheng4/trainer/run.net"))
 	{
 		std::cout << "failed to load netfile!" << std::endl;
 		abort();
