@@ -1,1 +1,1 @@
-clang++ -march=core-avx2 -m64 -Wall -Wpedantic -W -O3 -std=c++14 -ffast-math -fno-stack-protector -fomit-frame-pointer -fno-rtti -fno-exceptions -DNDEBUG -U_FORTIFY_SOURCE -static allinone.cpp -o cheng4_mingw_x64 -lwinmm
+clang++ -m64 -Wall -Wpedantic -W -O3 -std=c++14 -ffast-math -fno-stack-protector -fomit-frame-pointer -fno-rtti -fno-exceptions -DNDEBUG -U_FORTIFY_SOURCE -static allinone.cpp -o cheng4_clang_x64.exe -lwinmm

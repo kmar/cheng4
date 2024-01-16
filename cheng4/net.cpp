@@ -412,23 +412,7 @@ bool Network::load_buffer(const void *ptr, int size)
 
 float Network::to_centipawns(float w)
 {
-#if 1
 	return w*100.0f;
-#else
-	// convert win prob back to score
-	w = w < 0.0f ? 0.0f : w > 1.0f ? 1.0f : w;
-
-	// don't get overexcited with insane evals very close to 0 or 1
-	w -= 0.5f;
-	w *= 0.999999f;
-	w += 0.5f;
-
-	// last cheng HCE K for texel tuning
-	constexpr float HCE_K = 1.25098f;
-
-	float res = (-173.718f/HCE_K) * logf(1.0f / w - 1.0f);
-	return res;
-#endif
 }
 
 }

@@ -514,19 +514,11 @@ Eval::Eval() : occ(0), pe(0)
 	if (!net.init_topology(sizes, 1+topoLayers))
 		assert(0 && "net topo init failed!");
 
-#	if 0
-	if (!net.load("d:/mar/crabaware/github/cheng4_hce/cheng4/trainer/run.net"))
-	{
-		std::cout << "failed to load netfile!" << std::endl;
-		abort();
-	}
-#	else
 	if (!net.load_buffer(NET_DATA, NET_DATA_SIZE))
 	{
 		std::cout << "failed to load netfile!" << std::endl;
 		abort();
 	}
-#	endif
 
 	net.transpose_weights();
 }
