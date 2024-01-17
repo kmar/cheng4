@@ -88,6 +88,8 @@ struct Network
 
 	bool load_buffer(const void *buf, int size);
 
+	bool load_buffer_compressed(const void *buf, int size);
+
 	bool init_topology(const int *sizes, int count);
 
 	void forward_cache(const NetCache &cache, float *outp, int outpsize);

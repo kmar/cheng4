@@ -44,6 +44,7 @@ constexpr int INPUT_SIZE = cheng4::topo0;
 constexpr double EPOCH_LR_DECAY_RATE = 0.99;
 
 constexpr char NET_FILENAME[] = "test.net";
+constexpr char NET_FP_FILENAME[] = "test.fpnet";
 
 // last cheng HCE K for texel tuning
 constexpr double HCE_K = 1.25098;
@@ -293,6 +294,7 @@ struct network : torch::nn::Module
 
 	void load_file(const char *fn);
 	void save_file(const char *fn);
+	void save_fixedpt_file(const char *fn);
 
 	torch::nn::Linear layer0;
 	torch::nn::Linear layer1;
@@ -322,6 +324,25 @@ void network::save_file(const char *fn)
 	FILE *f = fopen(fn, "wb");
 	fwrite(pn.weights.data(), sizeof(float), pn.weights.size(), f);
 	fwrite(pn.biases.data(), sizeof(float), pn.biases.size(), f);
+	fclose(f);
+}
+
+void network::save_fixedpt_file(const char *fn)
+{
+	auto pn = pack();
+
+	std::vector<float> input;
+	std::vector<int32_t> output;
+	input.insert(input.end(), pn.weights.begin(), pn.weights.end());
+	input.insert(input.end(), pn.biases.begin(), pn.biases.end());
+	output.resize(input.size());
+
+	// convert to 16:16 fixedpoint
+	for (size_t i=0; i<output.size(); i++)
+		output[i] = (int32_t)floor(input[i]*65536.0f + 0.5f);
+
+	FILE *f = fopen(fn, "wb");
+	fwrite(output.data(), sizeof(float), output.size(), f);
 	fclose(f);
 }
 
@@ -505,6 +526,7 @@ void net_trainer::train(network &net, int epochs)
 
 				net.to(cpudevice);
 				net.save_file(NET_FILENAME);
+				net.save_fixedpt_file(NET_FP_FILENAME);
 				net.to(device);
 			}
 
@@ -514,6 +536,7 @@ void net_trainer::train(network &net, int epochs)
 
 		net.to(cpudevice);
 		net.save_file(NET_FILENAME);
+		net.save_fixedpt_file(NET_FP_FILENAME);
 
 		printf("done_epoch %d: Loss %0.6lf | Error: %0.2lf%%\n", epoch+1, loss_sum / batch_count, std::sqrt(loss_sum / batch_count)*100);
 

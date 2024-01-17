@@ -26,6 +26,9 @@ or as public domain (where applicable)
 #include <vector>
 #include <fstream>
 
+#define MLZ_DEC_MINI_IMPLEMENTATION
+#include "nets/mlz/mlz_dec_mini.h"
+
 //#include <intrin.h>
 
 namespace cheng4
@@ -408,6 +411,13 @@ bool Network::load_buffer(const void *ptr, int size)
 
 	memcpy(weights.data() + weight_index, ptr, weight_size * sizeof(float));
 	return true;
+}
+
+bool Network::load_buffer_compressed(const void *ptr, int size)
+{
+	int usize = mlz_decompress_mini(weights.data() + weight_index, ptr, size);
+
+	return usize == weight_size * (int)sizeof(float);
 }
 
 float Network::to_centipawns(float w)

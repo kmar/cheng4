@@ -30,6 +30,23 @@ or as public domain (where applicable)
 #include <stdlib.h>
 #include <string.h>
 
+#include "mlz/mlz_enc.h"
+
+#include "mlz/mlz_enc.c"
+
+size_t compress_buffer(uint8_t *dst, size_t dsz, const uint8_t *src, size_t sz)
+{
+	struct mlz_matcher *matcher;
+	mlz_matcher_init(&matcher);
+
+	size_t res = mlz_compress_simple(dst, dsz, src, sz, MLZ_LEVEL_OPTIMAL);
+
+	printf("compressed %d bytes to %d bytes\n", (int)sz, (int)res);
+
+	mlz_matcher_free(matcher);
+	return res;
+}
+
 int pack_net(const char *filename, const char *outfilename)
 {
 	FILE *f = fopen(filename, "rb");
@@ -68,11 +85,26 @@ int pack_net(const char *filename, const char *outfilename)
 		return 3;
 	}
 
-	fprintf(f2, "const int NET_DATA_SIZE = %d;\n", (int)fsz);
+	uint8_t *cmpbuf = (uint8_t *)calloc((size_t)fsz4*2, 1);
+
+	size_t csz = compress_buffer(cmpbuf, fsz*2, inbuf, fsz);
+
+	if (csz == 0)
+	{
+		free(inbuf);
+		free(cmpbuf);
+		free(f2);
+		fprintf(stderr, "failed to compress input, inbytes=%d\n", (int)fsz);
+		return 4;
+	}
+
+	fprintf(f2, "const int NET_DATA_SIZE = %d;\n", (int)csz);
 
 	fprintf(f2, "const uint32_t NET_DATA[] = {\n");
 
-	const uint8_t *src = inbuf;
+	dwcount = (csz+3)/4;
+
+	const uint8_t *src = cmpbuf;
 
 	for (long i=0; i<dwcount; i++)
 	{
@@ -90,6 +122,7 @@ int pack_net(const char *filename, const char *outfilename)
 
 	fprintf(f2, "};\n");
 
+	free(cmpbuf);
 	free(inbuf);
 	fclose(f2);
 	return 0;
