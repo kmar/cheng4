@@ -715,12 +715,11 @@ Score Eval::ievalNet(const Board &b)
 	if ( ec->sig == b.sig() )
 		return ec->score;					// hit => nothing to do
 
-	float outp;
+	fixedp outp;
 
 	net.forward_cache(netCache[b.turn()], &outp, 1);
 
-	outp = net.to_centipawns(outp);
-	Score sc = (Score)floor(outp*1/*00*/ + 0.5f);
+	Score sc = net.to_centipawns(outp);
 	Score corr = sign(b.turn()) * ScorePack::initFine(sc);
 
 	fscore[phOpening] = corr;
@@ -782,11 +781,10 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 		i32 inds[64];
 		i32 ninds = b.netIndices(inds);
 
-		float inp[736];
-		float outp;
+		fixedp inp[736];
+		fixedp outp;
 		net.forward_nz(inp, 736, inds, ninds, &outp, 1);
-		outp = net.to_centipawns(outp);
-		Score sc = (Score)floor(outp*1/*00*/ + 0.5f);
+		Score sc = net.to_centipawns(outp);
 		Score corr = sign(b.turn()) * ScorePack::initFine(sc);
 
 		fscore[phOpening] = corr;

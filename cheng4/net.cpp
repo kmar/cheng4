@@ -34,19 +34,25 @@ or as public domain (where applicable)
 namespace cheng4
 {
 
+#define PTR_NOALIAS __restrict
+
 #if defined(__clang__)
 #	define AUTO_VECTORIZE_LOOP _Pragma("clang loop vectorize(enable)")
 #else
 #	define AUTO_VECTORIZE_LOOP
 #endif
 
+inline fixedp fixed_mul(fixedp a, fixedp b)
+{
+    return (int64_t)a * b >> 16;
+}
 
 static constexpr int MAX_LAYER_SIZE = 768;
 
 template<int inputSize, int outputSize, bool last>
 struct NetLayer : NetLayerBase
 {
-	void init(float *wvec, float *bvec) override
+	void init(fixedp *wvec, fixedp *bvec) override
 	{
 		weights = wvec;
 		bias = bvec;
@@ -64,7 +70,7 @@ struct NetLayer : NetLayerBase
 		transpose_weights_internal(bias);
 	}
 
-	void transpose_weights_internal(float *wptr)
+	void transpose_weights_internal(fixedp *wptr)
 	{
 		int w = getInputSize();
 		int h = getOutputSize();
@@ -72,9 +78,9 @@ struct NetLayer : NetLayerBase
 		if (w <= 1 || h <= 1)
 			return;
 
-		std::vector<float> tmp(w*h);
+		std::vector<fixedp> tmp(w*h);
 
-		const float *fptr = wptr;
+		const fixedp *fptr = wptr;
 
 		//printf("wcount=%d\n", w*h);
 		for (int y=0; y<h; y++)
@@ -86,9 +92,9 @@ struct NetLayer : NetLayerBase
 	}
 
 	// leaky relu/copy
-	static inline float activate(float value)
+	static inline fixedp activate(fixedp value)
 	{
-		return last ? value : (value < 0.0f ? value * 0.01f : value);
+		return last ? value : (value < 0 ? fixed_mul(value, 655 /*0.01f*/) : value);
 	}
 
 	int getInputSize() const override
@@ -103,15 +109,15 @@ struct NetLayer : NetLayerBase
 
 	void cache_init(const i32 *inputIndex, int indexCount, NetCache &cache) override
 	{
-		float *tmp = cache.cache;
+		fixedp *tmp = cache.cache;
 
-		memcpy(tmp, bias, outputSize*sizeof(float));
+		memcpy(tmp, bias, outputSize*sizeof(fixedp));
 
 		for (int c=0; c<indexCount; c++)
 		{
 			int i = inputIndex[c];
 
-			const float *w = weights + i*outputSize;
+			const fixedp *w = weights + i*outputSize;
 
 			AUTO_VECTORIZE_LOOP
 			for (int j=0; j<outputSize; j++)
@@ -119,20 +125,20 @@ struct NetLayer : NetLayerBase
 		}
 	}
 
-	void cache_add_index(NetCache &cache, i32 index) override
+	void cache_add_index(NetCache & PTR_NOALIAS cache, i32 index) override
 	{
-		float *tmp = cache.cache;
-		const float *w = weights + index*outputSize;
+		fixedp *tmp = cache.cache;
+		const fixedp *w = weights + index*outputSize;
 
 		AUTO_VECTORIZE_LOOP
 		for (int j=0; j<outputSize; j++)
 			tmp[j] += w[j];
 	}
 
-	void cache_sub_index(NetCache &cache, i32 index) override
+	void cache_sub_index(NetCache & PTR_NOALIAS cache, i32 index) override
 	{
-		float *tmp = cache.cache;
-		const float *w = weights + index*outputSize;
+		fixedp *tmp = cache.cache;
+		const fixedp *w = weights + index*outputSize;
 
 		AUTO_VECTORIZE_LOOP
 		for (int j=0; j<outputSize; j++)
@@ -140,9 +146,9 @@ struct NetLayer : NetLayerBase
 	}
 
 	// forward, cached
-	void forward_cache(const NetCache &cache, float *output) override
+	void forward_cache(const NetCache &cache, fixedp *output) override
 	{
-		const float *tmp = cache.cache;
+		const fixedp *tmp = cache.cache;
 
 		AUTO_VECTORIZE_LOOP
 		for (int i=0; i<outputSize; i++)
@@ -151,17 +157,17 @@ struct NetLayer : NetLayerBase
 
 	// restricted feedforward with many zero weights
 	// inputIndex = indices with non-zero weights (=1.0)
-	void forward_restricted(const i32 *inputIndex, int indexCount, float *output) override
+	void forward_restricted(const i32 *inputIndex, int indexCount, fixedp * PTR_NOALIAS output) override
 	{
-		float tmp[MAX_LAYER_SIZE];
+		fixedp tmp[MAX_LAYER_SIZE];
 
-		memcpy(tmp, bias, outputSize*sizeof(float));
+		memcpy(tmp, bias, outputSize*sizeof(fixedp));
 
 		for (int c=0; c<indexCount; c++)
 		{
 			int i = inputIndex[c];
 
-			const float *w = weights + i*outputSize;
+			const fixedp *w = weights + i*outputSize;
 
 			AUTO_VECTORIZE_LOOP
 			for (int j=0; j<outputSize; j++)
@@ -174,21 +180,24 @@ struct NetLayer : NetLayerBase
 	}
 
 	// feedforward
-	void forward(const float *input, float *output) override
+	void forward(const fixedp *input, fixedp * PTR_NOALIAS output) override
 	{
-		float tmp[MAX_LAYER_SIZE];
+		fixedp tmp[MAX_LAYER_SIZE];
 
-		memcpy(tmp, bias, outputSize*sizeof(float));
+		memcpy(tmp, bias, outputSize*sizeof(fixedp));
 
 		for (int i=0; i<inputSize; i++)
 		{
-			const float *w = weights + i*outputSize;
+			const fixedp *w = weights + i*outputSize;
 
 			auto inputw = input[i];
 
+			// note: we bet we don't overflow here - that weights are relatively small
+			// note2: preshift by 8 did hurt the output waay to much to be usable
+			// this is much much slower than float so I'll probably have to go with only 1 hidden layer
 			AUTO_VECTORIZE_LOOP
 			for (int j=0; j<outputSize; j++)
-				tmp[j] += inputw * w[j];
+				tmp[j] += fixed_mul(inputw, w[j]);
 		}
 
 		AUTO_VECTORIZE_LOOP
@@ -208,7 +217,7 @@ void Network::cache_init(const i32 *nonzero, int nzcount, NetCache &cache)
 	layers[0]->cache_init(nonzero, nzcount, cache);
 }
 
-void Network::forward_nz(const float *inp, int inpsize, const i32 *nonzero, int nzcount, float *outp, int outpsize)
+void Network::forward_nz(const fixedp *inp, int inpsize, const i32 *nonzero, int nzcount, fixedp * PTR_NOALIAS outp, int outpsize)
 {
 	assert(inpsize >= layers[0]->getInputSize());
 	assert(outpsize >= layers[layers.size()-1]->getOutputSize());
@@ -217,8 +226,8 @@ void Network::forward_nz(const float *inp, int inpsize, const i32 *nonzero, int 
 	assert(inpsize >= layers[0]->getInputSize());
 	assert(outpsize >= layers[layers.size()-1]->getOutputSize());
 
-	float temp[MAX_LAYER_SIZE];
-	float temp2[MAX_LAYER_SIZE];
+	fixedp temp[MAX_LAYER_SIZE];
+	fixedp temp2[MAX_LAYER_SIZE];
 
 	for (int i=0; i<(int)layers.size(); i++)
 	{
@@ -243,16 +252,16 @@ void Network::forward_nz(const float *inp, int inpsize, const i32 *nonzero, int 
 		outp[j] = temp[j];
 }
 
-void Network::forward_cache(const NetCache &cache, float *outp, int outpsize)
+void Network::forward_cache(const NetCache &cache, fixedp * PTR_NOALIAS outp, int outpsize)
 {
 	assert(outpsize >= layers[layers.size()-1]->getOutputSize());
 	(void)outpsize;
 	assert(outpsize >= layers[layers.size()-1]->getOutputSize());
 
-	float temp[MAX_LAYER_SIZE];
-	float temp2[MAX_LAYER_SIZE];
+	fixedp temp[MAX_LAYER_SIZE];
+	fixedp temp2[MAX_LAYER_SIZE];
 
-	const float *inp = nullptr;
+	const fixedp *inp = nullptr;
 
 	for (int i=0; i<(int)layers.size(); i++)
 	{
@@ -399,17 +408,18 @@ bool Network::load(const char *filename)
 {
 	std::ifstream ifs(filename, std::ios::in | std::ios::binary);
 
-	ifs.read((char *)(weights.data() + weight_index), weight_size * sizeof(float));
+	ifs.read((char *)(weights.data() + weight_index), weight_size * sizeof(fixedp));
 
 	return !ifs.fail();
 }
 
 bool Network::load_buffer(const void *ptr, int size)
 {
-	if (size != weight_size * (int)sizeof(float))
+	if (size != weight_size * (int)sizeof(fixedp))
 		return false;
 
-	memcpy(weights.data() + weight_index, ptr, weight_size * sizeof(float));
+	memcpy(weights.data() + weight_index, ptr, weight_size * sizeof(fixedp));
+
 	return true;
 }
 
@@ -417,12 +427,15 @@ bool Network::load_buffer_compressed(const void *ptr, int size)
 {
 	int usize = mlz_decompress_mini(weights.data() + weight_index, ptr, size);
 
-	return usize == weight_size * (int)sizeof(float);
+	return usize == weight_size * (int)sizeof(fixedp);
 }
 
-float Network::to_centipawns(float w)
+int32_t Network::to_centipawns(fixedp w)
 {
-	return w*100.0f;
+	return (fixed_mul(w, 100*65536) + 32768) >> 16;
 }
+
+#undef PTR_NOALIAS
+#undef AUTO_VECTORIZE_LOOP
 
 }

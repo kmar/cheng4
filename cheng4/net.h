@@ -32,29 +32,38 @@ namespace cheng4
 enum Topology
 {
 	topo0 = 736,
+#if 0
 	topo1 = 192,
 	topo2 = 4,
 
 	topoLayers = 3
+#else
+	topo1 = 224,
+	topo2 = 1,
+
+	topoLayers = 2
+#endif
 };
 
 // layer 1 bitplane fast update cache
 struct NetCache;
 
+typedef i32 fixedp;
+
 struct NetLayerBase
 {
 	// weights now transposed
-	float *weights = nullptr;
-	float *bias = nullptr;
+	fixedp *weights = nullptr;
+	fixedp *bias = nullptr;
 
 	virtual ~NetLayerBase() {}
 
-	virtual void init(float *wvec, float *bvec)=0;
+	virtual void init(fixedp *wvec, fixedp *bvec)=0;
 	virtual void transpose_weights() = 0;
 	virtual void transpose_biases() = 0;
-	virtual void forward_restricted(const i32 *inputIndex, int indexCount, float *output)=0;
-	virtual void forward_cache(const NetCache &cache, float *output)=0;
-	virtual void forward(const float *input, float *output)=0;
+	virtual void forward_restricted(const i32 *inputIndex, int indexCount, fixedp *output)=0;
+	virtual void forward_cache(const NetCache &cache, fixedp *output)=0;
+	virtual void forward(const fixedp *input, fixedp *output)=0;
 
 	virtual void cache_init(const i32 *inputIndex, int indexCount, NetCache &cache)=0;
 	virtual void cache_add_index(NetCache &cache, i32 index) = 0;
@@ -67,14 +76,14 @@ struct NetLayerBase
 struct NetCache
 {
 	// actual cache for layer 1 output, including biases
-	float cache[topo1];
+	fixedp cache[topo1];
 };
 
 struct Network
 {
 	std::vector<NetLayerBase *> layers;
 	// all weights, including biases (biases come at the end)
-	std::vector<float> weights;
+	std::vector<fixedp> weights;
 	// this is where aligned weights start
 	int weight_index;
 	// total number of weights
@@ -92,9 +101,9 @@ struct Network
 
 	bool init_topology(const int *sizes, int count);
 
-	void forward_cache(const NetCache &cache, float *outp, int outpsize);
+	void forward_cache(const NetCache &cache, fixedp *outp, int outpsize);
 
-	void forward_nz(const float *inp, int inpsize, const i32 *nonzero, int nzcount, float *outp, int outpsize);
+	void forward_nz(const fixedp *inp, int inpsize, const i32 *nonzero, int nzcount, fixedp *outp, int outpsize);
 
 	void cache_init(const i32 *nonzero, int nzcount, NetCache &cache);
 
@@ -105,7 +114,7 @@ struct Network
 
 	void transpose_biases();
 
-	static float to_centipawns(float w);
+	static int32_t to_centipawns(fixedp w);
 };
 
 }

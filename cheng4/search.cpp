@@ -250,8 +250,7 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 		Score sev = eval.eval( tb, -beta, -alpha );
 		if ( sev != ev )
 		{
-#if 0
-			// due to incremental updates and float roundoff errors, this no longer holds. might try again later with integers
+#if 1
 			eval.clear();
 			ev =  eval.eval( board, alpha, beta );
 			sev = eval.eval( tb, -beta, -alpha );

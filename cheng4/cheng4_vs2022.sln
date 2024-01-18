@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34408.163
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cheng4", "cheng4.vcxproj", "{3B00A2BC-6260-4D1B-9CB8-AB119FA04466}"
 EndProject
 Global
@@ -17,6 +19,8 @@ Global
 		Release Intel|x64 = Release Intel|x64
 		Release profile|Win32 = Release profile|Win32
 		Release profile|x64 = Release profile|x64
+		Release_Clang_AVX2|Win32 = Release_Clang_AVX2|Win32
+		Release_Clang_AVX2|x64 = Release_Clang_AVX2|x64
 		Release_Clang|Win32 = Release_Clang|Win32
 		Release_Clang|x64 = Release_Clang|x64
 		Release|Win32 = Release|Win32
@@ -49,6 +53,10 @@ Global
 		{3B00A2BC-6260-4D1B-9CB8-AB119FA04466}.Release profile|Win32.Build.0 = Release|Win32
 		{3B00A2BC-6260-4D1B-9CB8-AB119FA04466}.Release profile|x64.ActiveCfg = Release|x64
 		{3B00A2BC-6260-4D1B-9CB8-AB119FA04466}.Release profile|x64.Build.0 = Release|x64
+		{3B00A2BC-6260-4D1B-9CB8-AB119FA04466}.Release_Clang_AVX2|Win32.ActiveCfg = Release_Clang_AVX2|Win32
+		{3B00A2BC-6260-4D1B-9CB8-AB119FA04466}.Release_Clang_AVX2|Win32.Build.0 = Release_Clang_AVX2|Win32
+		{3B00A2BC-6260-4D1B-9CB8-AB119FA04466}.Release_Clang_AVX2|x64.ActiveCfg = Release_Clang_AVX2|x64
+		{3B00A2BC-6260-4D1B-9CB8-AB119FA04466}.Release_Clang_AVX2|x64.Build.0 = Release_Clang_AVX2|x64
 		{3B00A2BC-6260-4D1B-9CB8-AB119FA04466}.Release_Clang|Win32.ActiveCfg = Release_Clang|Win32
 		{3B00A2BC-6260-4D1B-9CB8-AB119FA04466}.Release_Clang|Win32.Build.0 = Release_Clang|Win32
 		{3B00A2BC-6260-4D1B-9CB8-AB119FA04466}.Release_Clang|x64.ActiveCfg = Release_Clang|x64

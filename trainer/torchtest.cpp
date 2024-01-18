@@ -300,22 +300,25 @@ struct network : torch::nn::Module
 	torch::nn::Linear layer1;
 	torch::nn::Linear layer2;
 
-	const torch::nn::Linear *layers[3] =
-	{
-		&layer0,
-		&layer1,
-		&layer2
-	};
+	std::vector<const torch::nn::Linear *> layers;
 };
 
 network::network()
 	: layer0{INPUT_SIZE, cheng4::topo1}
-	, layer1{cheng4::topo1, cheng4::topo2}
+	, layer1{cheng4::topo1, cheng4::topoLayers >= 3 ? cheng4::topo2 : 1}
 	, layer2{cheng4::topo2, 1}
 {
+	layers.push_back(&layer0);
+	layers.push_back(&layer1);
+
+	if (cheng4::topoLayers >= 3)
+		layers.push_back(&layer2);
+
 	register_module("layer0", layer0);
 	register_module("layer1", layer1);
-	register_module("layer2", layer2);
+
+	if (cheng4::topoLayers >= 3)
+		register_module("layer2", layer2);
 }
 
 void network::save_file(const char *fn)
@@ -423,8 +426,17 @@ torch::Tensor fixed_leaky_relu(torch::Tensor input)
 torch::Tensor network::forward(torch::Tensor input)
 {
 	torch::Tensor tmp = fixed_leaky_relu(layer0->forward(input));
-	tmp = fixed_leaky_relu(layer1->forward(tmp));
-	tmp = layer2->forward(tmp);
+
+	if (cheng4::topoLayers >= 3)
+	{
+		tmp = fixed_leaky_relu(layer1->forward(tmp));
+		tmp = layer2->forward(tmp);
+	}
+	else
+	{
+		tmp = layer1->forward(tmp);
+	}
+
 	return tmp;
 }
 
@@ -565,27 +577,11 @@ int main()
 
 	size_t test_set_size = test_set.size();
 
-	cheng4::Network cnet;
-	const int sizes[] = {cheng4::topo0, cheng4::topo1, cheng4::topo2, 1};
-
-	cnet.init_topology(sizes, 4);
-	cnet.load(NET_FILENAME);
-	cnet.transpose_weights();
-
 	for (size_t i=0; i<std::min<size_t>(1000, test_set.size()); i++)
 	{
 		const auto &p = test_set[i];
 		torch::Tensor test = torch::zeros(INPUT_SIZE);
 		unpack_position(test.mutable_data_ptr(), p);
-
-		float outp[1];
-		cheng4::i32 nz[INPUT_SIZE];
-
-		for (size_t i=0; i<p.indices.size(); i++)
-			nz[i] = p.indices[i];
-
-		cnet.forward_nz(static_cast<const float *>(test.data_ptr()), INPUT_SIZE,
-			nz, (int)p.indices.size(), outp, 1);
 
 		auto inf = net.forward(test);
 		auto utensor = unpack_tensor(inf);
@@ -593,7 +589,6 @@ int main()
 		printf("test position %d\n", (int)i);
 
 		printf("\tinferred_value: %0.4lf\n", utensor[0]);
-		printf("\tCHENG: inferred_value: %0.4lf\n", outp[0]);
 		printf("\tlabel: %0.4lf\n", label_position(p));
 		printf("\terror: %0.4lf\n", std::abs(label_position(p) - utensor[0]));
 	}

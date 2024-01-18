@@ -5,7 +5,6 @@
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="memmap.cpp" />
     <ClCompile Include="rnd_shuf.cpp" />
-    <ClCompile Include="..\cheng4\net.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
