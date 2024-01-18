@@ -146,7 +146,7 @@ struct NetLayer : NetLayerBase
 	}
 
 	// forward, cached
-	void forward_cache(const NetCache &cache, fixedp *output) override
+	void forward_cache(const NetCache & PTR_NOALIAS cache, fixedp * PTR_NOALIAS output) override
 	{
 		const fixedp *tmp = cache.cache;
 
@@ -157,7 +157,7 @@ struct NetLayer : NetLayerBase
 
 	// restricted feedforward with many zero weights
 	// inputIndex = indices with non-zero weights (=1.0)
-	void forward_restricted(const i32 *inputIndex, int indexCount, fixedp * PTR_NOALIAS output) override
+	void forward_restricted(const i32 * PTR_NOALIAS inputIndex, int indexCount, fixedp * PTR_NOALIAS output) override
 	{
 		fixedp tmp[MAX_LAYER_SIZE];
 
@@ -180,7 +180,7 @@ struct NetLayer : NetLayerBase
 	}
 
 	// feedforward
-	void forward(const fixedp *input, fixedp * PTR_NOALIAS output) override
+	void forward(const fixedp *  PTR_NOALIAS input, fixedp * PTR_NOALIAS output) override
 	{
 		int64_t tmp[MAX_LAYER_SIZE];
 
@@ -219,7 +219,7 @@ void Network::cache_init(const i32 *nonzero, int nzcount, NetCache &cache)
 	layers[0]->cache_init(nonzero, nzcount, cache);
 }
 
-void Network::forward_nz(const fixedp *inp, int inpsize, const i32 *nonzero, int nzcount, fixedp * PTR_NOALIAS outp, int outpsize)
+void Network::forward_nz(const fixedp * PTR_NOALIAS inp, int inpsize, const i32 * PTR_NOALIAS nonzero, int nzcount, fixedp * PTR_NOALIAS outp, int outpsize)
 {
 	assert(inpsize >= layers[0]->getInputSize());
 	assert(outpsize >= layers[layers.size()-1]->getOutputSize());
