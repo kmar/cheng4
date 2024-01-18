@@ -204,10 +204,7 @@ struct NetLayer : NetLayerBase
 
 		AUTO_VECTORIZE_LOOP
 		for (int i=0; i<outputSize; i++)
-		{
-			tmp[i] >>= 16;
-			output[i] = activate((fixedp)tmp[i]);
-		}
+			output[i] = activate((fixedp)(tmp[i] >> 16));
 	}
 };
 
