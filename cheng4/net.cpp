@@ -182,27 +182,32 @@ struct NetLayer : NetLayerBase
 	// feedforward
 	void forward(const fixedp *input, fixedp * PTR_NOALIAS output) override
 	{
-		fixedp tmp[MAX_LAYER_SIZE];
+		int64_t tmp[MAX_LAYER_SIZE];
 
-		memcpy(tmp, bias, outputSize*sizeof(fixedp));
+		AUTO_VECTORIZE_LOOP
+		for (int i=0; i<outputSize; i++)
+			tmp[i] = bias[i] << 16;
 
 		for (int i=0; i<inputSize; i++)
 		{
 			const fixedp *w = weights + i*outputSize;
 
-			auto inputw = input[i];
+			int64_t inputw = input[i];
 
 			// note: we bet we don't overflow here - that weights are relatively small
 			// note2: preshift by 8 did hurt the output waay to much to be usable
 			// this is much much slower than float so I'll probably have to go with only 1 hidden layer
 			AUTO_VECTORIZE_LOOP
 			for (int j=0; j<outputSize; j++)
-				tmp[j] += fixed_mul(inputw, w[j]);
+				tmp[j] += inputw * w[j];
 		}
 
 		AUTO_VECTORIZE_LOOP
 		for (int i=0; i<outputSize; i++)
-			output[i] = activate(tmp[i]);
+		{
+			tmp[i] >>= 16;
+			output[i] = activate((fixedp)tmp[i]);
+		}
 	}
 };
 
