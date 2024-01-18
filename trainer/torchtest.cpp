@@ -454,7 +454,6 @@ void net_trainer::train(network &net, int epochs)
 {
 	netref = &net;
 
-	// somehow, CUDA crashes libtorch...
 	auto device = at::kCUDA;
 	constexpr auto cpudevice = at::kCPU;
 
@@ -471,7 +470,7 @@ void net_trainer::train(network &net, int epochs)
 	printf("adam default lr: %lf\n", lr);
 
 	// Adam seems much better at converging
-    torch::optim::Adam optimizer(net.parameters());
+	torch::optim::Adam optimizer(net.parameters());
 
 	const size_t num_batches = (positions.size() + BATCH_SIZE-1) / BATCH_SIZE;
 
@@ -526,7 +525,7 @@ void net_trainer::train(network &net, int epochs)
 			{
 				// print stuff
 				std::cout << "Epoch: " << (epoch+1) << " | Batch: " << batch_count << "/" << num_batches
-                  << " | Loss: " << batch_loss << " | Error: " << std::sqrt(batch_loss)*100 << "%" << std::endl;
+					<< " | Loss: " << batch_loss << " | Error: " << std::sqrt(batch_loss)*100 << "%" << std::endl;
 
 				auto tc = clock();
 				auto delta = tc - cstart;
@@ -557,7 +556,7 @@ void net_trainer::train(network &net, int epochs)
 
 		// reference: https://stackoverflow.com/questions/62415285/updating-learning-rate-with-libtorch-1-5-and-optimiser-options-in-c
 		for (auto param_group : optimizer.param_groups())
-		  static_cast<torch::optim::AdamOptions &>(param_group.options()).lr(lr);
+			static_cast<torch::optim::AdamOptions &>(param_group.options()).lr(lr);
 	}
 
 	netref = nullptr;
