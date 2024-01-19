@@ -34,7 +34,6 @@ struct LabelFEN
 	std::vector<Board> boards;
 	std::vector<double> outcomes;
 	std::vector<Score> labels;
-	std::vector<Score> evals;
 
 	bool load(const char *filename);
 	bool process(const char *outfilename);

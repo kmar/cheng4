@@ -2820,6 +2820,52 @@ void Board::doMoveTemplate( Move move, Square from, Square to, UndoInfo &ui, boo
 	assert( isValid() );
 }
 
+void Board::compressPieces(uint8_t buf[32]) const
+{
+	memset(buf, 0, 32);
+	auto occ = occupied();
+
+	while (occ)
+	{
+		Square sq = BitOp::popBit(occ);
+		Piece p = piece(sq);
+		p &= 15;
+
+		// simple nibble-packing
+		if (sq & 1)
+			p <<= 4;
+
+		// and store
+		buf[sq >> 1] |= p;
+	}
+}
+
+void Board::uncompressPieces(const uint8_t buf[32])
+{
+	reset();
+	clearPieces();
+
+	for (int sq=0; sq<64; sq++)
+	{
+		Piece p = Piece(buf[sq >> 1]);
+
+		if (sq & 1)
+			p >>= 4;
+
+		p &= 15;
+
+		Piece pt = PiecePack::type(p);
+
+		if (pt == ptNone)
+			continue;
+
+		setPiece(PiecePack::color(p), PiecePack::type(p), (Square)sq);
+	}
+
+	updateBitboards();
+}
+
+
 // instantiate
 template bool Board::pseudoIsLegal<0>( Move, Bitboard ) const;
 template bool Board::pseudoIsLegal<1>( Move, Bitboard ) const;

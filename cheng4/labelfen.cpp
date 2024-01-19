@@ -136,10 +136,8 @@ public:
 			sm.reset();
 			sm.maxDepth = 6;
 			Score sc = s->iterate(lfen->boards[i], sm);
-			Score sce = s->eval.eval(s->board);
 
 			lfen->labels[i] = sc;
-			lfen->evals[i] = sce;
 		}
 	}
 };
@@ -147,7 +145,6 @@ public:
 bool LabelFEN::process(const char *outfilename)
 {
 	labels.resize(boards.size());
-	evals.resize(boards.size());
 
 	const int numThreads = 16;
 
@@ -212,15 +209,38 @@ bool LabelFEN::process(const char *outfilename)
 		i16 tmp = (i16)labels[i];
 		fwrite(&tmp, 2, 1, fo);
 
-		tmp = (i16)evals[i];
-		fwrite(&tmp, 2, 1, fo);
-
 		tmp = i16(outcomes[i]*2);
 		fwrite(&tmp, 2, 1, fo);
 
 		tmp = boards[i].turn() == ctBlack ? 1 : 0;
 		fwrite(&tmp, 2, 1, fo);
 
+#if 1
+		// compress the board
+		uint8_t buf[32];
+		boards[i].compressPieces(buf);
+
+#ifdef _DEBUG
+		Board tmpb;
+		tmpb.uncompressPieces(buf);
+		tmpb.setTurn(Color(tmp ? ctBlack : ctWhite));
+
+		i32 inds0[64];
+		auto count0 = boards[i].netIndices(inds0);
+		std::sort(inds0, inds0+count0);
+
+		i32 inds1[64];
+		auto count1 = tmpb.netIndices(inds1);
+		std::sort(inds1, inds1+count1);
+
+		assert(count0 == count1);
+		for (int ix=0; ix<count0; ix++)
+			assert(inds0[ix] == inds1[ix]);
+#endif
+
+		fwrite(buf, 32, 1, fo);
+#else
+		// old format
 		i32 inds[64];
 		auto count = boards[i].netIndices(inds);
 
@@ -234,6 +254,7 @@ bool LabelFEN::process(const char *outfilename)
 			tmp = (i16)inds[j];
 			fwrite(&tmp, 2, 1, fo);
 		}
+#endif
 
 		++outcount;
 	}

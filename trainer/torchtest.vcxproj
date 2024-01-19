@@ -150,6 +150,7 @@
   <ItemGroup>
     <ClInclude Include="..\cheng4\net.h" />
     <ClInclude Include="memmap.h" />
+    <ClInclude Include="net_indices.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="rnd_shuf.h" />
     <ClInclude Include="types.h" />

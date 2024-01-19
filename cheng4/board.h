@@ -740,6 +740,12 @@ public:
 		return res + Tables::gainCap[ PiecePack::type( piece( MovePack::to(m) ) ) ] * (MovePack::isCapture(m) != 0);
 	}
 
+	// nibble-pack pieces
+	void compressPieces(uint8_t buf[32]) const;
+
+	// the reverse operation
+	void uncompressPieces(const uint8_t buf[32]);
+
 	// get net index for a single piece on a specific square
 	// side to move, piece color, piece type, piece square
 	i32 netIndex(Color stm, Color c, PieceType pt, Square sq) const;

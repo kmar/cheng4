@@ -35,6 +35,7 @@ or as public domain (where applicable)
 #include "rnd_shuf.h"
 
 #include "../cheng4/net.h"
+#include "net_indices.h"
 
 // as big as we can fit into memory
 constexpr int BATCH_SIZE = 1024*1024*1;
@@ -71,12 +72,10 @@ double inverse_sigmoid(double w)
 struct labeled_position
 {
 	float label;
-	float eval;
 	int16_t score;
 	int16_t outcome;
 	int16_t flags;
-	int16_t count;
-	std::vector<int16_t> indices;
+	uint8_t pieces[32];
 
 	labeled_position() = default;
 
@@ -127,8 +126,12 @@ void unpack_position_fast(void *dstp, const labeled_position &pos)
 {
 	auto *dst = static_cast<float *>(dstp);
 
-	for (auto idx : pos.indices)
-		dst[idx] = 1.0f;
+	int16_t ninds[64];
+	bool blackToMove = (pos.flags & 1) != 0;
+	auto count = (int16_t)netIndices(blackToMove, pos.pieces, ninds);
+
+	for (int i=0; i<count; i++)
+		dst[ninds[i]] = 1.0f;
 }
 
 void unpack_position(void *dstp, const labeled_position &pos)
@@ -207,6 +210,12 @@ void load_trainfile(const char *fn)
 	memcpy(&(var), ptr, sizeof(var)); \
 	ptr += sizeof(var)
 
+#define mem_read_buf(var, sz) \
+	if (ptr + sz > end) \
+		break; \
+	memcpy((var), ptr, sz); \
+	ptr += sz
+
 	for (;;)
 	{
 		int16_t tmp;
@@ -217,10 +226,6 @@ void load_trainfile(const char *fn)
 		p.score = tmp;
 		p.label = tmp/100.0f;
 
-		mem_read_int(tmp);
-
-		p.eval = tmp/100.0f;
-
 		mem_read_int(p.outcome);
 		mem_read_int(p.flags);
 
@@ -230,20 +235,8 @@ void load_trainfile(const char *fn)
 		if (blackToMove)
 			p.outcome = 2 - p.outcome;
 
-		mem_read_int(p.count);
-
-		p.indices.resize(p.count);
-
-		if (p.count)
-		{
-			auto bytes = p.count*sizeof(int16_t);
-
-			if (ptr + bytes > end)
-				break;
-
-			memcpy(p.indices.data(), ptr, bytes);
-			ptr += bytes;
-		}
+		// now using nibble-packed indices
+		mem_read_buf(p.pieces, 32);
 
 		positions.emplace_back(std::move(p));
 
@@ -273,6 +266,7 @@ void load_trainfile(const char *fn)
 	printf("%I64d positions reserved for testing\n", (int64_t)test_set.size());
 	printf("%I64d positions reserved for training\n", (int64_t)positions.size());
 #undef mem_read_int
+#undef mem_read_buf
 }
 
 struct packed_network

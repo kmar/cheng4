@@ -12,5 +12,6 @@
     <ClInclude Include="rnd_shuf.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="..\cheng4\net.h" />
+    <ClInclude Include="net_indices.h" />
   </ItemGroup>
 </Project>
