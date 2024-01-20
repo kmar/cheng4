@@ -22,6 +22,7 @@ or as public domain (where applicable)
 */
 
 #include "version.h"
+#include "platform.h"
 
 namespace cheng4
 {
@@ -31,8 +32,8 @@ namespace cheng4
 std::string Version::version()
 {
 	std::string res = "Cheng 4.44 dev";
-#if __AVX2__
-	res += " (AVX2)";
+#if CHENG_CPU_X86 && !CHENG_CPU_AVX2
+	res += " (legacy SSE2)";
 #endif
 	return res;
 }
