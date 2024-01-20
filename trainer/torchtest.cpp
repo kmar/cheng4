@@ -409,21 +409,13 @@ void network::unpack(const packed_network &pn)
 	}
 }
 
-torch::Tensor fixed_leaky_relu(torch::Tensor input)
-{
-	torch::nn::functional::LeakyReLUFuncOptions opts;
-	opts.negative_slope(0.01);
-	torch::Tensor res = torch::nn::functional::leaky_relu(input, opts);
-	return res;
-}
-
 torch::Tensor network::forward(torch::Tensor input)
 {
-	torch::Tensor tmp = fixed_leaky_relu(layer0->forward(input));
+	torch::Tensor tmp = relu(layer0->forward(input));
 
 	if (cheng4::topoLayers >= 3)
 	{
-		tmp = fixed_leaky_relu(layer1->forward(tmp));
+		tmp = relu(layer1->forward(tmp));
 		tmp = layer2->forward(tmp);
 	}
 	else
