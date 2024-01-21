@@ -74,13 +74,11 @@ void tbDone()
 
 TbProbeResult tbProbeRoot(const Board &board, unsigned *moves)
 {
-	if (!tbInitialized)
-	{
-		if (moves)
-			*moves = TB_RESULT_FAILED;
+	if (moves)
+		*moves = TB_RESULT_FAILED;
 
+	if (!tbInitialized)
 		return tbResInvalid;
-	}
 
 	MutexLock lock(*tbMutex);
 
