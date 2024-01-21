@@ -177,7 +177,7 @@ struct NetLayer : NetLayerBase
 
 		CHENG_AUTO_VECTORIZE_LOOP
 		for (int i=0; i<outputSize; i++)
-			tmp[i] = bias[i] << 16;
+			tmp[i] = (int64_t)bias[i] << 16;
 
 		for (int i=0; i<inputSize; i++)
 		{
