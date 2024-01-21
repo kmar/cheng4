@@ -1571,8 +1571,24 @@ void Search::extractPV( RootMove &rm ) const
 	rm.pvCount = 0;
 	const Move *src = triPV;
 	assert( *src );
+
+	Board tb = board;
+
 	while ( *src )
+	{
+		// FIXME: this should never happen, but it apparently does happen in cutechess-cli sometimes
+		if (!tb.isLegalMove(*src))
+		{
+			assert(0&&"got illegal move in PV!");
+			break;
+		}
+
+		UndoInfo ui;
+		tb.doMove(*src, ui, tb.isCheck(*src, tb.discovered()));
+
 		rm.pv[ rm.pvCount++ ] = *src++;
+	}
+
 	rm.pv[ rm.pvCount ] = mcNone;
 }
 
