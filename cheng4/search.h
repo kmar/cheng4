@@ -270,7 +270,11 @@ struct Search
 		stack[ ply+2 ].killers.clear();
 		nodes++;
 		if ( pv )
+		{
 			triPV[res = triIndex(ply)] = mcNone;
+			// hopefully this might fix very rare invalid pv warning reported by cutechess-cli
+			triPV[triIndex(ply+1)] = mcNone;
+		}
 		else
 			res = 0;
 		return res;
