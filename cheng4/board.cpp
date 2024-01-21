@@ -1326,7 +1326,7 @@ std::string Board::toSAN( Move m ) const
 
 char *Board::toSAN( char *dst, Move m ) const
 {
-	assert( (inCheck() ? isLegal<1, 0>( m, pins() ) : isLegal<0, 0>( m, pins() )) );
+	assert( isLegalMove(m) );
 
 	m &= mmNoScore;
 
@@ -1643,7 +1643,7 @@ Move Board::fromSAN( const char *&ptr ) const
 			Square to = SquarePack::setFile(from, toFile);
 			res = MovePack::initCastling(from, to);
 			// finally check if legal (we're strict here!)
-			bool legal = inCheck() ? isLegal<1, 0>(res, pins()) : isLegal<0, 0>(res, pins());
+			bool legal = isLegalMove(res);
 			if ( !legal )
 				ptr = old;
 			return legal ? res : mcNone;

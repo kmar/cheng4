@@ -636,7 +636,7 @@ public:
 	template< bool evasion, bool killer > bool iisLegal( Move m, Bitboard pins ) const;
 	template< bool evasion, bool killer > bool isLegal( Move m, Bitboard pins ) const;
 
-	// for convenience (debugging, asserts)
+	// for convenience
 	bool isLegalMove(Move m) const;
 
 	// returns 1 if stm's pseudolegal move is actually legal

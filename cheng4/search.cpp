@@ -419,7 +419,7 @@ template< bool pv, bool incheck, bool donull >
 		{
 			Move ttmove = stack[ply].killers.hashMove;
 
-			if ( ttmove && (board.inCheck() ? board.isLegal<1, 0>(ttmove, board.pins()) : board.isLegal<0, 0>(ttmove, board.pins())) )
+			if ( ttmove && board.isLegalMove(ttmove) )
 			{
 				if (ply > 0 && stack[ply-1].current != mcNull)
 					history->addCounter(board, stack[ply-1].current, ttmove);
@@ -1541,6 +1541,28 @@ void Search::copyPV( Ply ply )
 	{
 		*dst++ = *src;
 	} while ( *src++ );
+
+#if 0
+	// validate PV
+	auto tmp = board;
+	auto *srcpv = triPV + index;
+
+	while (*srcpv)
+	{
+		auto mv = *srcpv++;
+
+		if (!tmp.isLegalMove(mv))
+		{
+			printf("illegal move in PV!!!\n");
+			tmp.dump();
+			printf("move: %s\n", tmp.toSAN(mv).c_str());
+			break;
+		}
+
+		UndoInfo ui;
+		tmp.doMove(mv, ui, tmp.isCheck(mv, tmp.discovered()));
+	}
+#endif
 }
 
 // extract PV for rm
@@ -1563,8 +1585,8 @@ Move Search::extractPonderFromHash( Move best )
 	if ( ponder != mcNone )
 	{
 		// found - now make sure it's legal
-		bool legal = board.inCheck() ? board.isLegal< 1, 0 >(ponder, board.pins())
-					: board.isLegal< 0, 0 >(ponder, board.pins());
+		bool legal = board.isLegalMove(ponder);
+
 		if ( !legal )
 			ponder = mcNone;
 	}
