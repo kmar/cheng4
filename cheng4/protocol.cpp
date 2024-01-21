@@ -813,6 +813,7 @@ void Protocol::sendPV( const SearchInfo &si, uint index, Score score, enum Bound
 
 			for (size_t i=0; i<pvCount; i++)
 			{
+				assert(b.isLegalMove(pv[i]));
 				sendStr << " " << b.toUCI( pv[i] );
 				UndoInfo ui;
 				b.doMove( pv[i], ui, b.isCheck( pv[i], b.discovered() ) );
@@ -856,6 +857,7 @@ void Protocol::sendPV( const SearchInfo &si, uint index, Score score, enum Bound
 
 			for (size_t i=0; i<pvCount; i++)
 			{
+				assert(b.isLegalMove(pv[i]));
 				sendStr << " " << b.toSAN( pv[i] );
 				UndoInfo ui;
 				b.doMove( pv[i], ui, b.isCheck( pv[i], b.discovered() ) );

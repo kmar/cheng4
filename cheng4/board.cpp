@@ -2185,6 +2185,12 @@ template< bool evasion, bool killer > bool Board::isLegal( Move m, Bitboard pins
 	return iisLegal< evasion, killer >( m, pins );
 }
 
+bool Board::isLegalMove(Move m) const
+{
+	Bitboard pinmask = pins();
+	return inCheck() ? isLegal<1, 0>(m, pinmask) : isLegal<0, 0>(m, pinmask);
+}
+
 // set side to move (used in xboard edit mode)
 void Board::setTurn( Color c )
 {
