@@ -150,7 +150,7 @@ struct NetLayer : NetLayerBase
 	// inputIndex = indices with non-zero weights (=1.0)
 	void forward_restricted(const i32 * CHENG_PTR_NOALIAS inputIndex, int indexCount, fixedp * CHENG_PTR_NOALIAS output) override
 	{
-		fixedp tmp[MAX_LAYER_SIZE];
+		fixedp tmp[outputSize];
 
 		memcpy(tmp, bias, outputSize*sizeof(fixedp));
 
@@ -173,7 +173,7 @@ struct NetLayer : NetLayerBase
 	// feedforward
 	void forward(const fixedp *  CHENG_PTR_NOALIAS input, fixedp * CHENG_PTR_NOALIAS output) override
 	{
-		int64_t tmp[MAX_LAYER_SIZE];
+		int64_t tmp[outputSize];
 
 		CHENG_AUTO_VECTORIZE_LOOP
 		for (int i=0; i<outputSize; i++)
