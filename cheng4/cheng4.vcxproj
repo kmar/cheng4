@@ -858,6 +858,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="autoplay.cpp" />
     <ClCompile Include="board.cpp" />
     <ClCompile Include="book.cpp" />
     <ClCompile Include="bookzobrist.cpp" />
@@ -865,6 +866,7 @@
     <ClCompile Include="epd.cpp" />
     <ClCompile Include="eval.cpp" />
     <ClCompile Include="filterpgn.cpp" />
+    <ClCompile Include="game.cpp" />
     <ClCompile Include="history.cpp" />
     <ClCompile Include="kpk.cpp" />
     <ClCompile Include="labelfen.cpp" />
@@ -887,6 +889,7 @@
     <ClCompile Include="zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="autoplay.h" />
     <ClInclude Include="board.h" />
     <ClInclude Include="book.h" />
     <ClInclude Include="bookzobrist.h" />
@@ -895,6 +898,7 @@
     <ClInclude Include="epd.h" />
     <ClInclude Include="eval.h" />
     <ClInclude Include="filterpgn.h" />
+    <ClInclude Include="game.h" />
     <ClInclude Include="history.h" />
     <ClInclude Include="killer.h" />
     <ClInclude Include="kpk.h" />

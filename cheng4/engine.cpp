@@ -104,11 +104,17 @@ void Engine::done()
 	Timer::done();
 }
 
-Engine::Engine( size_t transMegs ) : ponder(0), pondering(0), ponderMove( mcNone ), stm( ctWhite ),
-	uciMode(0), ownBook(1), tt(0)
+Engine::Engine( size_t transMegs )
+	: ponder(0)
+	, pondering(0)
+	, ponderMove( mcNone )
+	, stm( ctWhite )
+	, uciMode(0)
+	, ownBook(1)
+	, tt(0)
 {
-	curBoard.reset();
-	startBoard = curBoard;
+	game.curBoard.reset();
+	game.startBoard = game.curBoard;
 	pondBoard.clear();
 
 	// hash table init goes here
@@ -144,6 +150,7 @@ void Engine::startSearch( const SearchMode &mode, bool noabort )
 	// NEW: don't use book lookup when pondering!
 	if ( ownBook && mode.maxTime && !mode.ponder )
 	{
+		Board &curBoard = game.curBoard;
 		// probe book here!
 		Move mv = book.probe( curBoard );
 		if ( mv != mcNone )
@@ -218,11 +225,11 @@ void Engine::abortSearch()
 void Engine::setBoard( const Board &b )
 {
 	abortSearch();
-	startBoard = curBoard = mainThread->search.board = b;
+	game.startBoard = game.curBoard = mainThread->search.board = b;
 	mainThread->search.rep.clear();
 	mainThread->search.rep.push( b.sig(), 1 );
 	stm = b.turn();
-	moves.clear();
+	game.moves.clear();
 }
 
 // reset board to startpos
@@ -238,11 +245,11 @@ bool Engine::undoMove( bool noabort )
 {
 	if ( !noabort )
 		abortSearch();
-	if ( moves.empty() )
+	if ( game.moves.empty() )
 		return 0;
-	moves.pop_back();
-	std::vector< GameMove > omoves( moves );
-	setBoard( startBoard );
+	game.moves.pop_back();
+	std::vector< GameMove > omoves( game.moves );
+	setBoard( game.startBoard );
 	for (size_t i=0; i<omoves.size(); i++)
 		doMove( omoves[i].move );
 	return 1;
@@ -299,6 +306,7 @@ bool Engine::doMoveInternal( Move m, bool nostop, bool *phit )
 	{
 		if ( b.inCheck() )
 			return 0;
+		Board &curBoard = game.curBoard;
 		GameMove gm;
 		gm.sig = curBoard.sig();
 		gm.move = m;
@@ -306,7 +314,7 @@ bool Engine::doMoveInternal( Move m, bool nostop, bool *phit )
 		UndoInfo ui;
 		b.doNullMove( ui );
 		curBoard.doNullMove( ui );
-		moves.push_back( gm );
+		game.moves.push_back( gm );
 		if ( curBoard.turn() == ctWhite )
 			curBoard.incMove();
 		mainThread->search.rep.clear();
@@ -326,6 +334,7 @@ bool Engine::doMoveInternal( Move m, bool nostop, bool *phit )
 		return 0;
 
 	GameMove mv;
+	Board &curBoard = game.curBoard;
 	mv.sig = curBoard.sig();
 	mv.move = m;
 
@@ -335,7 +344,7 @@ bool Engine::doMoveInternal( Move m, bool nostop, bool *phit )
 	bool ischk = b.isCheck( m, b.discovered() );
 	b.doMove( m, ui, ischk );
 	curBoard.doMove( m, ui, ischk );
-	moves.push_back( mv );
+	game.moves.push_back( mv );
 	if ( curBoard.turn() == ctWhite )
 		curBoard.incMove();
 	if ( irrev )
@@ -381,7 +390,7 @@ void Engine::ponderHit()
 
 const Board &Engine::board() const
 {
-	return curBoard;
+	return game.curBoard;
 }
 
 const Board &Engine::ponderBoard() const
@@ -391,7 +400,7 @@ const Board &Engine::ponderBoard() const
 
 const Board &Engine::actualBoard() const
 {
-	return pondering ? pondBoard : curBoard;
+	return pondering ? pondBoard : game.curBoard;
 }
 
 // start pondering (if possible)
@@ -400,7 +409,7 @@ bool Engine::startPondering( SearchMode mode, bool noabort )
 	Move pm = ponderMove;
 	if ( !ponder || pm == mcNone )
 		return 0;
-	pondBoard = curBoard;
+	pondBoard = game.curBoard;
 	// play ponder move
 	if ( !doMove( pm, noabort ) )
 		return 0;
@@ -421,15 +430,7 @@ void Engine::setPonderMove( Move pm )
 // is threefold repetition?
 bool Engine::isThreefold() const
 {
-	Signature sig = board().sig();
-	size_t repc = 0;
-	for ( i32 i = (i32)moves.size()-2; i >= 0; i-=2 )
-	{
-		if ( moves[i].sig == sig )
-			if ( ++repc >= 2 )
-				return 1;
-	}
-	return 0;
+	return game.isThreefold();
 }
 
 // set number of threads, default is 1

@@ -26,6 +26,7 @@ or as public domain (where applicable)
 #include "search.h"
 #include "book.h"
 #include "thread.h"
+#include "game.h"
 #include <vector>
 
 namespace cheng4
@@ -66,23 +67,15 @@ class Engine
 		return *this;
 	}
 protected:
-	struct GameMove
-	{
-		Signature sig;				// signature before move was made
-		Move move;
-		Move pad;
-	};
-
 	friend class Protocol;
 	bool volatile ponder;
 	bool volatile pondering;
 	Move volatile ponderMove;
 	Color stm;						// current stm
 	bool volatile uciMode;			// uci mode?
-	Board curBoard;					// current board
-	Board startBoard;				// startpos board
+	// current game
+	Game game;
 	Board pondBoard;				// ponder board (FIXME: this is ugly and I should probably redesign it)
-	std::vector< GameMove > moves;	// game moves
 	bool doMoveInternal( Move m, bool nostop = 0, bool *phit = 0 );
 	Book book;						// book!
 	bool ownBook;					// use own book? (default: true)

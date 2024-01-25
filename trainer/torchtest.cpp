@@ -87,9 +87,9 @@ struct labeled_position
 };
 
 std::vector<labeled_position> positions;
-// 10% validation
+// 1% validation
 std::vector<labeled_position> validation_set;
-// 10% test
+// 1% test
 std::vector<labeled_position> test_set;
 
 float label_position(const labeled_position &p)
@@ -251,8 +251,8 @@ void load_trainfile(const char *fn)
 
 	printf("%I64d positions loaded\n", (int64_t)positions.size());
 
-	// 10%
-	size_t test_size = positions.size()/10;
+	// 1%
+	size_t test_size = positions.size()/100;
 
 	validation_set.insert(validation_set.end(), positions.end() - test_size, positions.end());
 	positions.resize(positions.size() - test_size);
@@ -550,7 +550,7 @@ void net_trainer::train(network &net, int epochs)
 
 int main()
 {
-	load_trainfile("labelFEN_out.bin");
+	load_trainfile("autoplay.bin");
 
 	network net;
 

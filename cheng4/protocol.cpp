@@ -30,6 +30,7 @@ or as public domain (where applicable)
 #include "utils.h"
 #include "filterpgn.h"
 #include "labelfen.h"
+#include "autoplay.h"
 #include "tb.h"
 #include <deque>
 #include <cctype>
@@ -488,7 +489,7 @@ static bool pbench()
 
 static void filterPgn( const char *fname )
 {
-	FilterPgn fp;
+	static FilterPgn fp;
 	if (!fp.parse(fname))
 	{
 		std::cout << "failed to parse " << fname << std::endl;
@@ -498,6 +499,14 @@ static void filterPgn( const char *fname )
 		std::cout << "failed to write filterPgn_out.fen" << std::endl;
 	else
 		std::cout << "all ok" << std::endl;
+}
+
+static void autoplay()
+{
+	AutoPlay ap;
+	// try 200M positions
+	ap.go("autoplay.bin", 200000000);
+	std::cout << "all ok" << std::endl;
 }
 
 static void labelFen( const char *fname )
@@ -2457,6 +2466,12 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 	{
 		// label fen
 		labelFen( line.c_str() + pos );
+		return 1;
+	}
+	if ( token == "autoplay" )
+	{
+		// autoplay
+		autoplay();
 		return 1;
 	}
 	if ( token == "loadepd" )

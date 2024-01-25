@@ -28,6 +28,8 @@
     <ClCompile Include="tb.cpp" />
     <ClCompile Include="labelfen.cpp" />
     <ClCompile Include="net.cpp" />
+    <ClCompile Include="game.cpp" />
+    <ClCompile Include="autoplay.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="board.h" />
@@ -70,6 +72,8 @@
     <ClInclude Include="labelfen.h" />
     <ClInclude Include="net.h" />
     <ClInclude Include="shuffle.h" />
+    <ClInclude Include="game.h" />
+    <ClInclude Include="autoplay.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="pyrrhic">

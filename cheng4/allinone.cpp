@@ -32,12 +32,14 @@ or as public domain (where applicable)
 	#define _SECURE_SCL			0
 #endif
 
+#include "autoplay.cpp"
 #include "board.cpp"
 #include "book.cpp"
 #include "bookzobrist.cpp"
 #include "engine.cpp"
 #include "eval.cpp"
 #include "filterpgn.cpp"
+#include "game.cpp"
 #include "history.cpp"
 #include "kpk.cpp"
 #include "magic.cpp"
