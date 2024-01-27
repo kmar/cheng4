@@ -504,8 +504,8 @@ static void filterPgn( const char *fname )
 static void autoplay()
 {
 	AutoPlay ap;
-	// try 200M positions
-	ap.go("autoplay.bin", 200000000);
+	// try 400M positions
+	ap.go("autoplay.bin", U64C(400000000));
 	std::cout << "all ok" << std::endl;
 }
 
