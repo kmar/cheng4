@@ -474,7 +474,7 @@ template< bool pv, bool incheck, bool donull >
 				// store TT, exact
 				tt->store( board.sig(), age, mcNone, tbScore, btExact, depth, ply );
 
-				if (tbRes == tbResDraw)
+				if (!pv || tbRes == tbResDraw)
 					return tbScore;
 			}
 		}
