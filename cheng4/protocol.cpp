@@ -2481,6 +2481,10 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 		{
 			std::cout << "failed to load epd!" << std::endl;
 		}
+		else
+		{
+			std::cout << "epd loaded, " << epd.positions.size() << " positions" << std::endl;
+		}
 		return 1;
 	}
 	if ( token == "runepd" )

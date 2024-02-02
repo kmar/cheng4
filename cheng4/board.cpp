@@ -520,7 +520,7 @@ const char *Board::fromFEN( const char *fen )
 	Rank y = 0;
 	while ( *fen )
 	{
-		if ( *fen <= 32 )
+		if ( *fen <= 32 && *fen != '\r' && *fen != '\n' )
 		{
 			fen++;
 			continue;				// skip blanks
@@ -609,8 +609,7 @@ const char *Board::fromFEN( const char *fen )
 		fen++;
 
 	// skip blanks
-	while ( *fen && *fen <= 32 )
-		fen++;
+	skipSpaces(fen);
 
 	bool standardCastling = 0;
 	while ( *fen && (*fen|32) >= 'a' && (*fen|32) <= 'q' )
@@ -738,8 +737,7 @@ const char *Board::fromFEN( const char *fen )
 	}
 
 	// skip blanks
-	while ( *fen && *fen <= 32 )
-		fen++;
+	skipSpaces(fen);
 
 	if ( *fen == '-' )
 		// no ep
@@ -757,16 +755,14 @@ const char *Board::fromFEN( const char *fen )
 		}
 
 	// skip blanks
-	while ( *fen && *fen <= 32 )
-		fen++;
+	skipSpaces(fen);
 
 	// parse fifty move rule counter!
 	if ( *fen >= '0' && *fen <= '9' )
 		bfifty = (FiftyCount)strtol( fen, (char **)&fen, 10 );
 
 	// skip blanks
-	while ( *fen && *fen <= 32 )
-		fen++;
+	skipSpaces(fen);
 
 	// consume move number
 	if ( *fen >= '0' && *fen <= '9' )
