@@ -1275,7 +1275,7 @@ bool Protocol::parseUCI( const std::string &line )
 		sendRaw( "option name UCI_Chess960 type check default false" ); sendEOL();
 		sendRaw( "option name Threads type spin min 1 max 512 default 1" ); sendEOL();
 		sendRaw( "option name UCI_LimitStrength type check default false" ); sendEOL();
-		sendRaw( "option name UCI_Elo type spin min 800 max 2500 default 2500" ); sendEOL();
+		sendRaw( "option name UCI_Elo type spin min 800 max 2700 default 2700" ); sendEOL();
 		sendRaw( "option name NullMove type check default true" ); sendEOL();
 		sendRaw( "option name Contempt type spin min -100 max 100 default 0" ); sendEOL();
 		sendRaw( "option name MoveOverheadMsec type spin min 0 max 10000 default 100" ); sendEOL();
@@ -1408,7 +1408,7 @@ bool Protocol::parseUCIOptions( const std::string &line, size_t &pos )
 	{
 		long elo = strtol( value.c_str(), 0, 10 );
 		elo = std::max( 800L, elo );
-		elo = std::min( 2500L, elo );
+		elo = std::min( 2700L, elo );
 		engine.setElo( (u32)elo );
 		return 1;
 	}
@@ -1834,7 +1834,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			"feature name=0 san=0 usermove=0 time=1 sigint=0 sigterm=0 pause=0 reuse=1 analyze=1 colors=0 setboard=1 "
 			"nps=1 smp=1 debug=0 draw=0 playother=1 variants=\"normal,fischerandom\" ics=0 memory=1 ping=0 "
 			"option=\"Clear Hash -button\" option=\"Hash -spin 32 1 " maxHash "\" option=\"Threads -spin 1 1 512\" "
-			"option=\"OwnBook -check 1\" option=\"LimitStrength -check 0\" option=\"Elo -spin 2500 800 2500\" "
+			"option=\"OwnBook -check 1\" option=\"LimitStrength -check 0\" option=\"Elo -spin 2700 800 2700\" "
 			"option=\"MoveOverheadMsec -spin 100 0 10000\" "
 			"option=\"SyzygyPath -string <empty>\" option=\"SyzygyEnable -check 1\" option=\"UseHCE -check 0\" "
 			"option=\"MultiPV -spin 1 1 256\" option=\"NullMove -check 1\" option=\"Contempt -spin 0 -100 100\" myname=\""
@@ -1984,7 +1984,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 		if ( token == "Elo" )
 		{
 			long elo = strtol( line.c_str() + pos, 0, 10 );
-			engine.setElo( (u32)std::max( 2500l, std::min( 800l, elo ) ) );
+			engine.setElo( (u32)std::max( 2700l, std::min( 800l, elo ) ) );
 			return 1;
 		}
 		if ( token == "Contempt")

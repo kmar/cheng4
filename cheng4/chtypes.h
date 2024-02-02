@@ -122,7 +122,7 @@ enum Limits
 	maxTriPV	=	(maxStack*(maxStack+1)/2)+4,
 	repHashMax	=	512,				// repetition limit
 
-	maxStrength =	2500,				// maximum elo strength for elo limit
+	maxStrength =	2700,				// maximum elo strength for elo limit
 	minStrength =	800					// minimum elo strength for elo limit
 };
 

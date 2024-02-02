@@ -198,7 +198,7 @@ struct Search
 	size_t maxThreads;				// maximum number of helper threads allowed (i.e 0 = none; 1 thread total)
 									// defaults to 511
 	volatile bool eloLimit;			// elo limit master flag
-	volatile u32 maxElo;			// 2500 = full
+	volatile u32 maxElo;			// 2700 = full
 	volatile Score contemptFactor;	// contempt factor
 
 	Depth minQsDepth;				// min qsearch depth (limits qs explosions)
@@ -386,7 +386,7 @@ struct Search
 	// set elo limit master flag
 	void setEloLimit( bool limit );
 
-	// set maximum elo limit (2500 = full)
+	// set maximum elo limit (2700 = full)
 	void setMaxElo( u32 elo );
 
 	// set contempt
