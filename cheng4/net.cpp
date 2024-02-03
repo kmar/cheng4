@@ -56,11 +56,6 @@ struct NetLayer : NetLayerBase
 		transpose_weights_internal(weights);
 	}
 
-	void transpose_biases() override
-	{
-		transpose_weights_internal(bias);
-	}
-
 	void transpose_weights_internal(fixedp *wptr)
 	{
 		int w = getInputSize();
@@ -389,12 +384,6 @@ void Network::transpose_weights()
 {
 	for (auto &it : layers)
 		it->transpose_weights();
-}
-
-void Network::transpose_biases()
-{
-	for (auto &it : layers)
-		it->transpose_biases();
 }
 
 bool Network::load(const char *filename)

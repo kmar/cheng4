@@ -60,7 +60,6 @@ struct NetLayerBase
 
 	virtual void init(fixedp *wvec, fixedp *bvec)=0;
 	virtual void transpose_weights() = 0;
-	virtual void transpose_biases() = 0;
 	virtual void forward_restricted(const i32 *inputIndex, int indexCount, fixedp *output)=0;
 	virtual void forward_cache(const NetCache &cache, fixedp *output)=0;
 	virtual void forward(const fixedp *input, fixedp *output)=0;
@@ -111,8 +110,6 @@ struct Network
 	void cache_sub_index(NetCache &cache, i32 index);
 
 	void transpose_weights();
-
-	void transpose_biases();
 
 	static int32_t to_centipawns(fixedp w);
 };
