@@ -178,6 +178,11 @@ public:
 
 			UndoInfo ui;
 			s->board.doMove(move, ui, s->board.isCheck(move, s->board.discovered()));
+
+			// avoid overflows
+			if (!s->board.fifty())
+				s->rep.clear();
+
 			s->rep.push(s->board.sig(), !s->board.fifty());
 
 			// label conditions met?

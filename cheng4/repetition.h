@@ -30,7 +30,7 @@ or as public domain (where applicable)
 namespace cheng4
 {
 
-typedef u8 repIndex;
+typedef u16 repIndex;
 
 // FIXME: rethink completely
 // repetition stack
