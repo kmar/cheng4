@@ -199,4 +199,80 @@ bool Game::adjudicate()
 	return 0;
 }
 
+std::string Game::toPGN() const
+{
+	std::string res;
+	res += "[Event \"?\"]\n";
+	res += "[Result \"";
+
+	switch(result)
+	{
+	case -1:
+		res += "0-1";
+		break;
+	case 0:
+		res += "1/2-1/2";
+		break;
+	case 1:
+		res += "1-0";
+		break;
+	default:
+		res += "*";
+	}
+
+	res += "\"]\n";
+
+	//  don't save FEN unless not a standard startpos
+	Board start;
+	start.reset();
+
+	if (start.sig() != startBoard.sig())
+	{
+		res += "[FEN \"";
+		res += startBoard.toFEN();
+		res += "\"]\n";
+	}
+
+	Board tb = startBoard;
+
+	// now moves...
+	for (size_t i=0; i<moves.size(); i++)
+	{
+		if (tb.turn() == ctWhite)
+		{
+			res += std::to_string(tb.move());
+			res += ". ";
+		}
+
+		Move m = moves[i].move;
+
+		res += tb.toSAN(m);
+		res += " ";
+		res += "{";
+		res += std::to_string(moves[i].score);
+
+		if ((i & 7) == 7)
+			res += "}\n";
+		else
+			res += "} ";
+
+		UndoInfo ui;
+		bool ischk = tb.isCheck(m, tb.discovered());
+		tb.doMove(m, ui, ischk);
+
+		if (tb.turn() == ctWhite)
+			tb.incMove();
+	}
+
+	if (adjudication && *adjudication)
+	{
+		// +7 to skip "result "
+		res += adjudication + 7;
+	}
+
+	res += "\n";
+
+	return res;
+}
+
 }

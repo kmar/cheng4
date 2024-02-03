@@ -80,6 +80,9 @@ struct Game
 	// try to adjudicate, returns true if adjudicated
 	bool adjudicate();
 
+	// debugging: to pgn
+	std::string toPGN() const;
+
 private:
 	// adjudication counters
 	int resignHalfMoves;
