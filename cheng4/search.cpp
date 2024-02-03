@@ -110,6 +110,9 @@ static TUNE_CONST Score razorMargins[] = {
 // singular extension margin
 static TUNE_CONST Score singularMargin = 13;
 
+// late move futility scale
+static TUNE_CONST Score lateMoveFutility = 22;
+
 inline FracDepth Search::lmrFormula(Depth depth, size_t lmrCount)
 {
 	assert(depth > 0 && lmrCount > 0);
@@ -625,7 +628,7 @@ template< bool pv, bool incheck, bool donull >
 			board.canPrune(m) )
 		{
 			// futility pruning
-			Score futScore = fscore + futMargins[depth] - (Score)(22*lmrCount);
+			Score futScore = fscore + futMargins[depth] - (Score)(lateMoveFutility*lmrCount);
 			if ( futScore <= alpha )
 				continue;
 		}
@@ -1733,6 +1736,9 @@ void Search::init()
 	TUNE_EXPORT(Score, betaMargin2, betaMargins[2]);
 	TUNE_EXPORT(Score, betaMargin3, betaMargins[3]);
 	TUNE_EXPORT(Score, betaMargin4, betaMargins[4]);
+
+	TUNE_EXPORT(Score, singularMargin, singularMargin);
+	TUNE_EXPORT(Score, lateMoveFutility, lateMoveFutility);
 }
 
 // LazySMPThread
