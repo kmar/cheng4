@@ -92,6 +92,24 @@ static const i32 verboseLimit = 1000;
 // only start sending currmove after this limit
 static const i32 currmoveLimit = 1000;
 
+// beta razoring margins
+static TUNE_CONST Score betaMargins[] = {
+	0, 100, 150, 250, 400, 600, 850
+};
+
+// futility margins
+static TUNE_CONST Score futMargins[] = {
+	0, 100, 150, 250, 400, 600, 850
+};
+
+// razoring margins
+static TUNE_CONST Score razorMargins[] = {
+	0, 150, 200, 250
+};
+
+// singular extension margin
+static TUNE_CONST Score singularMargin = 13;
+
 inline FracDepth Search::lmrFormula(Depth depth, size_t lmrCount)
 {
 	assert(depth > 0 && lmrCount > 0);
@@ -472,8 +490,7 @@ template< bool pv, bool incheck, bool donull >
 			fscore = ttBetter;
 		// beta razoring
 		Score razEval;
-		if ( useRazoring && donull && !exclude && depth <= 6 &&
-			(razEval = fscore - constants.params[SearchConstants::betaMarginD1-1 + depth]) > alpha && !ScorePack::isMate(razEval) )
+		if ( useRazoring && donull && !exclude && depth <= 6 && (razEval = fscore - betaMargins[depth]) > alpha && !ScorePack::isMate(razEval) )
 			return razEval;
 	}
 
@@ -481,7 +498,7 @@ template< bool pv, bool incheck, bool donull >
 		!ScorePack::isMate(alpha) )
 	{
 		// razoring
-		Score margin = constants.params[SearchConstants::razorMarginD1-1 + depth];
+		Score margin = razorMargins[depth];
 
 		Score razEval = fscore;
 
@@ -555,7 +572,7 @@ template< bool pv, bool incheck, bool donull >
 
 	if (hashmove)
 	{
-		Score smargin = constants.params[SearchConstants::singularMargin];
+		Score smargin = singularMargin;
 		Score singularAlpha = std::min(alpha, ScorePack::unpackHash(lte.u.s.score, ply));
 		singularAlpha -= smargin+1;
 
@@ -608,7 +625,7 @@ template< bool pv, bool incheck, bool donull >
 			board.canPrune(m) )
 		{
 			// futility pruning
-			Score futScore = fscore + constants.params[SearchConstants::futMarginD1-1 + depth] - (Score)(constants.params[SearchConstants::lateMoveFutility]*lmrCount);
+			Score futScore = fscore + futMargins[depth] - (Score)(22*lmrCount);
 			if ( futScore <= alpha )
 				continue;
 		}
@@ -1641,11 +1658,6 @@ void Search::setContempt( Score contempt )
 	contemptFactor = contempt;
 }
 
-void Search::setConstants(const SearchConstants &newc)
-{
-	constants = newc;
-}
-
 // enable timeout
 void Search::enableTimeOut( bool enable )
 {
@@ -1708,6 +1720,19 @@ void Search::smpSync() const
 // static init
 void Search::init()
 {
+	TUNE_EXPORT(Score, razorMargin1, razorMargins[1]);
+	TUNE_EXPORT(Score, razorMargin2, razorMargins[2]);
+	TUNE_EXPORT(Score, razorMargin3, razorMargins[3]);
+
+	TUNE_EXPORT(Score, futMargin1, futMargins[1]);
+	TUNE_EXPORT(Score, futMargin2, futMargins[2]);
+	TUNE_EXPORT(Score, futMargin3, futMargins[3]);
+	TUNE_EXPORT(Score, futMargin4, futMargins[4]);
+
+	TUNE_EXPORT(Score, betaMargin1, betaMargins[1]);
+	TUNE_EXPORT(Score, betaMargin2, betaMargins[2]);
+	TUNE_EXPORT(Score, betaMargin3, betaMargins[3]);
+	TUNE_EXPORT(Score, betaMargin4, betaMargins[4]);
 }
 
 // LazySMPThread

@@ -111,38 +111,6 @@ class LazySMPThread;
 
 typedef void (*SearchCallback)( const SearchInfo &si, void *param );
 
-struct SearchConstants
-{
-	// parameter indices
-	enum
-	{
-		betaMarginD1 = 0,
-		betaMarginCount = 6,
-		futMarginD1 = betaMarginD1 + betaMarginCount,
-		futMarginCount = 6,
-		razorMarginD1 = futMarginD1 + futMarginCount,
-		razorMarginCount = 3,
-		lateMoveFutility = razorMarginD1 + razorMarginCount,
-		singularMargin = lateMoveFutility+1,
-
-		paramCount = singularMargin+1
-	};
-
-	i16 params[paramCount] =
-	{
-		// d1-d6 beta margins
-		100, 150, 250, 400, 600, 850,
-		// d1-d6 futility margins
-		100, 150, 250, 400, 600, 850,
-		// d1-d3 razor margins
-		150, 200, 250,
-		// late move futility
-		22,
-		// singular margin
-		13
-	};
-};
-
 struct Search
 {
 	struct Stack
@@ -186,7 +154,6 @@ struct Search
 	SearchInfo infoPV[maxMoves];
 	SearchCallback callback;
 	void *callbackParam;
-	SearchConstants constants;
 
 	bool canStop;					// can stop search (at least iteration 1 must complete)
 	bool abortRequest;				// abort search requested?
@@ -400,9 +367,6 @@ struct Search
 
 	// disable tablebase flag
 	void disableTablebase( bool flag );
-
-	// set search constants
-	void setConstants(const SearchConstants &newc);
 
 	// start root smp search
 	void smpStart( Depth depth, Score alpha, Score beta );
