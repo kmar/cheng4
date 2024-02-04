@@ -31,7 +31,7 @@ namespace cheng4
 
 std::string Version::version()
 {
-	std::string res = "Cheng 4.45";
+	std::string res = "Cheng 4.46 dev";
 #if CHENG_CPU_X86 && !CHENG_CPU_AVX2
 	res += " (legacy SSE2)";
 #endif
