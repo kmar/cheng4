@@ -62,7 +62,7 @@ int32_t netIndex(cheng4::Color stm, cheng4::Color c, cheng4::PieceType pt, cheng
 
 	case cheng4::ptPawn:
 	{
-		assert(!SquarePack::isRank1Or8(sq));
+		assert(!cheng4::SquarePack::isRank1Or8(sq));
 		// base = 128
 		return 128 + sq-8 + 48*(c == cheng4::ctBlack);
 	}
