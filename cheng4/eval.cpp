@@ -509,9 +509,7 @@ Eval::Eval() : occ(0), pe(0)
 	rookVertAttacks[ctWhite] = rookVertAttacks[ctBlack] = 0;
 	memset( attm, 0, sizeof(attm) );
 
-	const int sizes[] = {topo0, topo1, topoLayers == 2 ? 1 : topo2, 1};
-
-	if (!net.init_topology(sizes, 1+topoLayers))
+	if (!net.init_topology())
 		assert(0 && "net topo init failed!");
 
 	if (!net.load_buffer_compressed(NET_DATA, NET_DATA_SIZE))
@@ -717,7 +715,7 @@ Score Eval::ievalNet(const Board &b)
 
 	fixedp outp;
 
-	net.forward_cache(netCache[b.turn()], &outp, 1);
+	net.forward_cache(netCache[b.turn()], netCache[flip(b.turn())], &outp, 1);
 
 	Score sc = net.to_centipawns(outp);
 	Score corr = sign(b.turn()) * ScorePack::initFine(sc);
@@ -779,11 +777,15 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 	if (!useHCE)
 	{
 		i32 inds[64];
+		i32 indsOpp[64];
 		i32 ninds = b.netIndices(inds);
+
+		for (int i=0; i<ninds; i++)
+			indsOpp[i] = Board::flipNetIndex(inds[i]);
 
 		fixedp inp[736];
 		fixedp outp;
-		net.forward_nz(inp, 736, inds, ninds, &outp, 1);
+		net.forward_nz(inp, 736, inds, indsOpp, ninds, &outp, 1);
 		Score sc = net.to_centipawns(outp);
 		Score corr = sign(b.turn()) * ScorePack::initFine(sc);
 

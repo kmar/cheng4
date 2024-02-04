@@ -122,26 +122,31 @@ void shuffle_positions(bool noseed = false)
 	}
 }
 
-void unpack_position_fast(void *dstp, const labeled_position &pos)
+void unpack_position_fast(void *dstp, void *dstp_opp, const labeled_position &pos)
 {
 	auto *dst = static_cast<float *>(dstp);
+	auto *dst_opp = static_cast<float *>(dstp_opp);
 
 	int16_t ninds[64];
 	bool blackToMove = (pos.flags & 1) != 0;
 	auto count = (int16_t)netIndices(blackToMove, pos.pieces, ninds);
 
 	for (int i=0; i<count; i++)
+	{
 		dst[ninds[i]] = 1.0f;
+		dst_opp[flipNetIndex(ninds[i])] = 1.0f;
+	}
 }
 
-void unpack_position(void *dstp, const labeled_position &pos)
+void unpack_position(void *dstp, void *dstp_opp, const labeled_position &pos)
 {
 	auto *dst = static_cast<float *>(dstp);
+	auto *dst_opp = static_cast<float *>(dstp_opp);
 
 	for (int i=0; i<INPUT_SIZE; i++)
-		dst[i] = 0.0f;
+		dst[i] = dst_opp[i] = 0.0f;
 
-	unpack_position_fast(dst, pos);
+	unpack_position_fast(dst, dst_opp, pos);
 }
 
 static size_t tensor_size(torch::Tensor t)
@@ -277,7 +282,7 @@ struct packed_network
 
 struct network : torch::nn::Module
 {
-	torch::Tensor forward(torch::Tensor input);
+	torch::Tensor forward(torch::Tensor input, torch::Tensor input_opp);
 
 	network();
 
@@ -299,7 +304,7 @@ struct network : torch::nn::Module
 
 network::network()
 	: layer0{INPUT_SIZE, cheng4::topo1}
-	, layer1{cheng4::topo1, cheng4::topoLayers >= 3 ? cheng4::topo2 : 1}
+	, layer1{cheng4::topo1in, cheng4::topoLayers >= 3 ? cheng4::topo2 : 1}
 	, layer2{cheng4::topo2, 1}
 {
 	layers.push_back(&layer0);
@@ -409,9 +414,12 @@ void network::unpack(const packed_network &pn)
 	}
 }
 
-torch::Tensor network::forward(torch::Tensor input)
+torch::Tensor network::forward(torch::Tensor input, torch::Tensor input_opp)
 {
-	torch::Tensor tmp = relu(layer0->forward(input));
+	torch::Tensor tmp_std = relu(layer0->forward(input));
+	torch::Tensor tmp_opp = relu(layer0->forward(input_opp));
+
+	torch::Tensor tmp = torch::hstack({tmp_std, tmp_opp});
 
 	if (cheng4::topoLayers >= 3)
 	{
@@ -480,25 +488,28 @@ void net_trainer::train(network &net, int epochs)
 
 			// okay, now we must create batch tensor and fill it with data
 			torch::Tensor input_batch = torch::zeros({(int)count, INPUT_SIZE});
+			torch::Tensor input_batch_opp = torch::zeros({(int)count, INPUT_SIZE});
 
 			torch::Tensor target = torch::zeros({(int)count, 1});
 
 			float *itensor = static_cast<float *>(input_batch.mutable_data_ptr());
+			float *itensor_opp = static_cast<float *>(input_batch_opp.mutable_data_ptr());
 			float *ttensor = static_cast<float *>(target.mutable_data_ptr());
 
 			#pragma omp parallel for
 			for (int j=0; j<(int)count; j++)
 			{
-				unpack_position_fast(&itensor[j*INPUT_SIZE], positions[i+j]);
+				unpack_position_fast(&itensor[j*INPUT_SIZE], &itensor_opp[j*INPUT_SIZE], positions[i+j]);
 				ttensor[j] = label_position(positions[i+j]);
 			}
 
 			input_batch = input_batch.to(device);
+			input_batch_opp = input_batch_opp.to(device);
 			target = target.to(device);
 
 			optimizer.zero_grad();
 
-			auto prediction = net.forward(input_batch);
+			auto prediction = net.forward(input_batch, input_batch_opp);
 
 			torch::Tensor loss = torch::mse_loss(::sigmoid(prediction*100.0f), ::sigmoid(target*100.0f));
 
@@ -566,9 +577,10 @@ int main()
 	{
 		const auto &p = test_set[i];
 		torch::Tensor test = torch::zeros(INPUT_SIZE);
-		unpack_position(test.mutable_data_ptr(), p);
+		torch::Tensor test_opp = torch::zeros(INPUT_SIZE);
+		unpack_position(test.mutable_data_ptr(), test_opp.mutable_data_ptr(), p);
 
-		auto inf = net.forward(test);
+		auto inf = net.forward(test, test_opp);
 		auto utensor = unpack_tensor(inf);
 
 		printf("test position %d\n", (int)i);

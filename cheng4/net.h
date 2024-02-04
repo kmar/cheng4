@@ -39,6 +39,8 @@ enum Topology
 	topoLayers = 3
 #else
 	topo1 = 224,
+	// new: x2 (perspective)
+	topo1in = topo1*2,
 	topo2 = 1,
 
 	topoLayers = 2
@@ -98,11 +100,11 @@ struct Network
 
 	bool load_buffer_compressed(const void *buf, int size);
 
-	bool init_topology(const int *sizes, int count);
+	bool init_topology();
 
-	void forward_cache(const NetCache &cache, fixedp *outp, int outpsize);
+	void forward_cache(const NetCache &cache, const NetCache &cacheOpp, fixedp *outp, int outpsize);
 
-	void forward_nz(const fixedp *inp, int inpsize, const i32 *nonzero, int nzcount, fixedp *outp, int outpsize);
+	void forward_nz(const fixedp *inp, int inpsize, const i32 *nonzero, const i32 *nonzeroOpp, int nzcount, fixedp *outp, int outpsize);
 
 	void cache_init(const i32 *nonzero, int nzcount, NetCache &cache);
 

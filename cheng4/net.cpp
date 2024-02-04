@@ -205,7 +205,8 @@ void Network::cache_init(const i32 *nonzero, int nzcount, NetCache &cache)
 	layers[0]->cache_init(nonzero, nzcount, cache);
 }
 
-void Network::forward_nz(const fixedp * CHENG_PTR_NOALIAS inp, int inpsize, const i32 * CHENG_PTR_NOALIAS nonzero, int nzcount, fixedp * CHENG_PTR_NOALIAS outp, int outpsize)
+void Network::forward_nz(const fixedp * CHENG_PTR_NOALIAS inp, int inpsize,
+	const i32 * CHENG_PTR_NOALIAS nonzero, const i32 * CHENG_PTR_NOALIAS nonzeroOpp, int nzcount, fixedp * CHENG_PTR_NOALIAS outp, int outpsize)
 {
 	assert(inpsize >= layers[0]->getInputSize());
 	assert(outpsize >= layers[layers.size()-1]->getOutputSize());
@@ -220,11 +221,14 @@ void Network::forward_nz(const fixedp * CHENG_PTR_NOALIAS inp, int inpsize, cons
 	for (int i=0; i<(int)layers.size(); i++)
 	{
 		if (i == 0)
+		{
 			layers[i]->forward_restricted(nonzero, nzcount, temp);
+			layers[i]->forward_restricted(nonzeroOpp, nzcount, temp + layers[0]->getOutputSize());
+		}
 		else
 			layers[i]->forward(inp, temp);
 
-		auto osz = layers[i]->getOutputSize();
+		auto osz = layers[i]->getOutputSize() << int(i == 0);
 
 		CHENG_AUTO_VECTORIZE_LOOP
 		for (int j=0; j<osz; j++)
@@ -240,7 +244,7 @@ void Network::forward_nz(const fixedp * CHENG_PTR_NOALIAS inp, int inpsize, cons
 		outp[j] = temp[j];
 }
 
-void Network::forward_cache(const NetCache &cache, fixedp * CHENG_PTR_NOALIAS outp, int outpsize)
+void Network::forward_cache(const NetCache & CHENG_PTR_NOALIAS cache, const NetCache & CHENG_PTR_NOALIAS cacheOpp, fixedp * CHENG_PTR_NOALIAS outp, int outpsize)
 {
 	assert(outpsize >= layers[layers.size()-1]->getOutputSize());
 	(void)outpsize;
@@ -254,11 +258,14 @@ void Network::forward_cache(const NetCache &cache, fixedp * CHENG_PTR_NOALIAS ou
 	for (int i=0; i<(int)layers.size(); i++)
 	{
 		if (i == 0)
+		{
 			layers[i]->forward_cache(cache, temp);
+			layers[i]->forward_cache(cacheOpp, temp + layers[i]->getOutputSize());
+		}
 		else
 			layers[i]->forward(inp, temp);
 
-		auto osz = layers[i]->getOutputSize();
+		auto osz = layers[i]->getOutputSize() << int(i ==0);
 
 		CHENG_AUTO_VECTORIZE_LOOP
 		for (int j=0; j<osz; j++)
@@ -298,30 +305,35 @@ struct LayerDesc
 static LayerDesc layerDesc[] =
 {
 	NET_FIXED_LAYER_DESC(topo0, topo1, false),
-	NET_FIXED_LAYER_DESC(topo1, topo2, false),
+	NET_FIXED_LAYER_DESC(topo1in, topo2, false),
 	NET_FIXED_LAYER_DESC(topo2, 1, true)
 };
 
 static LayerDesc layerDesc2[] =
 {
 	NET_FIXED_LAYER_DESC(topo0, topo1, false),
-	NET_FIXED_LAYER_DESC(topo1, 1, true)
+	NET_FIXED_LAYER_DESC(topo1in, 1, true)
 };
 
 #undef NET_FIXED_LAYER_DESC
 
-bool Network::init_topology(const int *sizes, int count)
+bool Network::init_topology()
 {
-	assert(count>1);
-	layers.resize(count-1);
+	const int numLayouts = topoLayers;
+
+	const auto *layerDescPtr = topoLayers > 2 ? layerDesc : layerDesc2;
+
+	layers.resize(topoLayers);
 
 	int total = 0;
 	int total_nobias = 0;
 
-	for (int i=0; i<count-1; i++)
+	for (int i=0; i<topoLayers; i++)
 	{
-		total += (sizes[i]+1) * sizes[i+1];
-		total_nobias += sizes[i] * sizes[i+1];
+		int insize = layerDescPtr[i].insize;
+		int outsize = layerDescPtr[i].outsize;
+		total += (insize+1) * outsize;
+		total_nobias += insize * outsize;
 	}
 
 	weight_size = total;
@@ -345,13 +357,9 @@ bool Network::init_topology(const int *sizes, int count)
 	int widx = weight_index;
 	int bidx = bias_index;
 
-	const int numLayouts = topoLayers;
-
-	const auto *layerDescPtr = topoLayers > 2 ? layerDesc : layerDesc2;
-
-	for (int i=0; i<count-1; i++)
+	for (int i=0; i<topoLayers; i++)
 	{
-		const bool islast = i+1 == count-1;
+		const bool islast = i+1 == topoLayers;
 
 		NetLayerBase *nlayer = nullptr;
 
@@ -359,7 +367,7 @@ bool Network::init_topology(const int *sizes, int count)
 		{
 			const LayerDesc *l = &layerDescPtr[j];
 
-			if (sizes[i] == l->insize && sizes[i+1] == l->outsize && islast == l->last)
+			if (islast == l->last)
 			{
 				nlayer = l->create_func();
 				break;
@@ -373,8 +381,8 @@ bool Network::init_topology(const int *sizes, int count)
 
 		layers[i]->init(weights.data() + widx, weights.data() + bidx);
 
-		widx += sizes[i] * sizes[i+1];
-		bidx += sizes[i+1];
+		widx += nlayer->getInputSize() * nlayer->getOutputSize();
+		bidx += nlayer->getOutputSize();
 	}
 
 	return true;
