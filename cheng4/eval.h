@@ -262,6 +262,8 @@ private:
 	// eval eg recognizers
 	void evalRecog( const Board &b );
 
+	void evalNonPawnRecog( const Board &b, MaterialKey mk );
+
 	// exec binary search on recognizers array
 	void execRecog( const Board &b, MaterialKey mk, const Recognizer *recogs, size_t numRecogs );
 
@@ -270,6 +272,9 @@ private:
 
 	// returns scale, fpn:8
 	static uint evalProgress(const Board &b);
+
+	// augment net with HCE recogs/scalers
+	Score augmentNet(const Board &b, Score netScore);
 };
 
 // feature export

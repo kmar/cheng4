@@ -706,6 +706,25 @@ template< Color c > void Eval::evalBlindBishop( const Board &b )
 	}
 }
 
+Score Eval::augmentNet(const Board &b, Score netScore)
+{
+	// clamp to kpk win
+	if (netScore < -scWin)
+		netScore = -scWin;
+	else if (netScore > scWin)
+		netScore = scWin;
+
+	fscore[phOpening] = netScore;
+	fscore[phEndgame] = netScore;
+
+	fscore[ phEndgame ] > 0 ? evalSpecial<ctWhite>( b ) : evalSpecial<ctBlack>( b );
+
+	// endgame recognizers
+	evalNonPawnRecog(b, b.materialKey());
+
+	return ScorePack::interpolate(b.nonPawnMat(), fscore[phOpening], fscore[phEndgame]);
+}
+
 Score Eval::ievalNet(const Board &b)
 {
 	// probe eval cache first
@@ -720,10 +739,7 @@ Score Eval::ievalNet(const Board &b)
 	Score sc = net.to_centipawns(outp);
 	Score corr = sign(b.turn()) * ScorePack::initFine(sc);
 
-	fscore[phOpening] = corr;
-	fscore[phEndgame] = corr;
-
-	corr = ScorePack::interpolate(0, corr, corr);
+	corr = augmentNet(b, corr);
 
 	// adjust according to stm
 	corr *= sign(b.turn());
@@ -789,10 +805,7 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 		Score sc = net.to_centipawns(outp);
 		Score corr = sign(b.turn()) * ScorePack::initFine(sc);
 
-		fscore[phOpening] = corr;
-		fscore[phEndgame] = corr;
-
-		corr = ScorePack::interpolate(0, corr, corr);
+		corr = augmentNet(b, corr);
 
 		// adjust according to stm
 		corr *= sign(b.turn());
@@ -1359,6 +1372,34 @@ void Eval::execRecog( const Board &b, MaterialKey mk, const Recognizer *recogs, 
 #endif
 }
 
+void Eval::evalNonPawnRecog(const Board &b, MaterialKey mk)
+{
+	// scale bishop endgame with opposite color bishops
+	if ( !(mk & matBishopEGMask) )
+	{
+		Bitboard bishops[2] = {
+			b.pieces( ctWhite, ptBishop ),
+			b.pieces( ctBlack, ptBishop )
+		};
+
+		if ( bishops[0] && bishops[1] && abs(b.deltaMat(phOpening)) < 400 )
+		{
+			if ( ( !(bishops[0] & lightSquares) && !(bishops[1] & darkSquares ) ) ||
+				 ( !(bishops[0] & darkSquares) && !(bishops[1] & lightSquares ) ) )
+			{
+				fscore[ phOpening ] /= 2;
+				fscore[ phEndgame ] /= 2;
+			}
+		}
+	}
+	// eval other less trivial drawish positions
+	execRecog( b, mk & matMask[ctWhite], scaleRecognizers[ctWhite], numScaleRecognizers );
+	execRecog( b, mk & matMask[ctBlack], scaleRecognizers[ctBlack], numScaleRecognizers );
+
+	// exec true recognizers
+	execRecog( b, mk, recognizers, numRecognizers );
+}
+
 // eval eg recognizers
 void Eval::evalRecog( const Board &b )
 {
@@ -1389,30 +1430,7 @@ void Eval::evalRecog( const Board &b )
 		}
 	}
 
-	// scale bishop endgame with opposite color bishops
-	if ( !(mk & matBishopEGMask) )
-	{
-		Bitboard bishops[2] = {
-			b.pieces( ctWhite, ptBishop ),
-			b.pieces( ctBlack, ptBishop )
-		};
-
-		if ( bishops[0] && bishops[1] && abs(b.deltaMat(phOpening)) < 400 )
-		{
-			if ( ( !(bishops[0] & lightSquares) && !(bishops[1] & darkSquares ) ) ||
-				 ( !(bishops[0] & darkSquares) && !(bishops[1] & lightSquares ) ) )
-			{
-				fscore[ phOpening ] /= 2;
-				fscore[ phEndgame ] /= 2;
-			}
-		}
-	}
-	// eval other less trivial drawish positions
-	execRecog( b, mk & matMask[ctWhite], scaleRecognizers[ctWhite], numScaleRecognizers );
-	execRecog( b, mk & matMask[ctBlack], scaleRecognizers[ctBlack], numScaleRecognizers );
-
-	// exec true recognizers
-	execRecog( b, mk, recognizers, numRecognizers );
+	evalNonPawnRecog(b, mk);
 }
 
 uint Eval::evalProgress(const Board &b)
