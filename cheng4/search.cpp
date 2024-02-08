@@ -1731,11 +1731,15 @@ void Search::init()
 	TUNE_EXPORT(Score, futMargin2, futMargins[2]);
 	TUNE_EXPORT(Score, futMargin3, futMargins[3]);
 	TUNE_EXPORT(Score, futMargin4, futMargins[4]);
+	TUNE_EXPORT(Score, futMargin5, futMargins[5]);
+	TUNE_EXPORT(Score, futMargin6, futMargins[6]);
 
 	TUNE_EXPORT(Score, betaMargin1, betaMargins[1]);
 	TUNE_EXPORT(Score, betaMargin2, betaMargins[2]);
 	TUNE_EXPORT(Score, betaMargin3, betaMargins[3]);
 	TUNE_EXPORT(Score, betaMargin4, betaMargins[4]);
+	TUNE_EXPORT(Score, betaMargin5, betaMargins[5]);
+	TUNE_EXPORT(Score, betaMargin6, betaMargins[6]);
 
 	TUNE_EXPORT(Score, singularMargin, singularMargin);
 	TUNE_EXPORT(Score, lateMoveFutility, lateMoveFutility);
