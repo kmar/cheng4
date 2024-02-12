@@ -706,13 +706,13 @@ template< Color c > void Eval::evalBlindBishop( const Board &b )
 	}
 }
 
-Score Eval::augmentNet(const Board &b, Score netScore)
+Score Eval::augmentNet(const Board &b, FineScore netScore)
 {
 	// clamp to kpk win
-	if (netScore < -scWin)
-		netScore = -scWin;
-	else if (netScore > scWin)
-		netScore = scWin;
+	if (netScore < -kpkWin)
+		netScore = -kpkWin;
+	else if (netScore > kpkWin)
+		netScore = kpkWin;
 
 	fscore[phOpening] = netScore;
 	fscore[phEndgame] = netScore;

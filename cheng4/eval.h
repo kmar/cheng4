@@ -274,7 +274,7 @@ private:
 	static uint evalProgress(const Board &b);
 
 	// augment net with HCE recogs/scalers
-	Score augmentNet(const Board &b, Score netScore);
+	Score augmentNet(const Board &b, FineScore netScore);
 };
 
 // feature export
