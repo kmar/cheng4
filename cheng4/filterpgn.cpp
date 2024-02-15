@@ -233,7 +233,7 @@ void FilterPgn::flushGame()
 
 		s.board.fromFEN(p.fen.c_str());
 		s.board.resetMoveCount();
-		s.eval.updateNetCache(s.board);
+		s.eval.updateNetCache(s.board, s.cacheStack[0].cache);
 
 		Score sc;
 

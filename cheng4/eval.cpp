@@ -500,6 +500,7 @@ void Eval::init()
 
 Eval::Eval() : occ(0), pe(0)
 {
+	netCache = 0;
 	contemptFactor[ctWhite] = contemptFactor[ctBlack] = scDraw;
 	fscore[phOpening] = fscore[phEndgame] = 0;
 	checkPotential[ctWhite] = checkPotential[ctBlack] = 0;
@@ -581,10 +582,12 @@ void Eval::netCacheSubIndex(Color stm, int index)
 	net.cache_sub_index(netCache[ctBlack], bindex);
 }
 
-void Eval::updateNetCache(const Board &b)
+void Eval::updateNetCache(const Board &b, NetCache *ncache)
 {
 	if (useHCE)
 		return;
+
+	netCache = ncache;
 
 	i32 inds[768];
 

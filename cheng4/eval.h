@@ -89,9 +89,6 @@ private:
 
 	Entry dummy;
 
-	// net layer 0 eval cache for specific stm
-	NetCache netCache[ctMax];
-
 	void dummyAlloc()
 	{
 		dealloc();
@@ -191,7 +188,7 @@ struct Eval
 	void clear();
 
 	// update net cache
-	void updateNetCache(const Board &b);
+	void updateNetCache(const Board &b, NetCache *ncache);
 
 	// incremental cache updates
 	void netCacheAddIndex(Color stm, int index);
@@ -203,13 +200,13 @@ struct Eval
 		{
 			ui.eval = this;
 			memcpy(dst, netCache, ctMax*sizeof(NetCache));
+			netCache = dst;
 		}
 	}
 
-	inline void netDoneUndo(const NetCache *src)
+	inline void netDoneUndo(NetCache *src)
 	{
-		if (!useHCE)
-			memcpy(netCache, src, ctMax*sizeof(NetCache));
+		netCache = src;
 	}
 
 	// use legacy handcrafted eval?
@@ -218,7 +215,7 @@ struct Eval
 private:
 	// new: net!
 	Network net;
-	NetCache netCache[ctMax];
+	NetCache *netCache;
 
 	Score contemptFactor[ctMax];
 	// scores for game phases

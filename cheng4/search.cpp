@@ -309,7 +309,7 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 #endif
 
 		UndoInfo ui;
-		eval.netInitUndo(ui, cacheStack[ply].cache);
+		eval.netInitUndo(ui, cacheStack[ply+1].cache);
 		board.doMove( m, ui, ischeck );
 		rep.push( board.sig(), !board.fifty() );
 
@@ -521,6 +521,7 @@ template< bool pv, bool incheck, bool donull >
 		Depth R = 2 + depth/4;
 
 		UndoInfo ui;
+		eval.netInitUndo(ui, cacheStack[ply+1].cache);
 		board.doNullMove( ui );
 		stack[ ply ].current = mcNull;
 
@@ -529,6 +530,7 @@ template< bool pv, bool incheck, bool donull >
 		rep.pop();
 
 		board.undoNullMove( ui );
+		eval.netDoneUndo(cacheStack[ply].cache);
 
 		if ( score >= beta )
 		{
@@ -638,7 +640,7 @@ template< bool pv, bool incheck, bool donull >
 			hist = history->score(board, m);
 
 		UndoInfo ui;
-		eval.netInitUndo(ui, cacheStack[ply].cache);
+		eval.netInitUndo(ui, cacheStack[ply+1].cache);
 		board.doMove( m, ui, ischeck );
 		rep.push( board.sig(), !board.fifty() );
 
@@ -962,7 +964,7 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 		FracDepth newDepth = fd - fracOnePly + extension;
 
 		UndoInfo ui;
-		eval.netInitUndo(ui, cacheStack[0].cache);
+		eval.netInitUndo(ui, cacheStack[1].cache);
 
 		board.doMove( rm.move, ui, isCheck );
 		rep.push( board.sig(), !board.fifty() );
@@ -1199,7 +1201,7 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 	verbose = verboseFixed = !sm.maxTime || eloLimit;
 
 	board = b;
-	eval.updateNetCache(board);
+	eval.updateNetCache(board, cacheStack[0].cache);
 	mode = sm;
 
 	Killer killers(0);
@@ -1710,7 +1712,7 @@ void Search::smpSync() const
 		s.initIteration();
 		s.age = age;
 		s.board = board;
-		s.eval.updateNetCache(board);
+		s.eval.updateNetCache(board, s.cacheStack[0].cache);
 		// FIXME: better?
 		s.rep.copyFrom(rep);
 		*s.history = *history;
