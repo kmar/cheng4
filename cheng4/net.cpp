@@ -38,7 +38,7 @@ inline fixedp fixed_mul(fixedp a, fixedp b)
     return (int64_t)a * b >> 16;
 }
 
-static constexpr int MAX_LAYER_SIZE = 768;
+static constexpr int MAX_LAYER_SIZE = std::max<int>(768, topo1in);
 
 template<int inputSize, int outputSize, bool last>
 struct NetLayer : NetLayerBase
@@ -320,6 +320,7 @@ static LayerDesc layerDesc2[] =
 bool Network::init_topology()
 {
 	const int numLayouts = topoLayers;
+	(void)numLayouts;
 
 	const auto *layerDescPtr = topoLayers > 2 ? layerDesc : layerDesc2;
 
@@ -357,29 +358,14 @@ bool Network::init_topology()
 	int widx = weight_index;
 	int bidx = bias_index;
 
+	assert(topoLayers == numLayouts);
+
 	for (int i=0; i<topoLayers; i++)
 	{
-		const bool islast = i+1 == topoLayers;
-
-		NetLayerBase *nlayer = nullptr;
-
-		for (int j=0; j<numLayouts; j++)
-		{
-			const LayerDesc *l = &layerDescPtr[j];
-
-			if (islast == l->last)
-			{
-				nlayer = l->create_func();
-				break;
-			}
-		}
-
-		if (!nlayer)
-			return false;
+		auto *nlayer = layerDescPtr[i].create_func();
 
 		layers[i] = nlayer;
-
-		layers[i]->init(weights.data() + widx, weights.data() + bidx);
+		nlayer->init(weights.data() + widx, weights.data() + bidx);
 
 		widx += nlayer->getInputSize() * nlayer->getOutputSize();
 		bidx += nlayer->getOutputSize();
