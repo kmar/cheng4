@@ -26,6 +26,7 @@ or as public domain (where applicable)
 #include "platform.h"
 #include <vector>
 #include <fstream>
+#include <algorithm>
 
 #define MLZ_DEC_MINI_IMPLEMENTATION
 #include "nets/mlz/mlz_dec_mini.h"
