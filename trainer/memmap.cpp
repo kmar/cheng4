@@ -37,7 +37,7 @@ const uint8_t *memory_mapped_file::map(const char *fn)
 #ifdef _WIN32
 	HANDLE handle = CreateFileA(fn, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-	if (handle)
+	if (handle != INVALID_HANDLE_VALUE)
 	{
 		HANDLE mapping = CreateFileMappingA(handle, NULL, PAGE_READONLY, 0, 0, NULL);
 
