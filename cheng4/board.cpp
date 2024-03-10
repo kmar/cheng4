@@ -2822,6 +2822,60 @@ void Board::doMoveTemplate( Move move, Square from, Square to, UndoInfo &ui, boo
 	assert( isValid() );
 }
 
+uint64_t Board::compressPiecesOccupancy(uint8_t buf[16]) const
+{
+	memset(buf, 0, 16);
+	auto occ = occupied();
+	assert(BitOp::popCount(occ) <= 32);
+
+	int idx = 0;
+
+	while (occ)
+	{
+		Square sq = BitOp::popBit(occ);
+		Piece p = piece(sq);
+		p &= 15;
+
+		// simple nibble-packing
+		if (idx & 1)
+			p <<= 4;
+
+		// and store
+		buf[idx >> 1] |= p;
+		++idx;
+	}
+
+	return occupied();
+}
+
+void Board::uncompressPiecesOccupancy(uint64_t occ, const uint8_t buf[16])
+{
+	reset();
+	clearPieces();
+
+	int idx = 0;
+
+	while (occ)
+	{
+		Square sq = BitOp::popBit(occ);
+
+		Piece p = Piece(buf[idx >> 1]);
+
+		if (idx & 1)
+			p >>= 4;
+
+		Piece pt = PiecePack::type(p);
+
+		assert(pt != ptNone);
+
+		setPiece(PiecePack::color(p), pt, (Square)sq);
+
+		++idx;
+	}
+
+	updateBitboards();
+}
+
 void Board::compressPieces(uint8_t buf[32]) const
 {
 	memset(buf, 0, 32);
@@ -2861,7 +2915,7 @@ void Board::uncompressPieces(const uint8_t buf[32])
 		if (pt == ptNone)
 			continue;
 
-		setPiece(PiecePack::color(p), PiecePack::type(p), (Square)sq);
+		setPiece(PiecePack::color(p), pt, (Square)sq);
 	}
 
 	updateBitboards();

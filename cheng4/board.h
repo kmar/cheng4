@@ -749,6 +749,12 @@ public:
 	// the reverse operation
 	void uncompressPieces(const uint8_t buf[32]);
 
+
+	// compression using occupancy-version of the above, up to 32 pieces but more compact
+	// returns occupancy
+	uint64_t compressPiecesOccupancy(uint8_t buf[16]) const;
+	void uncompressPiecesOccupancy(uint64_t occ, const uint8_t buf[16]);
+
 	// get net index for a single piece on a specific square
 	// side to move, piece color, piece type, piece square
 	i32 netIndex(Color stm, Color c, PieceType pt, Square sq) const;

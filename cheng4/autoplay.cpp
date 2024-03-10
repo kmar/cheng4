@@ -111,16 +111,18 @@ public:
 			i16 tmp = (i16)labels[i];
 			fwrite(&tmp, 2, 1, file);
 
-			tmp = i16(outcomes[i]*2);
-			fwrite(&tmp, 2, 1, file);
+			i8 tmpi;
+			tmpi = i8(outcomes[i]*2);
+			fwrite(&tmpi, 1, 1, file);
 
-			tmp = boards[i].turn() == ctBlack ? 1 : 0;
-			fwrite(&tmp, 2, 1, file);
+			tmpi = boards[i].turn() == ctBlack ? 1 : 0;
+			fwrite(&tmpi, 1, 1, file);
 
 			// compress the board
-			uint8_t buf[32];
-			boards[i].compressPieces(buf);
-			fwrite(buf, 1, 32, file);
+			uint8_t buf[16];
+			auto occ = boards[i].compressPiecesOccupancy(buf);
+			fwrite(&occ, 8, 1, file);
+			fwrite(buf, 1, 16, file);
 		}
 
 		fflush(file);

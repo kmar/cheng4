@@ -36,7 +36,7 @@ or as public domain (where applicable)
 #include "../cheng4/net.h"
 #include "net_indices.h"
 
-constexpr int PACKED_TRAIN_ENTRY_SIZE = 38;
+constexpr int PACKED_TRAIN_ENTRY_SIZE = 28;
 
 // as big as we can fit into memory
 constexpr int BATCH_SIZE = 1024*1024*1;
@@ -72,11 +72,12 @@ double inverse_sigmoid(double w)
 
 struct labeled_position
 {
-	float label;
+	uint64_t occupancy;
+	uint8_t pieces[16];
 	int16_t score;
-	int16_t outcome;
-	int16_t flags;
-	uint8_t pieces[32];
+	int8_t outcome;
+	int8_t flags;
+	float label;
 
 	labeled_position() = default;
 
@@ -107,7 +108,7 @@ void unpack_position_fast(void *dstp, void *dstp_opp, const labeled_position &po
 
 	int16_t ninds[64];
 	bool blackToMove = (pos.flags & 1) != 0;
-	auto count = (int16_t)netIndices(blackToMove, pos.pieces, ninds);
+	auto count = (int16_t)netIndices(blackToMove, pos.occupancy, pos.pieces, ninds);
 
 	for (int i=0; i<count; i++)
 	{
@@ -197,8 +198,9 @@ labeled_position mem_load_position(const uint8_t *&ptr, const uint8_t *end)
 		if (blackToMove)
 			p.outcome = 2 - p.outcome;
 
-		// now using nibble-packed indices
-		mem_read_buf(p.pieces, 32);
+		// using nibble-packed indices
+		mem_read_buf(&p.occupancy, 8);
+		mem_read_buf(p.pieces, 16);
 	} while(false);
 
 	return p;
@@ -214,10 +216,11 @@ memory_mapped_file load_trainfile(const char *fn)
 		return mf;
 
 	// i16 label (centipawns)
-	// 116 outcome
-	// i16 flags (bit 0 = turn)
-	// u8 x 32 nibble-packed board
-	// => 38 bytes per packed position
+	// i8 outcome
+	// i8 flags (bit 0 = turn)
+	// u64 occupancy
+	// u8 x 16 nibble-packed board
+	// => 28 bytes per packed position
 
 	size_t num_positions = mf.size() / PACKED_TRAIN_ENTRY_SIZE;
 

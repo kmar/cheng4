@@ -36,7 +36,7 @@ or as public domain (where applicable)
 #include <iostream>
 
 // matches cheng's entry size
-size_t entry_size = 38;
+size_t entry_size = 28;
 
 // min/max entries per chunk
 size_t min_entries = 50'000'000;

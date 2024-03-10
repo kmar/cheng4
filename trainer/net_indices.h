@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include "../cheng4/chtypes.h"
+#include "../cheng4/tables.h"
 
 // FIXME: trainer version, copied from Board... should clean this up, really
 
@@ -82,16 +83,22 @@ int32_t netIndex(cheng4::Color stm, cheng4::Color c, cheng4::PieceType pt, cheng
 	}
 }
 
-int netIndicesStm(cheng4::Color stm, const uint8_t buf[32], int16_t *inds)
+int netIndicesStm(cheng4::Color stm, uint64_t occ, const uint8_t buf[16], int16_t *inds)
 {
 	int res = 0;
 
-	for (int sq=0; sq<64; sq++)
-	{
-		cheng4::Piece p = cheng4::Piece(buf[sq >> 1]);
+	int pidx = 0;
 
-		if (sq & 1)
+	while (occ)
+	{
+		cheng4::Square sq = cheng4::BitOp::popBit(occ);
+
+		cheng4::Piece p = cheng4::Piece(buf[pidx >> 1]);
+
+		if (pidx & 1)
 			p >>= 4;
+
+		++pidx;
 
 		p &= 15;
 
@@ -100,7 +107,7 @@ int netIndicesStm(cheng4::Color stm, const uint8_t buf[32], int16_t *inds)
 		if (pt == cheng4::ptNone)
 			continue;
 
-		inds[res++] = (int16_t)netIndex(stm, cheng4::PiecePack::color(p), cheng4::PieceType(cheng4::PiecePack::type(p)), (cheng4::Square)sq);
+		inds[res++] = (int16_t)netIndex(stm, cheng4::PiecePack::color(p), cheng4::PieceType(pt), sq);
 	}
 
 	// we don't have to sort for trainer
@@ -108,7 +115,7 @@ int netIndicesStm(cheng4::Color stm, const uint8_t buf[32], int16_t *inds)
 	return res;
 }
 
-int netIndices(bool btm, const uint8_t buf[32], int16_t *inds)
+int netIndices(bool btm, uint64_t occ, const uint8_t buf[16], int16_t *inds)
 {
-	return netIndicesStm(cheng4::Color(btm ? cheng4::ctBlack : cheng4::ctWhite), buf, inds);
+	return netIndicesStm(cheng4::Color(btm ? cheng4::ctBlack : cheng4::ctWhite), occ, buf, inds);
 }

@@ -209,20 +209,19 @@ bool LabelFEN::process(const char *outfilename)
 		i16 tmp = (i16)labels[i];
 		fwrite(&tmp, 2, 1, fo);
 
-		tmp = i16(outcomes[i]*2);
-		fwrite(&tmp, 2, 1, fo);
+		i8 tmpi = i8(outcomes[i]*2);
+		fwrite(&tmpi, 1, 1, fo);
 
-		tmp = boards[i].turn() == ctBlack ? 1 : 0;
-		fwrite(&tmp, 2, 1, fo);
+		tmpi = boards[i].turn() == ctBlack ? 1 : 0;
+		fwrite(&tmpi, 1, 1, fo);
 
-#if 1
 		// compress the board
-		uint8_t buf[32];
-		boards[i].compressPieces(buf);
+		uint8_t buf[16];
+		uint64_t occ = boards[i].compressPiecesOccupancy(buf);
 
 #ifdef _DEBUG
 		Board tmpb;
-		tmpb.uncompressPieces(buf);
+		tmpb.uncompressPiecesOccupancy(occ, buf);
 		tmpb.setTurn(Color(tmp ? ctBlack : ctWhite));
 
 		i32 inds0[64];
@@ -238,23 +237,8 @@ bool LabelFEN::process(const char *outfilename)
 			assert(inds0[ix] == inds1[ix]);
 #endif
 
-		fwrite(buf, 32, 1, fo);
-#else
-		// old format
-		i32 inds[64];
-		auto count = boards[i].netIndices(inds);
-
-		std::sort(inds, inds+count);
-
-		tmp = (i16)count;
-		fwrite(&tmp, 2, 1, fo);
-
-		for (int j=0; j<count; j++)
-		{
-			tmp = (i16)inds[j];
-			fwrite(&tmp, 2, 1, fo);
-		}
-#endif
+		fwrite(&occ, 8, 1, fo);
+		fwrite(buf, 1, 16, fo);
 
 		++outcount;
 	}
