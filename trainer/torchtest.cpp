@@ -32,10 +32,11 @@ or as public domain (where applicable)
 #include <random>
 
 #include "memmap.h"
-#include "rnd_shuf.h"
 
 #include "../cheng4/net.h"
 #include "net_indices.h"
+
+constexpr int PACKED_TRAIN_ENTRY_SIZE = 38;
 
 // as big as we can fit into memory
 constexpr int BATCH_SIZE = 1024*1024*1;
@@ -86,12 +87,6 @@ struct labeled_position
 	labeled_position &operator =(labeled_position &&) = default;
 };
 
-std::vector<labeled_position> positions;
-// 0% validation
-std::vector<labeled_position> validation_set;
-// 0% test
-std::vector<labeled_position> test_set;
-
 float label_position(const labeled_position &p)
 {
 	float res;
@@ -103,23 +98,6 @@ float label_position(const labeled_position &p)
 	res = res * 0.5f + outcome * 0.5f;
 
 	return res;
-}
-
-void shuffle_positions(bool noseed = false)
-{
-	std::mt19937_64 rnd_engine;
-	rnd_engine.seed(noseed ? (uint64_t)0 : seed_rnd());
-
-	if (positions.empty())
-		return;
-
-	// fisher-yates shuffle
-	for (size_t i=positions.size()-1; i>1; i--)
-	{
-		auto range = i-1;
-		auto swidx = rnd_engine() % positions.size();
-		std::swap(positions[i], positions[swidx]);
-	}
 }
 
 void unpack_position_fast(void *dstp, void *dstp_opp, const labeled_position &pos)
@@ -185,30 +163,8 @@ void pack_tensor(torch::Tensor t, const float *src)
 		dst[i] = src[i];
 }
 
-void load_trainfile(const char *fn)
+labeled_position mem_load_position(const uint8_t *&ptr, const uint8_t *end)
 {
-	positions.clear();
-	validation_set.clear();
-	test_set.clear();
-
-	// memory mapping would be best
-
-	memory_mapped_file mf;
-	auto *buf = mf.map(fn);
-
-	if (!buf)
-		return;
-
-	// i16 label (centipawns)
-	// i16 static eval (centipawns)
-	// 116 outcome
-	// i16 flags
-	// i16 count
-	// count * i16 index
-
-	const uint8_t *ptr = buf;
-	const uint8_t *end = buf + mf.size();
-
 #define mem_read_int(var) \
 	if (ptr + sizeof(var) > end) \
 		break; \
@@ -221,13 +177,14 @@ void load_trainfile(const char *fn)
 	memcpy((var), ptr, sz); \
 	ptr += sz
 
-	for (;;)
-	{
-		int16_t tmp;
+	int16_t tmp;
 
+	labeled_position p;
+
+	do
+	{
 		mem_read_int(tmp);
 
-		labeled_position p;
 		p.score = tmp;
 		p.label = tmp/100.0f;
 
@@ -242,34 +199,31 @@ void load_trainfile(const char *fn)
 
 		// now using nibble-packed indices
 		mem_read_buf(p.pieces, 32);
+	} while(false);
 
-		positions.emplace_back(std::move(p));
+	return p;
+}
 
-#ifdef _DEBUG
-		if (positions.size() >= 2'000'000)
-			break;
-#endif
-	}
+memory_mapped_file load_trainfile(const char *fn)
+{
+	// memory mapping would be best
+	memory_mapped_file mf;
+	auto *buf = mf.map(fn);
 
-	// deterministic shuffle
-	shuffle_positions(/*noseed*/true);
+	if (!buf)
+		return mf;
 
-	printf("%I64d positions loaded\n", (int64_t)positions.size());
+	// i16 label (centipawns)
+	// 116 outcome
+	// i16 flags (bit 0 = turn)
+	// u8 x 32 nibble-packed board
+	// => 38 bytes per packed position
 
-	// 0%
-	size_t test_size = 0;//positions.size()/100;
+	size_t num_positions = mf.size() / PACKED_TRAIN_ENTRY_SIZE;
 
-	validation_set.insert(validation_set.end(), positions.end() - test_size, positions.end());
-	positions.resize(positions.size() - test_size);
-	test_set.insert(test_set.end(), positions.end() - test_size, positions.end());
-	positions.resize(positions.size() - test_size);
+	printf("%I64u positions\n", num_positions);
 
-	// align positions to batch size
-	positions.resize(positions.size() - positions.size() % BATCH_SIZE);
-
-	printf("%I64d positions reserved for validation\n", (int64_t)validation_set.size());
-	printf("%I64d positions reserved for testing\n", (int64_t)test_set.size());
-	printf("%I64d positions reserved for training\n", (int64_t)positions.size());
+	return mf;
 #undef mem_read_int
 #undef mem_read_buf
 }
@@ -438,13 +392,13 @@ torch::Tensor network::forward(torch::Tensor input, torch::Tensor input_opp)
 
 struct net_trainer
 {
-	void train(network &net, int epochs = 50);
+	void train(memory_mapped_file &mf, size_t num_positions, network &net, int epochs = 50);
 
 private:
 	network *netref = nullptr;
 };
 
-void net_trainer::train(network &net, int epochs)
+void net_trainer::train(memory_mapped_file &mf, uint64_t num_positions, network &net, int epochs)
 {
 	netref = &net;
 
@@ -466,11 +420,10 @@ void net_trainer::train(network &net, int epochs)
 	// Adam seems much better at converging
 	torch::optim::Adam optimizer(net.parameters());
 
-	const size_t num_batches = (positions.size() + BATCH_SIZE-1) / BATCH_SIZE;
+	const size_t num_batches = (size_t)(num_positions + BATCH_SIZE-1) / BATCH_SIZE;
 
 	for (int epoch=0; epoch<epochs; epoch++)
 	{
-		shuffle_positions();
 		printf("starting epoch %d, lr=%0.6lf\n", 1+epoch, lr);
 		size_t idx = 0;
 
@@ -482,9 +435,9 @@ void net_trainer::train(network &net, int epochs)
 		net.to(device);
 
 		// for each batch:
-		for (size_t i=0; i<positions.size(); i += BATCH_SIZE)
+		for (size_t i=0; i<num_positions; i += BATCH_SIZE)
 		{
-			size_t count = std::min<size_t>(BATCH_SIZE, positions.size() - i);
+			size_t count = std::min<size_t>(BATCH_SIZE, num_positions - i);
 
 			// okay, now we must create batch tensor and fill it with data
 			torch::Tensor input_batch = torch::zeros({(int)count, INPUT_SIZE});
@@ -499,8 +452,11 @@ void net_trainer::train(network &net, int epochs)
 			#pragma omp parallel for
 			for (int j=0; j<(int)count; j++)
 			{
-				unpack_position_fast(&itensor[j*INPUT_SIZE], &itensor_opp[j*INPUT_SIZE], positions[i+j]);
-				ttensor[j] = label_position(positions[i+j]);
+				auto *beg = mf.data() + (i+j)*PACKED_TRAIN_ENTRY_SIZE;
+				auto *end = mf.data() + mf.size();
+				auto lp = mem_load_position(beg, end);
+				unpack_position_fast(&itensor[j*INPUT_SIZE], &itensor_opp[j*INPUT_SIZE], lp);
+				ttensor[j] = label_position(lp);
 			}
 
 			input_batch = input_batch.to(device);
@@ -561,7 +517,8 @@ void net_trainer::train(network &net, int epochs)
 
 int main()
 {
-	load_trainfile("autoplay.bin");
+	// note: must be preshuffled
+	auto mf = load_trainfile("autoplay.bin");
 
 	network net;
 
@@ -569,26 +526,7 @@ int main()
 
 	net_trainer nt;
 	// 50 epochs
-	nt.train(net, 50);
-
-	size_t test_set_size = test_set.size();
-
-	for (size_t i=0; i<std::min<size_t>(1000, test_set.size()); i++)
-	{
-		const auto &p = test_set[i];
-		torch::Tensor test = torch::zeros(INPUT_SIZE);
-		torch::Tensor test_opp = torch::zeros(INPUT_SIZE);
-		unpack_position(test.mutable_data_ptr(), test_opp.mutable_data_ptr(), p);
-
-		auto inf = net.forward(test, test_opp);
-		auto utensor = unpack_tensor(inf);
-
-		printf("test position %d\n", (int)i);
-
-		printf("\tinferred_value: %0.4lf\n", utensor[0]);
-		printf("\tlabel: %0.4lf\n", label_position(p));
-		printf("\terror: %0.4lf\n", std::abs(label_position(p) - utensor[0]));
-	}
+	nt.train(mf, mf.size() / PACKED_TRAIN_ENTRY_SIZE, net, 50);
 
 	return 0;
 }

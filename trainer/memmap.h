@@ -31,6 +31,8 @@ struct memory_mapped_file
 	const uint8_t *map(const char *fn);
 	void unmap();
 
+	const uint8_t *data() const {return (const uint8_t *)mapped;}
+
 	~memory_mapped_file()
 	{
 		unmap();
