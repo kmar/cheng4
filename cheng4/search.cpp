@@ -192,8 +192,8 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 		(void)pvIndex;
 
 	// update selective depth
-	if ( ply > selDepth )
-		selDepth = ply;
+	if ( ply+1 > selDepth )
+		selDepth = ply+1;
 
 	// mate distance pruning
 	alpha = std::max( alpha, ScorePack::checkMated(ply) );
@@ -387,8 +387,8 @@ template< bool pv, bool incheck, bool donull >
 		(void)pvIndex;
 
 	// update selective depth
-	if ( ply > selDepth )
-		selDepth = ply;
+	if ( ply+1 > selDepth )
+		selDepth = ply+1;
 
 	// mate distance pruning
 	alpha = std::max( alpha, ScorePack::checkMated(ply) );
@@ -834,8 +834,10 @@ void Search::sendPV( const RootMove &rm, Depth depth, Score score, Score alpha, 
 		Ply sd = selDepth;
 		for (size_t i=0; i<smpThreads.size(); i++)
 			sd = std::max( sd, smpThreads[i]->search.selDepth);
+		// note: this feels a bit hacky, but we adjust main search seldepth here to be max of smp threads as well
+		selDepth = std::max<Ply>(selDepth, sd);
 		si.depth = depth;
-		si.selDepth = (Ply)(sd+1);
+		si.selDepth = sd;
 		if ( verbose )
 			sendInfo();
 	}
@@ -932,6 +934,8 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 
 	size_t count = 0;
 
+	Ply maxSelDepth = 0;
+
 	for (size_t i=0; i<rootMoves.count; i++)
 	{
 		count++;
@@ -985,6 +989,8 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 		rep.pop();
 		board.undoMove( ui );
 		eval.netDoneUndo(cacheStack[0].cache);
+
+		selDepth = maxSelDepth = std::max<Ply>(maxSelDepth, selDepth);
 
 		if ( aborting )
 			return scInvalid;
@@ -1255,9 +1261,6 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 
 	for ( Depth d = 1; rootMoves.count && d <= depthLimit; d++ )
 	{
-		// reset selDepth
-		selDepth = 0;
-
 		for (size_t i=0; i<smpThreads.size(); i++)
 			smpThreads[i]->search.selDepth = 0;
 
@@ -1291,11 +1294,15 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 		if ( verbose )
 		{
 			info.reset();
-			info.flags |= sifDepth | sifTime;
+			info.flags |= sifDepth | sifSelDepth | sifTime;
 			info.depth = d;
+			info.selDepth = selDepth;
 			info.time = (Time)total;
 			sendInfo();
 		}
+
+		// reset selDepth
+		selDepth = 0;
 
 		if ( d == 1 )
 		{
@@ -1329,6 +1336,8 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 			bool blunderCheck = false;
 			bool failHigh = false;
 
+			Ply maxSelDepth = 0;
+
 			for (;;)
 			{
 				alpha = std::max( -scInfinity, alpha );
@@ -1338,6 +1347,7 @@ Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
 				// lazySMP kicks in here
 				smpStart( d, alpha, beta );
 				Score score = root( d, alpha, beta );
+				selDepth = maxSelDepth = std::max<Ply>(maxSelDepth, selDepth);
 				smpStop();
 
 				if ( aborting )
