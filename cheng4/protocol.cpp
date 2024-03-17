@@ -346,7 +346,10 @@ static void tbcbk(const SearchInfo &si, void *param)
 
 	Board b;
 	b.fromFEN(tb->pos->fen);
-	Move m = b.fromSAN(std::string(tb->pos->move));
+	const char *inmov = tb->pos->move;
+	Move m = b.fromSAN(inmov);
+	skipSpaces(inmov);
+	Move malt = b.fromSAN(inmov);
 
 	std::cout << "depth: " << (int)si.depth << " score: " << uciScore(si.pvScore) << " PV: ";
 
@@ -365,7 +368,7 @@ static void tbcbk(const SearchInfo &si, void *param)
 
 	std::cout << "time: " << (Timer::getMillisec() - tb->startTicks) << " msec" << std::endl;
 
-	if (m != si.pv[0])
+	if (m != si.pv[0] && malt != si.pv[0])
 		return;
 
 	if (si.pvScore < tb->pos->minScore)
@@ -378,8 +381,8 @@ static void tbench()
 {
 	TacPosBench tb[] =
 	{
-		// actually I think multiple moves win here
-		{"8/4kp2/1p2p3/1P2P1p1/1P4P1/3K4/8/8 b - - 6 57", "f5", 10, 100, 0},
+		// actually I think multiple moves win here, like f6
+		{"8/4kp2/1p2p3/1P2P1p1/1P4P1/3K4/8/8 b - - 6 57", "f5 f6", 10, 100, 0},
 		{"1rb2rk1/4R1p1/1pqn1pBp/3p4/5Q2/1NP3PP/6PK/4R3 w - - 0 30", "Re1e6", 10, -scInfinity, 0},
 		{"rn1q1rk1/pbpp2pp/1p1bp3/5p2/1PPP4/P2BP3/2QN1PPP/R1B2RK1 b - b3 0 11", "Bxh2+", 10, -scInfinity, 0},
 		{"8/6B1/p5p1/Pp4kp/1P5r/5P1Q/4q1PK/8 w - -", "Qxh4", 10, -scInfinity, 0},
@@ -390,11 +393,12 @@ static void tbench()
 		{"3r2k1/5pp1/p1B4p/qp1P4/2n5/r1P3P1/5PKP/2QRR3 w - - 0 27", "d6", 10, -scInfinity, 0},
 		{"1r4r1/3q1npk/2b1pbnp/Rp1p4/1N1P3P/2PQ1pP1/1K3B2/5B1R w - - 0 1", "Qxg6+", 10, -scInfinity, 0},
 		{"rn3r2/1bq2ppk/p3p2p/1pb1P2Q/P1p5/2P2N2/3BBPPP/R2R2K1 w - - 4 20", "Bxh6", 10, -scInfinity, 0},
+		{"1q5r/r3bpk1/2b2Np1/3pP1Qp/1Pp2P1B/pn5P/R5PK/1B1R4 w - - 0 44", "Rxa3", 10, -scInfinity, 0},
 		{0, 0, 0, 0, 0}
 	};
 
 	TransTable tt;
-	tt.resize(128*1024*1024);
+	tt.resize((size_t)128*1024*1024);
 
 	int pos = 1;
 
