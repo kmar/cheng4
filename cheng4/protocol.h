@@ -173,8 +173,6 @@ public:
 	void sendCurIndex( MoveCount index, MoveCount count );
 	// send current move
 	void sendCurMove( Move move );
-	// send hash full (permill)
-	void sendHash( uint full );
 
 	// parse line from GUI
 	bool parse( const std::string &line );

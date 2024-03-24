@@ -40,7 +40,7 @@ enum Topology
 
 	topoLayers = 3
 #else
-	topo1 = 224,
+	topo1 = 448,
 	// new: x2 (perspective)
 	topo1in = topo1*2,
 	topo2 = 1,
