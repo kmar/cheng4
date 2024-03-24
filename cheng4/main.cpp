@@ -38,6 +38,11 @@ int main( int argc, char **argv )
 
 	eng->run();
 
+	// --cmd n is passed as protocol command
+	for (int i=1; i<argc; i++)
+		if (strcmp(argv[i], "--cmd") == 0 && i+1 < argc)
+			proto->parse(argv[++i]);
+
 	while ( !proto->shouldQuit() )
 	{
 		std::string line;
