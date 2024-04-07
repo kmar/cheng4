@@ -24,6 +24,7 @@ or as public domain (where applicable)
 #include "engine.h"
 #include "protocol.h"
 #include "utils.h"
+#include <cstring>
 
 int main( int argc, char **argv )
 {
