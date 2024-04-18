@@ -37,14 +37,11 @@ Mutex *tbMutex = 0;
 
 bool tbInit(const char *path)
 {
-#if 0
-	// FIXME: pyrrhic seems to crash if we deinit here for empty path and try to reinit later...
 	if (!path || !*path)
 	{
 		tbDone();
 		return true;
 	}
-#endif
 
 	tbInitialized = true;
 

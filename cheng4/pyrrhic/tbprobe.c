@@ -795,6 +795,8 @@ void tb_free(void)
   tb_init("");
   free(pieceEntry);
   free(pawnEntry);
+  pieceEntry = 0;
+  pawnEntry = 0;
 }
 
 static const int8_t OffDiag[] = {
