@@ -220,37 +220,6 @@ void Network::forward_cache(const NetCache & CHENG_PTR_NOALIAS cache, const NetC
 	layers[0]->forward_cache(cacheOpp, temp + topo1);
 
 	layers[1]->forward(temp, outp);
-
-#if 0
-	fixedp temp2[MAX_LAYER_SIZE];
-
-	const fixedp *inp = nullptr;
-
-	for (int i=0; i<(int)layers.size(); i++)
-	{
-		if (i == 0)
-		{
-			layers[i]->forward_cache(cache, temp);
-			layers[i]->forward_cache(cacheOpp, temp + topo1/*layers[i]->getOutputSize()*/);
-		}
-		else
-			layers[i]->forward(inp, temp);
-
-		auto osz = layers[i]->getOutputSize() << int(i ==0);
-
-		CHENG_AUTO_VECTORIZE_LOOP
-		for (int j=0; j<osz; j++)
-			temp2[j] = temp[j];
-
-		inp = temp2;
-	}
-
-	int osz = layers[layers.size()-1]->getOutputSize();
-
-	CHENG_AUTO_VECTORIZE_LOOP
-	for (int j=0; j<osz; j++)
-		outp[j] = temp[j];
-#endif
 }
 
 void Network::cache_add_index(NetCache &cache, i32 index)

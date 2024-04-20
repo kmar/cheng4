@@ -32,21 +32,12 @@ namespace cheng4
 enum Topology
 {
 	topo0 = 736,
-#if 0
-	topo1 = 224,
-	// new: x2 (perspective)
-	topo1in = topo1*2,
-	topo2 = 8,
-
-	topoLayers = 3
-#else
 	topo1 = 448,
 	// new: x2 (perspective)
 	topo1in = topo1*2,
 	topo2 = 1,
 
 	topoLayers = 2
-#endif
 };
 
 // layer 1 bitplane fast update cache
