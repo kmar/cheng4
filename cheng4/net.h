@@ -53,18 +53,18 @@ enum Topology
 struct NetCache;
 
 typedef i32 fixedp;
+typedef i16 wfixedp;
 
 struct NetLayerBase
 {
 	// weights now transposed
-	fixedp *weights = nullptr;
-	fixedp *bias = nullptr;
+	wfixedp *weights = nullptr;
+	wfixedp *bias = nullptr;
 
 	virtual ~NetLayerBase() {}
 
-	virtual void init(fixedp *wvec, fixedp *bvec)=0;
+	virtual void init(wfixedp *wvec, wfixedp *bvec)=0;
 	virtual void transpose_weights() = 0;
-	virtual void forward_restricted(const i32 *inputIndex, int indexCount, fixedp *output)=0;
 	virtual void forward_cache(const NetCache &cache, fixedp *output)=0;
 	virtual void forward(const fixedp *input, fixedp *output)=0;
 
@@ -86,7 +86,7 @@ struct Network
 {
 	std::vector<NetLayerBase *> layers;
 	// all weights, including biases (biases come at the end)
-	std::vector<fixedp> weights;
+	std::vector<wfixedp> weights;
 	// this is where aligned weights start
 	int weight_index;
 	// total number of weights
@@ -105,8 +105,6 @@ struct Network
 	bool init_topology();
 
 	void forward_cache(const NetCache &cache, const NetCache &cacheOpp, fixedp *outp, int outpsize);
-
-	void forward_nz(const fixedp *inp, int inpsize, const i32 *nonzero, const i32 *nonzeroOpp, int nzcount, fixedp *outp, int outpsize);
 
 	void cache_init(const i32 *nonzero, int nzcount, NetCache &cache);
 

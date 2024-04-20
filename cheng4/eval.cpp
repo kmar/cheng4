@@ -773,6 +773,18 @@ Score Eval::evalNet( const Board &b, Score alpha, Score beta )
 
 Score Eval::eval( const Board &b, Score alpha, Score beta )
 {
+	if (!useHCE)
+	{
+		// note: for debugging purposes only
+		NetCache local[ctMax];
+		auto *oldCache = netCache;
+		netCache = local;
+		updateNetCache(b, netCache);
+		Score res = evalNet(b, alpha, beta);
+		netCache = oldCache;
+		return res;
+	}
+
 	Score res = BitOp::hasHwPopCount() ? ieval< pcmHardware >( b, alpha, beta ) : ieval< pcmNormal >( b, alpha, beta );
 
 	// scale down based on 50 rule counter
@@ -792,32 +804,6 @@ template< PopCountMode pcm > Score Eval::ieval( const Board &b, Score /*alpha*/,
 	EvalCacheEntry *ec = ecache.index( b.sig() );
 	if ( ec->sig == b.sig() )
 		return ec->score;					// hit => nothing to do
-
-	if (!useHCE)
-	{
-		i32 inds[64];
-		i32 indsOpp[64];
-		i32 ninds = b.netIndices(inds);
-
-		for (int i=0; i<ninds; i++)
-			indsOpp[i] = Board::flipNetIndex(inds[i]);
-
-		fixedp inp[736];
-		fixedp outp;
-		net.forward_nz(inp, 736, inds, indsOpp, ninds, &outp, 1);
-		Score sc = net.to_centipawns(outp);
-		Score corr = sign(b.turn()) * ScorePack::initFine(sc);
-
-		corr = augmentNet(b, corr);
-
-		// adjust according to stm
-		corr *= sign(b.turn());
-
-		// store to eval cache
-		ec->sig = b.sig();
-		ec->score = corr;
-		return corr;
-	}
 
 	// probe pawn hash
 	pe = phash.index( b.pawnSig() );

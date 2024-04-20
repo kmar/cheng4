@@ -257,6 +257,10 @@ struct network : torch::nn::Module
 	torch::nn::Linear layer2;
 
 	std::vector<const torch::nn::Linear *> layers;
+
+	void clamp_weights();
+
+	static torch::Tensor activate(torch::Tensor t);
 };
 
 network::network()
@@ -291,17 +295,17 @@ void network::save_fixedpt_file(const char *fn)
 	auto pn = pack();
 
 	std::vector<float> input;
-	std::vector<int32_t> output;
+	std::vector<int16_t> output;
 	input.insert(input.end(), pn.weights.begin(), pn.weights.end());
 	input.insert(input.end(), pn.biases.begin(), pn.biases.end());
 	output.resize(input.size());
 
-	// convert to 16:16 fixedpoint
+	// convert to 6:10 fixedpoint
 	for (size_t i=0; i<output.size(); i++)
-		output[i] = (int32_t)floor(input[i]*65536.0f + 0.5f);
+		output[i] = (int16_t)floor(input[i]*1024.0f + 0.5f);
 
 	FILE *f = fopen(fn, "wb");
-	fwrite(output.data(), sizeof(float), output.size(), f);
+	fwrite(output.data(), sizeof(int16_t), output.size(), f);
 	fclose(f);
 }
 
@@ -371,16 +375,35 @@ void network::unpack(const packed_network &pn)
 	}
 }
 
+void network::clamp_weights()
+{
+	torch::NoGradGuard guard;
+
+	constexpr float weight_limit = 1.0f;
+
+	for (auto *it : layers)
+	{
+		it->get()->weight.clamp_(-weight_limit, weight_limit);
+		it->get()->bias.clamp_(-weight_limit, weight_limit);
+	}
+}
+
+torch::Tensor network::activate(torch::Tensor t)
+{
+	// saturate aka clipped relu
+	return torch::clamp(t, 0.0f, 1.0f);
+}
+
 torch::Tensor network::forward(torch::Tensor input, torch::Tensor input_opp)
 {
-	torch::Tensor tmp_std = relu(layer0->forward(input));
-	torch::Tensor tmp_opp = relu(layer0->forward(input_opp));
+	torch::Tensor tmp_std = activate(layer0->forward(input));
+	torch::Tensor tmp_opp = activate(layer0->forward(input_opp));
 
 	torch::Tensor tmp = torch::hstack({tmp_std, tmp_opp});
 
 	if (cheng4::topoLayers >= 3)
 	{
-		tmp = relu(layer1->forward(tmp));
+		tmp = activate(layer1->forward(tmp));
 		tmp = layer2->forward(tmp);
 	}
 	else
@@ -474,6 +497,8 @@ void net_trainer::train(memory_mapped_file &mf, uint64_t num_positions, network 
 
 			loss.backward();
 			optimizer.step();
+
+			net.clamp_weights();
 
 			auto batch_loss = loss.item<float>();
 
