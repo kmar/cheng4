@@ -47,7 +47,7 @@ void Network::forward_cache(const NetCache & CHENG_PTR_NOALIAS cache, const NetC
 	(void)outpsize;
 	assert(outpsize >= layers[layers.size()-1]->getOutputSize());
 
-	fixedp temp[MAX_LAYER_SIZE];
+	wfixedp temp[MAX_LAYER_SIZE];
 
 	// now manually unpacked
 	layer0.forward_cache(cache, temp);

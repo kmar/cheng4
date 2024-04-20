@@ -300,9 +300,9 @@ void network::save_fixedpt_file(const char *fn)
 	input.insert(input.end(), pn.biases.begin(), pn.biases.end());
 	output.resize(input.size());
 
-	// convert to 6:10 fixedpoint
+	// convert to 7:9 fixedpoint
 	for (size_t i=0; i<output.size(); i++)
-		output[i] = (int16_t)floor(input[i]*1024.0f + 0.5f);
+		output[i] = (int16_t)floor(input[i]*512.0f + 0.5f);
 
 	FILE *f = fopen(fn, "wb");
 	fwrite(output.data(), sizeof(int16_t), output.size(), f);
@@ -379,7 +379,8 @@ void network::clamp_weights()
 {
 	torch::NoGradGuard guard;
 
-	constexpr float weight_limit = 1.0f;
+	// 32767/65 = 504 (=bias + all squares occupied for netcache fit in 16-bit)
+	constexpr float weight_limit = 504.0f/512.0f;
 
 	for (auto *it : layers)
 	{

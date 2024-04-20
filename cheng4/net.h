@@ -48,7 +48,7 @@ typedef i16 wfixedp;
 struct NetCache
 {
 	// actual cache for layer 1 output, including biases
-	fixedp cache[topo1];
+	wfixedp cache[topo1];
 };
 
 struct NetLayerBase
@@ -70,7 +70,7 @@ struct NetLayerBase
 
 #define NET_TRANSPOSE_LAYER0_ONLY 1
 
-static constexpr int fixedp_shift = 10;
+static constexpr int fixedp_shift = 9;
 
 // we can do with 32-bit mult result because abs(weights) should never exceed 1 << fixedp_shift, ditto for biases
 typedef int32_t fixedp_result;
@@ -83,7 +83,8 @@ inline fixedp fixed_mul(fixedp a, fixedp b)
 template<int inputSize, int outputSize, bool last>
 struct NetLayer : NetLayerBase
 {
-	static constexpr int fixedp_max = 1 << 10;
+	// 32767/(64+1) = 504 => cache: bias + 64 squares = 65
+	static constexpr int fixedp_max = 504;
 
 	void init(wfixedp *wvec, wfixedp *bvec) override
 	{
@@ -137,7 +138,7 @@ struct NetLayer : NetLayerBase
 
 	void cache_init(const i32 *inputIndex, int indexCount, NetCache &cache) override
 	{
-		fixedp *tmp = cache.cache;
+		wfixedp *tmp = cache.cache;
 
 		for (int i=0; i<outputSize; i++)
 			tmp[i] = bias[i];
@@ -156,7 +157,7 @@ struct NetLayer : NetLayerBase
 
 	void cache_add_index(NetCache & CHENG_PTR_NOALIAS cache, i32 index)
 	{
-		fixedp *tmp = cache.cache;
+		wfixedp *tmp = cache.cache;
 		const wfixedp *w = weights + index*outputSize;
 
 		CHENG_AUTO_VECTORIZE_LOOP
@@ -166,7 +167,7 @@ struct NetLayer : NetLayerBase
 
 	void cache_sub_index(NetCache & CHENG_PTR_NOALIAS cache, i32 index)
 	{
-		fixedp *tmp = cache.cache;
+		wfixedp *tmp = cache.cache;
 		const wfixedp *w = weights + index*outputSize;
 
 		CHENG_AUTO_VECTORIZE_LOOP
@@ -175,9 +176,9 @@ struct NetLayer : NetLayerBase
 	}
 
 	// forward, cached
-	void forward_cache(const NetCache & CHENG_PTR_NOALIAS cache, fixedp * CHENG_PTR_NOALIAS output)
+	void forward_cache(const NetCache & CHENG_PTR_NOALIAS cache, wfixedp * CHENG_PTR_NOALIAS output)
 	{
-		const fixedp *tmp = cache.cache;
+		const wfixedp *tmp = cache.cache;
 
 		CHENG_AUTO_VECTORIZE_LOOP
 		for (int i=0; i<outputSize; i++)
@@ -185,7 +186,7 @@ struct NetLayer : NetLayerBase
 	}
 
 	// feedforward
-	void forward(const fixedp *  CHENG_PTR_NOALIAS input, fixedp * CHENG_PTR_NOALIAS output)
+	void forward(const wfixedp *  CHENG_PTR_NOALIAS input, fixedp * CHENG_PTR_NOALIAS output)
 	{
 		fixedp_result tmp[outputSize];
 
