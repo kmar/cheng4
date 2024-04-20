@@ -94,12 +94,12 @@ static const i32 currmoveLimit = 1000;
 
 // beta razoring margins
 static TUNE_CONST Score betaMargins[] = {
-	0, 100, 150, 250, 400, 600, 850
+	0, 100, 150, 250, 400, 600, 800
 };
 
 // futility margins
 static TUNE_CONST Score futMargins[] = {
-	0, 100, 150, 250, 400, 600, 850
+	0, 100, 150, 250, 400, 600, 800
 };
 
 // razoring margins
@@ -108,7 +108,7 @@ static TUNE_CONST Score razorMargins[] = {
 };
 
 // singular extension margin
-static TUNE_CONST Score singularMargin = 13;
+static TUNE_CONST Score singularMargin = 26;
 
 // late move futility scale
 static TUNE_CONST Score lateMoveFutility = 22;
@@ -380,8 +380,6 @@ template< bool pv, bool incheck, bool donull >
 	if ( depth <= 0 )
 		return qsearch< pv, incheck >( ply, 0, alpha, beta );
 
-	fdepth &= ~(fracOnePly-1);
-
 	uint pvIndex = initPly<pv>( ply );
 	if (!pv)
 		(void)pvIndex;
@@ -569,8 +567,6 @@ template< bool pv, bool incheck, bool donull >
 	Move failHist[maxMoves];
 	MoveCount failHistCount = 0;
 
-	Square recapTarget = ply > 0 && MovePack::isCapture(stack[ply-1].current) ? MovePack::to(stack[ply-1].current) : (Square)sqInvalid;
-
 	Move hashmove = stack[ply].killers.hashMove;
 
 	bool doSingular = false;
@@ -583,7 +579,6 @@ template< bool pv, bool incheck, bool donull >
 
 		const bool isMateScout = ScorePack::isMate(singularAlpha);
 
-		// note: avoiding singular if a recapture already lost a tiny amount of elo
 		// isWin limit helps to stabilize fine #70, isMate isn't enough
 		// the problem is not scout search but the extension afterwards (TT pressure?)
 		// the real problem was my replacement scheme though...
@@ -613,10 +608,10 @@ template< bool pv, bool incheck, bool donull >
 		Score score;
 
 		// extend
-		FracDepth extension = std::min( (FracDepth)fracOnePly, extend<pv>( m, ischeck, mg.discovered() ) );
+		FracDepth extension = std::min( (FracDepth)fracOnePly, extend<pv>( depth, m, ischeck, mg.discovered() ) );
 
-		// singular/recapture extension
-		if ((doSingular && count==1) || (MovePack::isCapture(m) && MovePack::to(m) == recapTarget))
+		// singular extension
+		if (doSingular && count==1)
 			extension = fracOnePly;
 
 		// single evasion extension
@@ -632,6 +627,10 @@ template< bool pv, bool incheck, bool donull >
 			// futility pruning
 			Score futScore = fscore + futMargins[depth] - (Score)(lateMoveFutility*lmrCount);
 			if ( futScore <= alpha )
+				continue;
+
+			// SEE pruning
+			if (!MovePack::isSpecial(m) && board.see<1>(m) < 0)
 				continue;
 		}
 
@@ -964,7 +963,7 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 		bool isCheck = board.isCheck( rm.move, rootMoves.discovered );
 
 		// extend
-		FracDepth extension = extend<1>( rm.move, isCheck, rootMoves.discovered );
+		FracDepth extension = extend<1>( depth, rm.move, isCheck, rootMoves.discovered );
 		FracDepth newDepth = fd - fracOnePly + extension;
 
 		UndoInfo ui;

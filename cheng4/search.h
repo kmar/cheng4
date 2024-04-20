@@ -220,14 +220,14 @@ struct Search
 	bool timeOut();
 
 	// extensions (before move is made)
-	template< bool pv > FracDepth extend( Move m, bool isCheck, Bitboard dc ) const
+	template< bool pv > FracDepth extend( Depth depth, Move m, bool isCheck, Bitboard dc ) const
 	{
 		if ( isCheck )
 		{
 			(void)dc;		// no warnings about unreferenced param
-			// extend non-discovered checks in non-pv nodes less
-			if ( !pv && !(BitOp::oneShl(MovePack::from(m)) & dc) )
-				return fracOnePly/2;
+			if (!pv && depth < 3)
+				return 1;
+
 			return fracOnePly;
 		}
 
@@ -237,6 +237,7 @@ struct Search
 			if ( npm && npm == Tables::npValue[ PiecePack::type(board.piece(MovePack::to(m))) ] )
 				return fracOnePly;				// extend pawn ending one ply
 		}
+
 		FracDepth ext = 0;
 
 		Piece p = board.piece( MovePack::from(m) );
