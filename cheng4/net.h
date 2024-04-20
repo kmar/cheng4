@@ -25,6 +25,7 @@ or as public domain (where applicable)
 
 #include <vector>
 #include "types.h"
+#include "platform.h"
 
 namespace cheng4
 {
@@ -56,15 +57,173 @@ struct NetLayerBase
 
 	virtual void init(wfixedp *wvec, wfixedp *bvec)=0;
 	virtual void transpose_weights() = 0;
-	virtual void forward_cache(const NetCache &cache, fixedp *output)=0;
-	virtual void forward(const fixedp *input, fixedp *output)=0;
 
 	virtual void cache_init(const i32 *inputIndex, int indexCount, NetCache &cache)=0;
-	virtual void cache_add_index(NetCache &cache, i32 index) = 0;
-	virtual void cache_sub_index(NetCache &cache, i32 index) = 0;
 
 	virtual int getInputSize() const = 0;
 	virtual int getOutputSize() const = 0;
+};
+
+#define NET_TRANSPOSE_LAYER0_ONLY 1
+
+static constexpr int fixedp_shift = 10;
+
+// we can do with 32-bit mult result because abs(weights) should never exceed 1 << fixedp_shift, ditto for biases
+typedef int32_t fixedp_result;
+
+inline fixedp fixed_mul(fixedp a, fixedp b)
+{
+    return fixedp((fixedp_result)a * b >> fixedp_shift);
+}
+
+static constexpr int MAX_LAYER_SIZE = 768 > topo1in ? 768 : topo1in;
+
+template<int inputSize, int outputSize, bool last>
+struct NetLayer : NetLayerBase
+{
+	static constexpr int fixedp_max = 1 << 10;
+
+	void init(wfixedp *wvec, wfixedp *bvec) override
+	{
+		weights = wvec;
+		bias = bvec;
+
+		// note: for inference we don't need random init here
+	}
+
+	void transpose_weights() override
+	{
+		transpose_weights_internal(weights);
+	}
+
+	void transpose_weights_internal(wfixedp *wptr)
+	{
+		int w = getInputSize();
+		int h = getOutputSize();
+
+		if (w <= 1 || h <= 1)
+			return;
+
+		std::vector<wfixedp> tmp(w*h);
+
+		const wfixedp *fptr = wptr;
+
+		//printf("wcount=%d\n", w*h);
+		for (int y=0; y<h; y++)
+			for (int x=0; x<w; x++)
+				tmp[x*h+y] = *fptr++;
+
+		for (int i=0; i<w*h; i++)
+			wptr[i] = tmp[i];
+	}
+
+	// relu/copy
+	static inline fixedp activate(fixedp value)
+	{
+		return last ? value : (value < 0 ? 0 : value > fixedp_max ? fixedp_max : value);
+	}
+
+	int getInputSize() const override
+	{
+		return inputSize;
+	}
+
+	int getOutputSize() const override
+	{
+		return outputSize;
+	}
+
+	void cache_init(const i32 *inputIndex, int indexCount, NetCache &cache) override
+	{
+		fixedp *tmp = cache.cache;
+
+		for (int i=0; i<outputSize; i++)
+			tmp[i] = bias[i];
+
+		for (int c=0; c<indexCount; c++)
+		{
+			int i = inputIndex[c];
+
+			const wfixedp *w = weights + i*outputSize;
+
+			CHENG_AUTO_VECTORIZE_LOOP
+			for (int j=0; j<outputSize; j++)
+				tmp[j] += w[j];
+		}
+	}
+
+	void cache_add_index(NetCache & CHENG_PTR_NOALIAS cache, i32 index)
+	{
+		fixedp *tmp = cache.cache;
+		const wfixedp *w = weights + index*outputSize;
+
+		CHENG_AUTO_VECTORIZE_LOOP
+		for (int j=0; j<outputSize; j++)
+			tmp[j] += w[j];
+	}
+
+	void cache_sub_index(NetCache & CHENG_PTR_NOALIAS cache, i32 index)
+	{
+		fixedp *tmp = cache.cache;
+		const wfixedp *w = weights + index*outputSize;
+
+		CHENG_AUTO_VECTORIZE_LOOP
+		for (int j=0; j<outputSize; j++)
+			tmp[j] -= w[j];
+	}
+
+	// forward, cached
+	void forward_cache(const NetCache & CHENG_PTR_NOALIAS cache, fixedp * CHENG_PTR_NOALIAS output)
+	{
+		const fixedp *tmp = cache.cache;
+
+		CHENG_AUTO_VECTORIZE_LOOP
+		for (int i=0; i<outputSize; i++)
+			output[i] = activate(tmp[i]);
+	}
+
+	// feedforward
+	void forward(const fixedp *  CHENG_PTR_NOALIAS input, fixedp * CHENG_PTR_NOALIAS output)
+	{
+		fixedp_result tmp[outputSize];
+
+		CHENG_AUTO_VECTORIZE_LOOP
+		for (int i=0; i<outputSize; i++)
+			tmp[i] = (fixedp_result)bias[i] << fixedp_shift;
+
+#if NET_TRANSPOSE_LAYER0_ONLY
+		for (int i=0; i<outputSize; i++)
+		{
+			const wfixedp *w = weights + i*inputSize;
+
+			fixedp_result tmpdot = 0;
+
+			CHENG_AUTO_VECTORIZE_LOOP
+			for (int j=0; j<inputSize; j++)
+				tmpdot += (fixedp_result)input[j] * w[j];
+
+			tmp[i] += tmpdot;
+		}
+#else
+		for (int i=0; i<inputSize; i++)
+		{
+			const wfixedp *w = weights + i*outputSize;
+
+			fixedp_result inputw = input[i];
+
+			// note: we bet we don't overflow here - that weights are relatively small
+			// note2: preshift by 8 did hurt the output waay to much to be usable
+			// this is much much slower than float so I'll probably have to go with only 1 hidden layer
+			CHENG_AUTO_VECTORIZE_LOOP
+			for (int j=0; j<outputSize; j++)
+				tmp[j] += inputw * w[j];
+		}
+#endif
+
+		CHENG_AUTO_VECTORIZE_LOOP
+		for (int i=0; i<outputSize; i++)
+			output[i] = activate((fixedp)(tmp[i] >> fixedp_shift));
+	}
 };
 
 struct NetCache
@@ -76,6 +235,11 @@ struct NetCache
 struct Network
 {
 	std::vector<NetLayerBase *> layers;
+
+	// now fixed
+	NetLayer<topo0, topo1, false> layer0;
+	NetLayer<topo1in, 1, true> layer1;
+
 	// all weights, including biases (biases come at the end)
 	std::vector<wfixedp> weights;
 	// this is where aligned weights start
@@ -84,8 +248,6 @@ struct Network
 	int weight_size;
 	// this is where biases start in weights
 	int bias_index;
-
-	~Network();
 
 	bool load(const char *filename);
 
