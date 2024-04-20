@@ -41,11 +41,15 @@ enum Topology
 	topoLayers = 2
 };
 
-// layer 1 bitplane fast update cache
-struct NetCache;
-
 typedef i32 fixedp;
 typedef i16 wfixedp;
+
+// layer 1 bitplane fast update cache
+struct NetCache
+{
+	// actual cache for layer 1 output, including biases
+	fixedp cache[topo1];
+};
 
 struct NetLayerBase
 {
@@ -222,12 +226,6 @@ struct NetLayer : NetLayerBase
 		for (int i=0; i<outputSize; i++)
 			output[i] = activate((fixedp)(tmp[i] >> fixedp_shift));
 	}
-};
-
-struct NetCache
-{
-	// actual cache for layer 1 output, including biases
-	fixedp cache[topo1];
 };
 
 struct Network
