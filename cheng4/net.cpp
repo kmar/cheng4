@@ -34,6 +34,8 @@ or as public domain (where applicable)
 namespace cheng4
 {
 
+static constexpr int MAX_LAYER_SIZE = 768 > topo1in ? 768 : topo1in;
+
 void Network::cache_init(const i32 *nonzero, int nzcount, NetCache &cache)
 {
 	layers[0]->cache_init(nonzero, nzcount, cache);

@@ -76,8 +76,6 @@ inline fixedp fixed_mul(fixedp a, fixedp b)
     return fixedp((fixedp_result)a * b >> fixedp_shift);
 }
 
-static constexpr int MAX_LAYER_SIZE = 768 > topo1in ? 768 : topo1in;
-
 template<int inputSize, int outputSize, bool last>
 struct NetLayer : NetLayerBase
 {
