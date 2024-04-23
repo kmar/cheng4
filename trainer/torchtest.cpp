@@ -36,10 +36,16 @@ or as public domain (where applicable)
 #include "../cheng4/net.h"
 #include "net_indices.h"
 
+#include "../cheng4/shuffle.h"
+#include "rnd_shuf.h"
+
 constexpr int PACKED_TRAIN_ENTRY_SIZE = 28;
 
+// set to true to random-shuffle batches before each epoch
+constexpr bool SHUFFLE_BATCHES = true;
+
 // as big as we can fit into memory
-constexpr int BATCH_SIZE = 1024*1024*1;
+constexpr int BATCH_SIZE = 1024*1024/2;
 constexpr int INPUT_SIZE = cheng4::topo0;
 
 // 1% per epoch
@@ -47,12 +53,21 @@ constexpr double EPOCH_LR_DECAY_RATE = 0.99;
 
 constexpr char NET_FILENAME[] = "test.net";
 constexpr char NET_FP_FILENAME[] = "test.fpnet";
+constexpr char NET_FP_FILENAME_EPOCH[] = "test_epoch%d.fpnet";
 
 // last cheng HCE K for texel tuning
 constexpr double HCE_K = 1.25098;
 
 // profile batch time?
 constexpr bool profile = false;
+
+std::string epoch_filename(int epoch)
+{
+	char buffer[256];
+	sprintf(buffer, NET_FP_FILENAME_EPOCH, epoch+1);
+
+	return buffer;
+}
 
 // convert eval score (cp) to win prob
 template<typename T>
@@ -384,6 +399,7 @@ void network::clamp_weights()
 
 	for (auto *it : layers)
 	{
+		// (_ version = inplace)
 		it->get()->weight.clamp_(-weight_limit, weight_limit);
 		it->get()->bias.clamp_(-weight_limit, weight_limit);
 	}
@@ -391,8 +407,8 @@ void network::clamp_weights()
 
 torch::Tensor network::activate(torch::Tensor t)
 {
-	// saturate aka clipped relu
-	return torch::clamp(t, 0.0f, 1.0f);
+	// saturate aka clipped relu (_ version = inplace)
+	return torch::clamp_(t, 0.0f, 1.0f);
 }
 
 torch::Tensor network::forward(torch::Tensor input, torch::Tensor input_opp)
@@ -449,10 +465,29 @@ void net_trainer::train(memory_mapped_file &mf, uint64_t num_positions, network 
 
 	const size_t num_batches = (size_t)(num_positions + BATCH_SIZE-1) / BATCH_SIZE;
 
+	std::vector<size_t> shuffled_batches;
+
+	cheng4::FastRandom shuf_rng;
+
+	if constexpr (SHUFFLE_BATCHES)
+	{
+		shuffled_batches.reserve(num_batches);
+
+		for (size_t i=0; i<num_positions; i += BATCH_SIZE)
+			shuffled_batches.push_back(i);
+
+		shuf_rng.Seed(seed_rnd());
+	}
+
+
 	for (int epoch=0; epoch<epochs; epoch++)
 	{
 		printf("starting epoch %d, lr=%0.6lf\n", 1+epoch, lr);
 		size_t idx = 0;
+
+
+		if constexpr (SHUFFLE_BATCHES)
+			cheng4::ShuffleArray(shuffled_batches.data(), shuffled_batches.data() + shuffled_batches.size(), shuf_rng);
 
 		auto cstart = clock();
 
@@ -462,8 +497,15 @@ void net_trainer::train(memory_mapped_file &mf, uint64_t num_positions, network 
 		net.to(device);
 
 		// for each batch:
-		for (size_t i=0; i<num_positions; i += BATCH_SIZE)
+		for (size_t bi=0; bi<num_positions; bi += BATCH_SIZE)
 		{
+			size_t i;
+
+			if constexpr (SHUFFLE_BATCHES)
+				i = shuffled_batches[idx];
+			else
+				i = bi;
+
 			size_t count = std::min<size_t>(BATCH_SIZE, num_positions - i);
 
 			// okay, now we must create batch tensor and fill it with data
@@ -506,8 +548,15 @@ void net_trainer::train(memory_mapped_file &mf, uint64_t num_positions, network 
 			if (idx++ % 5 == 0)
 			{
 				// print stuff
-				std::cout << "Epoch: " << (epoch+1) << " | Batch: " << batch_count << "/" << num_batches
-					<< " | Loss: " << batch_loss << " | Error: " << std::sqrt(batch_loss)*100 << "%" << std::endl;
+				printf("Epoch: %d | Batch: [src %-5d] %d/%d (%0.2lf%%) | Loss: %0.6lf | Error: %0.6lf\n",
+					(int)(epoch+1),
+					(int)(i / BATCH_SIZE),
+					(int)batch_count,
+					(int)num_batches,
+					batch_count*100.0/num_batches,
+					batch_loss,
+					std::sqrt(batch_loss)*100
+				);
 
 				auto tc = clock();
 				auto delta = tc - cstart;
@@ -530,6 +579,8 @@ void net_trainer::train(memory_mapped_file &mf, uint64_t num_positions, network 
 		net.to(cpudevice);
 		net.save_file(NET_FILENAME);
 		net.save_fixedpt_file(NET_FP_FILENAME);
+		auto epochfn = epoch_filename(epoch);
+		net.save_fixedpt_file(epochfn.c_str());
 
 		printf("done_epoch %d: Loss %0.6lf | Error: %0.2lf%%\n", epoch+1, loss_sum / batch_count, std::sqrt(loss_sum / batch_count)*100);
 
@@ -554,7 +605,7 @@ int main()
 	net.load_file(NET_FILENAME);
 
 	net_trainer nt;
-	// 50 epochs
+	// 50 epochs, overkill as data grows
 	nt.train(mf, mf.size() / PACKED_TRAIN_ENTRY_SIZE, net, 50);
 
 	return 0;
