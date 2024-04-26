@@ -33,7 +33,7 @@ namespace cheng4
 enum Topology
 {
 	topo0 = 736,
-	topo1 = 448,
+	topo1 = 576,
 	// new: x2 (perspective)
 	topo1in = topo1*2,
 	topo2 = 1,
