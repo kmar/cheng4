@@ -58,8 +58,11 @@ class FilterPgn
 public:
 	FilterPgn();
 
-	bool parse(const char *fname);
+	bool parse(const char *fname, bool extractlines = false);
 	bool write(const char *fname);
+
+	bool writeLines(const char *fname);
+
 private:
 	LexState ls;
 	Game game;
@@ -68,6 +71,10 @@ private:
 
 	TransTable tt;
 	Search s;
+
+	std::vector<std::string> lines;
+	std::string currentLine;
+	bool extractLines = false;
 
 	bool parseTag(std::string &key, std::string &value );
 	bool parseString(std::string &str);

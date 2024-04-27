@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="cheng4">
+      <UniqueIdentifier>{8e96c22c-556d-49f5-a50b-181e44be11af}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\cheng4\board.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\book.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\bookzobrist.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\engine.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\eval.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\history.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\kpk.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\magic.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\move.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\movegen.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\psq.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\search.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\see.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\tables.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\thread.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\trans.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\utils.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\zobrist.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="pgimport.cpp" />
+    <ClCompile Include="pgzobrist.cpp" />
+    <ClCompile Include="..\cheng4\tune.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\net.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\game.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+    <ClCompile Include="..\cheng4\tb.cpp">
+      <Filter>cheng4</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\cheng4\book.h">
+      <Filter>cheng4</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cheng4\bookzobrist.h">
+      <Filter>cheng4</Filter>
+    </ClInclude>
+    <ClInclude Include="..\cheng4\thread.h">
+      <Filter>cheng4</Filter>
+    </ClInclude>
+    <ClInclude Include="pgzobrist.h" />
+    <ClInclude Include="..\cheng4\tune.h">
+      <Filter>cheng4</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

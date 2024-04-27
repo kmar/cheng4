@@ -64,8 +64,23 @@ bool FilterPgn::write(const char *fname)
 	return 1;
 }
 
-bool FilterPgn::parse(const char *fname)
+bool FilterPgn::writeLines(const char *fname)
 {
+	std::ofstream ofs(fname, std::ios::out | std::ios::binary);
+
+	if (!ofs.is_open())
+		return false;
+
+	for (size_t i=0; i<lines.size(); i++)
+		ofs << lines[i] << std::endl;
+
+	return true;
+}
+
+bool FilterPgn::parse(const char *fname, bool extractlines)
+{
+	extractLines = extractlines;
+
 	if ( *fname == 32 )
 		fname++;
 	cheng4::Board b;
@@ -165,6 +180,10 @@ bool FilterPgn::parse(const char *fname)
 				delete[] buf;
 				return 0;
 			}
+
+			if (extractlines)
+				continue;
+
 			// here we want to filter book moves and checkmates
 			if (comment == "book" && !game.positions.empty())
 				game.positions.pop_back();
@@ -190,6 +209,19 @@ bool FilterPgn::parse(const char *fname)
 			getChar();
 			continue;
 		}
+
+		if (extractlines)
+		{
+			std::string smove = game.board.toSAN(m);
+			if (currentLine.empty())
+				currentLine = smove;
+			else
+			{
+				currentLine += " ";
+				currentLine += smove;
+			}
+		}
+
 		// we got a legal move here...
 		bool ischeck = game.board.isCheck(m, game.board.discovered());
 		UndoInfo ui;
@@ -218,6 +250,13 @@ bool FilterPgn::parse(const char *fname)
 
 void FilterPgn::flushGame()
 {
+	if (extractLines)
+	{
+		lines.push_back(currentLine);
+		currentLine.clear();
+		return;
+	}
+
 	if (game.result < 0)
 		return;
 

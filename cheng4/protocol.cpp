@@ -493,16 +493,30 @@ static bool pbench()
 
 static void filterPgn( const char *fname )
 {
-	static FilterPgn fp;
-	if (!fp.parse(fname))
-	{
+	FilterPgn *fp = new FilterPgn;
+
+	if (!fp->parse(fname))
 		std::cout << "failed to parse " << fname << std::endl;
-		return;
-	}
-	if (!fp.write("filterPgn_out.fen"))
+	else if (!fp->write("filterPgn_out.fen"))
 		std::cout << "failed to write filterPgn_out.fen" << std::endl;
 	else
 		std::cout << "all ok" << std::endl;
+
+	delete fp;
+}
+
+static void extractLinesPgn( const char *fname )
+{
+	FilterPgn *fp = new FilterPgn;
+
+	if (!fp->parse(fname, /*extractlines*/true))
+		std::cout << "failed to parse " << fname << std::endl;
+	else if (!fp->writeLines("lines_out.txt"))
+		std::cout << "failed to write lines_out.txt" << std::endl;
+	else
+		std::cout << "all ok" << std::endl;
+
+	delete fp;
 }
 
 static void autoplay()
@@ -2464,6 +2478,12 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 	{
 		// filter pgn
 		filterPgn( line.c_str() + pos );
+		return 1;
+	}
+	if ( token == "extractlinespgn" )
+	{
+		// extract lines from pgn
+		extractLinesPgn( line.c_str() + pos );
 		return 1;
 	}
 	if ( token == "labelfen" )

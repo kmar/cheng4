@@ -478,7 +478,7 @@ void convertBookLines( const char *fnm, const char *ofnm )
 
 	size_t sl = 0;
 
-	while ( fgets(buf+sl, sizeof(buf)-sl, f) )
+	while ( fgets(buf+sl, int(sizeof(buf)-sl), f) )
 	{
 		bool firstdigit = strchr(buf+sl, '.') != 0;//isdigit(buf[sl]);
 
@@ -535,7 +535,7 @@ int main( int argc, char **argv )
 #endif
 
 	PGBook book;
-	FILE *f2 = fopen("cheng2021.cb", "wb");
+	FILE *f2 = fopen("cheng2024.cb", "wb");
 	FILE *f = fopen(argc > 1 ? argv[1] : "booklines.bin", "rb");
 	if ( !f )
 	{

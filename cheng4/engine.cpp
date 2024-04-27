@@ -125,7 +125,7 @@ Engine::Engine( size_t transMegs )
 	mainThread = new EngineThread;
 	mainThread->search.setHashTable( tt );
 
-	book.open("cheng2021.cb");
+	book.open("cheng2024.cb");
 }
 
 Engine::~Engine()
