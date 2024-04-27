@@ -182,7 +182,7 @@ struct NetLayer : NetLayerBase
 
 		CHENG_AUTO_VECTORIZE_LOOP
 		for (int i=0; i<outputSize; i++)
-			output[i] = activate(tmp[i]);
+			output[i] = (wfixedp)activate(tmp[i]);
 	}
 
 	// feedforward
