@@ -77,7 +77,7 @@ typedef int32_t fixedp_result;
 
 inline fixedp fixed_mul(fixedp a, fixedp b)
 {
-    return fixedp((fixedp_result)a * b >> fixedp_shift);
+    return fixedp((int64_t)a * b >> fixedp_shift);
 }
 
 template<int inputSize, int outputSize, bool last>
