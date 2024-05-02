@@ -720,7 +720,7 @@ Score Eval::augmentNet(const Board &b, FineScore netScore)
 	fscore[phOpening] = netScore;
 	fscore[phEndgame] = netScore;
 
-	fscore[ phEndgame ] > 0 ? evalSpecial<ctWhite>( b ) : evalSpecial<ctBlack>( b );
+	b.nonPawnMat(ctWhite) > b.nonPawnMat(ctBlack) ? evalSpecial<ctWhite>( b ) : evalSpecial<ctBlack>( b );
 
 	// endgame recognizers
 	evalNonPawnRecog(b, b.materialKey());
