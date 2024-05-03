@@ -660,9 +660,6 @@ template< Color c > bool Eval::isCertainWin( const Board &b ) const
 
 template< Color c > void Eval::evalBlindBishop( const Board &b )
 {
-	if ( sign<c>() * fscore[phEndgame] < 0 )
-		return;
-
 	MaterialKey mk = b.materialKey();
 
 	// blind bishop check (FIXME: better -- seems too complicated)
@@ -720,7 +717,13 @@ Score Eval::augmentNet(const Board &b, FineScore netScore)
 	fscore[phOpening] = netScore;
 	fscore[phEndgame] = netScore;
 
-	b.nonPawnMat(ctWhite) > b.nonPawnMat(ctBlack) ? evalSpecial<ctWhite>( b ) : evalSpecial<ctBlack>( b );
+	NPMat npw = b.nonPawnMat(ctWhite);
+	NPMat npb = b.nonPawnMat(ctBlack);
+
+	if (npw > npb)
+		evalSpecial<ctWhite>( b );
+	else if (npb > npw)
+		evalSpecial<ctBlack>( b );
 
 	// endgame recognizers
 	evalNonPawnRecog(b, b.materialKey());
