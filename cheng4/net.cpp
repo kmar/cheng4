@@ -91,7 +91,7 @@ bool Network::init_topology()
 	//"total=%d nobias=%d\n", total, total_nobias;
 	bias_index = total_nobias;
 
-	weights.resize(total + 16);
+	weights.resize(total + 64/sizeof(wfixedp));
 
 	// align to cacheline
 	auto ptr = (uintptr_t)weights.data();
