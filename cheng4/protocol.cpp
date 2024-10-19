@@ -2454,9 +2454,6 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 
 		while ( (m = mg.next()) != mcNone )
 		{
-			if (!MovePack::isCapture(m))
-				continue;
-
 			std::cout << b.toSAN( m ) << ' ';
 			std::cout << b.see<false>(m) << " good " << (b.see<true>(m) >= 0) << std::endl;
 		}
