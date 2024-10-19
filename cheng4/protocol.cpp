@@ -2445,6 +2445,24 @@ bool Protocol::parseSpecial( const std::string &token, const std::string &line, 
 		std::cout.flush();
 		return 1;
 	}
+	if ( token == "see" )
+	{
+		engine.abortSearch();
+		Board b( engine.board() );
+		MoveGen mg( b );
+		Move m;
+
+		while ( (m = mg.next()) != mcNone )
+		{
+			if (!MovePack::isCapture(m))
+				continue;
+
+			std::cout << b.toSAN( m ) << ' ';
+			std::cout << b.see<false>(m) << " good " << (b.see<true>(m) >= 0) << std::endl;
+		}
+
+		return 1;
+	}
 	if ( token == "book" )
 	{
 		// special book debug
