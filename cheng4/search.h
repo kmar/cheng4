@@ -300,7 +300,7 @@ struct Search
 	Score root( Depth depth, Score alpha = -scInfinity, Score beta = +scInfinity );
 
 	// start new search and iterate
-	Score iterate( Board &b, const SearchMode &sm, bool nosendbest = 0 );
+	Score iterate( const Board &b, const SearchMode &sm, bool nosendbest = 0 );
 
 	// clear all helper slots
 	void clearSlots( bool clearEval = 1 );

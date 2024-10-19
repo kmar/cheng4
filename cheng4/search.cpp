@@ -1178,7 +1178,7 @@ i32 Search::initIteration()
 
 static History rootHist(0);
 
-Score Search::iterate( Board &b, const SearchMode &sm, bool nosendbest )
+Score Search::iterate( const Board &b, const SearchMode &sm, bool nosendbest )
 {
 	assert( tt );
 
