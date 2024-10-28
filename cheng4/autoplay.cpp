@@ -146,6 +146,7 @@ public:
 	void playGame()
 	{
 		Game g;
+
 		s->clearHash();
 		s->rep.push(s->board.sig(), true);
 
@@ -161,8 +162,8 @@ public:
 
 			SearchMode sm;
 			sm.reset();
-			sm.maxNodes = 10000;
-			auto tb = s->board;
+			sm.maxNodes = 6144;
+			const auto tb = s->board;
 			Score sc = s->iterate(tb, sm);
 
 			auto move = s->rootMoves.sorted[0]->move;
@@ -188,7 +189,7 @@ public:
 			s->rep.push(s->board.sig(), !s->board.fifty());
 
 			// label conditions met?
-			if (abs(sc) > 1600 || g.curBoard.inCheck() || MovePack::isSpecial(move) || g.curBoard.move() < 4)
+			if (abs(sc) > 1600 || tb.inCheck() || MovePack::isSpecial(move) || g.curBoard.move() < 4)
 				continue;
 
 			Signature sig = g.curBoard.sig();
@@ -208,7 +209,8 @@ public:
 			if (dup)
 				continue;
 
-			boards.push_back(s->board);
+			boards.push_back(tb);
+
 			labels.push_back(sc);
 		}
 
