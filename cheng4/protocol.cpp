@@ -1069,8 +1069,12 @@ bool Protocol::parseUCI( const std::string &line )
 					return 0;
 				}
 				long mt = strtol( token.c_str(), 0, 10 );
+
 				if ( mt <= 0 )
 					mt = -1;
+				else
+					mt = std::max<long>((long)((int64_t)mt*fixedTimeScale/1000), mt-fixedTimeMargin);
+
 				sm.absLimit = sm.maxTime = (i32)mt;
 				sm.fixedTime = 1;
 			}
@@ -1771,7 +1775,8 @@ bool Protocol::parseCECPInternal( const std::string &line )
 			return 0;
 		}
 		long tmp = strtol( token.c_str(), 0, 10 );
-		timeLimit = (tmp > 0) ? (Time)(tmp * 1000) : (Time)-1;
+
+		timeLimit = (tmp > 0) ? std::max<Time>((Time)(tmp * fixedTimeScale), (Time)tmp*1000 - fixedTimeMargin) : (Time)-1;
 		fixedTime = 1;
 		return 1;
 	}

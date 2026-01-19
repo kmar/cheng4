@@ -44,6 +44,11 @@ struct SearchInfo;
 
 class Protocol
 {
+	// only use 95% for fixed time per move to avoid timelosses
+	static const int fixedTimeScale = 950;
+	// or 50 msec, whichever is higher
+	static const int fixedTimeMargin = 50;
+
 	std::stringstream sendStr;				// send string
 	Mutex mutex;							// send mutex
 	Mutex parseMutex;						// parse mutex
