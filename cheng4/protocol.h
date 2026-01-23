@@ -187,6 +187,9 @@ public:
 
 	// is game over (CECP)? (returns adjudicated flag)
 	int isGameOverCECP() const;
+
+	// UCI option names should be case-insensitive (sigh)
+	static bool uciCompareOptionName(const std::string &name, const char *ref);
 };
 
 }

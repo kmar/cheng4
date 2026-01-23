@@ -1334,6 +1334,23 @@ bool Protocol::parseUCI( const std::string &line )
 	return 0;
 }
 
+bool Protocol::uciCompareOptionName(const std::string &name, const char *ref)
+{
+	const char *src = name.c_str();
+
+	while (*src && *ref)
+	{
+		// fast tolower
+		if ((*src | 32) != (*ref | 32))
+			return false;
+
+		++src;
+		++ref;
+	}
+
+	return !*src && !*ref;
+}
+
 bool Protocol::parseUCIOptions( const std::string &line, size_t &pos )
 {
 	std::string token;
@@ -1363,70 +1380,70 @@ bool Protocol::parseUCIOptions( const std::string &line, size_t &pos )
 		c++;
 	value = c;
 	// examine key
-	if ( key == "Clear Hash" )
+	if ( uciCompareOptionName(key, "Clear Hash") )
 	{
 		engine.clearHash();
 		return 1;
 	}
-	if ( key == "Hash" )
+	if ( uciCompareOptionName(key, "Hash") )
 	{
 		long hm = strtol( value.c_str(), 0, 10 );
 		return engine.setHash( (uint)std::max(1l, hm) );
 	}
-	if ( key == "MoveOverheadMsec")
+	if ( uciCompareOptionName(key, "MoveOverheadMsec") )
 	{
 		long mo = strtol( value.c_str(), 0, 10 );
 		moveOverheadMs = std::max<i32>(mo, 0);
 		return 1;
 	}
-	if ( key == "SyzygyPath" )
+	if ( uciCompareOptionName(key, "SyzygyPath") )
 	{
 		return engine.initTb(value.c_str(), "info string");
 	}
-	if ( key == "SyzygyEnable" )
+	if ( uciCompareOptionName(key, "SyzygyEnable") )
 	{
 		engine.enableTb( value != "false" );
 		return 1;
 	}
-	if ( key == "UseHCE" )
+	if ( uciCompareOptionName(key, "UseHCE") )
 	{
 		engine.useHCE( value != "false" );
 		return 1;
 	}
-	if ( key == "Ponder" )
+	if ( uciCompareOptionName(key, "Ponder") )
 	{
 		engine.setPonder( value == "true" );
 		return 1;
 	}
-	if ( key == "Threads" )
+	if ( uciCompareOptionName(key, "Threads") )
 	{
 		long thr = strtol( value.c_str(), 0, 10 );
 		engine.setThreads( (uint)std::max( 1l, thr ) );
 		return 1;
 	}
-	if ( key == "MultiPV" )
+	if ( uciCompareOptionName(key, "MultiPV") )
 	{
 		long mpv = strtol( value.c_str(), 0, 10 );
 		multiPV = (uint)std::max( 1l, std::min( 256l, mpv ) );
 		engine.setMultiPV( multiPV );
 		return 1;
 	}
-	if ( key == "OwnBook" )
+	if ( uciCompareOptionName(key, "OwnBook") )
 	{
 		engine.setOwnBook( value != "false" );	// was value == "true", this is just to fix an annoying Arena bug!
 		return 1;
 	}
-	if ( key == "UCI_Chess960" )
+	if ( uciCompareOptionName(key, "UCI_Chess960") )
 	{
 		// handled automatically
 		return 1;
 	}
-	if ( key == "UCI_LimitStrength")
+	if ( uciCompareOptionName(key, "UCI_LimitStrength") )
 	{
 		engine.setLimit( value == "true" );
 		return 1;
 	}
-	if ( key == "UCI_Elo")
+	if ( uciCompareOptionName(key, "UCI_Elo") )
 	{
 		long elo = strtol( value.c_str(), 0, 10 );
 		elo = std::max( 800L, elo );
@@ -1434,7 +1451,7 @@ bool Protocol::parseUCIOptions( const std::string &line, size_t &pos )
 		engine.setElo( (u32)elo );
 		return 1;
 	}
-	if ( key == "Contempt")
+	if ( uciCompareOptionName(key, "Contempt") )
 	{
 		long contempt = strtol( value.c_str(), 0, 10 );
 		contempt = std::max( -100L, contempt );
@@ -1442,7 +1459,7 @@ bool Protocol::parseUCIOptions( const std::string &line, size_t &pos )
 		engine.setContempt( (Score)contempt );
 		return 1;
 	}
-	if ( key == "NullMove")
+	if ( uciCompareOptionName(key, "NullMove") )
 	{
 		engine.setNullMove( value != "false" );
 		return 1;

@@ -1460,6 +1460,12 @@ Score Search::iterate( const Board &b, const SearchMode &sm, bool nosendbest )
 		while ( !aborting && !ponderHit )
 			Thread::sleep(1);
 	}
+	else if ( sm.analyzing() )
+	{
+		// wait for stop to conform to UCI specification
+		while ( !aborting )
+			Thread::sleep(1);
+	}
 
 	// finally report total nodes and time
 	if ( verbose )
