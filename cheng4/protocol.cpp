@@ -828,11 +828,14 @@ void Protocol::sendPV( const SearchInfo &si, uint index, Score score, enum Bound
 	switch( type )
 	{
 	case ptUCI:
+		sendStr << " multipv " << (1+index) << " score " << uciScore( score );
+
 		if ( bound == btLower )
-			sendStr << " lowerbound ";
+			sendStr << " lowerbound";
 		else if ( bound == btUpper )
-			sendStr << " upperbound ";
-		sendStr << " multipv " << (1+index) << " score " << uciScore( score ) << " pv";
+			sendStr << " upperbound";
+
+		sendStr << " pv";
 
 		if (pvCount)
 		{
