@@ -907,7 +907,10 @@ Score Search::root( Depth depth, Score alpha, Score beta )
 			TbProbeResult tbres = tbProbeRoot(board, ltbMoves);
 
 			if (tbres != tbResInvalid)
+			{
+				tbHits++;
 				tbMoveCount = tbConvertRootMoves(board, ltbMoves, tbMoves, tbScores);
+			}
 
 			// only override all for depth 1
 			for (size_t i=0; depth == 1 && i<rootMoves.count; i++)
