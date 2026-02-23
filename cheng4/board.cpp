@@ -1628,7 +1628,7 @@ Move Board::fromSAN( const char *&ptr ) const
 				toFile = CFILE;
 				ptr++;
 			}
-			else if ( ptr[1] && *ptr == '-' && (ptr[1]|32) == 'o' )
+			else if ( *ptr == '-' && ptr[1] && (ptr[1]|32) == 'o' )
 			{
 				// long castling
 				toFile = CFILE;
