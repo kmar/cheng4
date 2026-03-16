@@ -553,7 +553,7 @@ void Eval::clear()
 
 void Eval::netCacheAddIndex(Color stm, int index)
 {
-	if (useHCE)
+	if (useHCE || index < 0)
 		return;
 
 	// is this correct, actually?
@@ -569,7 +569,7 @@ void Eval::netCacheAddIndex(Color stm, int index)
 
 void Eval::netCacheSubIndex(Color stm, int index)
 {
-	if (useHCE)
+	if (useHCE || index < 0)
 		return;
 
 	int findex = Board::flipNetIndex(index);

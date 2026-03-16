@@ -2103,11 +2103,11 @@ template< bool evasion, bool killer > bool Board::iisLegal( Move m, Bitboard pin
 			if ( m & mfCastling )
 				return 0;			// illegal junk flags
 
-			if ( SquarePack::isRank1Or8( from ) )
-				return 0;
-
 			Rank irank = (turn() == ctWhite) ?
 				SquarePack::relRank< ctWhite >( from ) : SquarePack::relRank< ctBlack >( from );
+
+			if (irank == RANK8)
+				return 0;
 
 			// advance by one
 			from = ( turn() == ctWhite ) ?
@@ -2330,7 +2330,9 @@ i32 Board::netIndex(Color stm, Color c, PieceType pt, Square sq) const
 
 	case ptPawn:
 	{
-		assert(!SquarePack::isRank1Or8(sq));
+		if (SquarePack::isRank1Or8(sq))
+			return -1;
+
 		// base = 128
 		return 128 + sq-8 + 48*(c == ctBlack);
 	}
@@ -2363,6 +2365,9 @@ int Board::netIndicesDebug(i32 *inds) const
 int Board::netIndicesStm(Color stm, i32 *inds) const
 {
 	Bitboard occ = occupied();
+	Bitboard tmp = (pieces(ctWhite, ptPawn) | pieces(ctBlack, ptPawn)) & pawnPromoSquares;
+	// clear illegal pawn squares
+	occ &= ~tmp;
 
 	int res = 0;
 
@@ -2815,7 +2820,6 @@ void Board::doMoveTemplate( Move move, Square from, Square to, UndoInfo &ui, boo
 	if ( isCheck )
 		calcEvasMask();
 
-	assert( !( (pieces( ctWhite, ptPawn)|pieces( ctBlack, ptPawn)) & pawnPromoSquares ) );
 	assert( bcheck == doesAttack<1>( flip(bturn), king( bturn ) ) );
 	assert( bhash == recomputeHash() );
 	assert( bpawnHash == recomputePawnHash() );

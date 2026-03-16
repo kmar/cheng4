@@ -168,6 +168,8 @@ protected:
 	template< Color color > static Move *genPawnPushes( const Board &b, Move *moves )
 	{
 		Bitboard tmp = b.pieces( color, ptPawn );
+		tmp &= ~Tables::eighthRank[color];
+
 		while ( tmp )
 		{
 			Square sq = BitOp::popBit( tmp );
@@ -193,6 +195,8 @@ protected:
 	template< Color color > static Move *genPawnPushesSlow( Bitboard targm, const Board &b, Move *moves )
 	{
 		Bitboard tmp = b.pieces( color, ptPawn );
+		tmp &= ~Tables::eighthRank[color];
+
 		while ( tmp )
 		{
 			Square sq = BitOp::popBit( tmp );
@@ -219,6 +223,8 @@ protected:
 		Bitboard targm, const Board &b, Move *moves )
 	{
 		Bitboard tmp = b.pieces( color, ptPawn );
+		tmp &= ~Tables::eighthRank[color];
+
 		while ( tmp )
 		{
 			Square sq = BitOp::popBit( tmp );
