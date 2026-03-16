@@ -397,8 +397,12 @@ void Board::update()
 		bdmat[ phEndgame ] += PSq::tables[ phEndgame ][ c ][ ptKing ][ kp ];
 	}
 
-	// valiate ep square
+	// validate ep square
 	if ( bep && !(Tables::pawnAttm[ flip(bturn) ][ bep ] & pieces( bturn, ptPawn) ) )
+		bep = 0;
+
+	// more thorough ep square validation
+	if ( bep && (!isVacated(bep) || !(BitOp::shiftForward(flip(bturn), Tables::oneShlTab[bep]) & pieces( flip(bturn), ptPawn ))))
 		bep = 0;
 
 	// en passant
