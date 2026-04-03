@@ -1946,7 +1946,7 @@ bool Protocol::parseCECPInternal( const std::string &line )
 		}
 		long cores = strtol( token.c_str(), 0, 10 );
 		maxCores = (uint)std::max( 1l, cores );
-		engine.limitThreads( maxCores );
+		engine.setThreads( maxCores );
 		return 1;
 	}
 	if ( token == "option" )
