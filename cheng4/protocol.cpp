@@ -2593,7 +2593,7 @@ void Protocol::allocTime(i32 mytime, i32 myinc, i32 /*optime*/, i32 /*opinc*/, i
 		movestogo = 25;
 		mytime -= moveOverheadMs;		// reserve
 	}
-	mvl = (mytime + movestogo * myinc) / movestogo;
+	mvl = (mytime + movestogo * myinc * (movestogo > 1)) / movestogo;
 	if ( suddenDeath && mvl > mytime/2 )
 		mvl = mytime/2;
 
