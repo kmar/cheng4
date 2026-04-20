@@ -68,8 +68,8 @@ void EngineThread::work()
 		doneSearch.reset();
 		searching = 1;
 		search.iterate( search.board, searchMode );
-		doneSearch.signal();
 		searching = 0;
+		doneSearch.signal();
 	}
 }
 
