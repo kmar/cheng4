@@ -285,7 +285,8 @@ template< bool pv, bool incheck > Score Search::qsearch( Ply ply, Depth depth, S
 		return best;
 
 	history->previous = ply > 0 ? stack[ply-1].current : mcNull;
-	MoveGen mg( board, stack[ply].killers, *history, qchecks ? mmQCapsChecks : mmQCaps );
+	initHistoryCtx(ply);
+	MoveGen mg( board, stack[ply].killers, stack[ply].ctx, *history, qchecks ? mmQCapsChecks : mmQCaps );
 	Move m;
 	Move bestMove = mcNone;
 
@@ -428,7 +429,10 @@ template< bool pv, bool incheck, bool donull >
 				if ( !MovePack::isSpecial( ttmove ) )
 				{
 					stack[ply].killers.addKiller( ttmove );
-					history->add( board, ttmove, depth );
+
+					history->add( 0, board, ttmove, depth );
+					for (int hi=0; hi<Zobrist::contextMoveMax; hi++)
+						history->add( stack[ply].ctx[hi], board, ttmove, depth );
 				}
 			}
 		}
@@ -559,7 +563,8 @@ template< bool pv, bool incheck, bool donull >
 		oalpha = alpha;
 
 	history->previous = ply > 0 ? stack[ply-1].current : mcNull;
-	MoveGen mg( board, stack[ply].killers, *history, mmNormal );
+	initHistoryCtx(ply);
+	MoveGen mg( board, stack[ply].killers, stack[ply].ctx, *history, mmNormal );
 	Move m;
 	Move bestMove = mcNone;
 	size_t count = 0;			// move count
@@ -636,7 +641,7 @@ template< bool pv, bool incheck, bool donull >
 
 		i32 hist;
 		if ( !incheck )
-			hist = history->score(board, m);
+			hist = history->score(0, board, m);
 
 		UndoInfo ui;
 		eval.netInitUndo(ui, cacheStack[ply+1].cache);
@@ -710,14 +715,21 @@ template< bool pv, bool incheck, bool donull >
 					if ( !MovePack::isSpecial( m ) )
 					{
 						stack[ply].killers.addKiller( m );
-						history->add( board, m, depth );
+						history->add( 0, board, m, depth );
+						for (int hi=0; hi<Zobrist::contextMoveMax; hi++)
+							history->add( stack[ply].ctx[hi], board, m, depth );
+
 						assert( failHistCount > 0 );
 						// this useless if is here only to silence msc static analyzer
 						if ( failHistCount > 0 )
 							failHistCount--;
 					}
 					for (MoveCount i=0; i<failHistCount; i++)
-						history->add( board, failHist[i], -depth);
+					{
+						history->add( 0, board, failHist[i], -depth);
+						for (int hi=0; hi<Zobrist::contextMoveMax; hi++)
+							history->add( stack[ply].ctx[hi], board, failHist[i], -depth);
+					}
 					tt->store( board.sig(), age, m, score, btLower, depth, ply );
 					return score;
 				}
@@ -1213,6 +1225,7 @@ Score Search::iterate( const Board &b, const SearchMode &sm, bool nosendbest )
 	mode = sm;
 
 	Killer killers(0);
+	ContextSignature rootCtxSig[Zobrist::contextMoveMax] = {0};
 
 	rootMoves.moves[0].move = mcNone;
 	rootMoves.count = 0;
@@ -1221,7 +1234,7 @@ Score Search::iterate( const Board &b, const SearchMode &sm, bool nosendbest )
 	tt->probe( b.sig(), 0, 0, scDraw, scDraw, killers.hashMove );
 
 	// init root moves
-	MoveGen mg( b, killers, rootHist );
+	MoveGen mg( b, killers, rootCtxSig, rootHist );
 	Move m;
 	rootMoves.discovered = mg.discovered();
 

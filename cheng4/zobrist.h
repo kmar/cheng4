@@ -31,12 +31,19 @@ namespace cheng4
 // singleton
 struct Zobrist
 {
+	// max context move zobrist
+	static const int contextMoveMax = 2;
+
 	static void init();
 
 	static Signature	turn;					// turn (stm) xor-hash
 	static Signature	epFile[8];				// en-passant file hash [epfile]
 	static Signature	piece[2][ptMax][64];	// [color][piece][square]
 	static Signature	cast[2][0x88+1];		// castling rights [color][rights]
+
+	// for history context, we may do with 32-bit
+	static ContextSignature	contextMoveFrom[contextMoveMax][64];	// context from: [ctx][from]
+	static ContextSignature	contextMoveTo[contextMoveMax][64];	// context to: [ctx][to]
 };
 
 }

@@ -22,6 +22,8 @@ or as public domain (where applicable)
 */
 
 #include "movegen.h"
+#include "zobrist.h"
+
 #include <algorithm>
 #include <functional>
 
@@ -139,8 +141,9 @@ static const uint phaseQCapsChecks[] = {
 MoveGen::MoveGen( const Board &b_ )
 	: mode( mmLegal )
 	, board(b_)
-	, killer(0)
-	, history(0)
+	, killer(nullptr)
+	, histCtx(nullptr)
+	, history(nullptr)
 	, genMoveCount(0)
 	, nextMove(mcNone)
 	, previous(mcNull)
@@ -150,10 +153,11 @@ MoveGen::MoveGen( const Board &b_ )
 	phPtr = board.inCheck() ? phaseEvasLegal : (board.canCastle() ? phaseNormalLegal : phaseNormalNoCastlingLegal );
 }
 
-MoveGen::MoveGen(const Board &b_, const Killer &killer_, const History &history_, uint mode_)
+MoveGen::MoveGen(const Board &b_, const Killer &killer_, const ContextSignature *histCtx_, const History &history_, uint mode_)
 	: mode(mode_)
 	, board(b_)
 	, killer(&killer_)
+	, histCtx(histCtx_)
 	, history(&history_)
 	, genMoveCount(0)
 	, nextMove(mcNone)
@@ -513,8 +517,14 @@ void MoveGen::scoreEvasions()
 				*mp += ( mvv_lva + 1 + 2*History::historyMax ) << msScore;
 			}
 			else
+			{
 				// history
-				*mp += (history->score( board, *mp ) + History::historyMax) << msScore;
+				int h = history->score(0, board, *mp);
+				for (int hi=0; hi<Zobrist::contextMoveMax; hi++)
+					h += history->score(histCtx[hi], board, *mp);
+
+				*mp += (historyClamp(h) + History::historyMax) << msScore;
+			}
 		}
 	}
 	isort( moveBuf, count );
@@ -534,7 +544,12 @@ void MoveGen::scoreQuiet()
 	{
 		assert( !(*mp & mmScore) );
 		// apply history
-		*mp += (history->score( board, *mp ) + History::historyMax) << msScore;
+
+		int h = history->score(0, board, *mp );
+		for (int hi=0; hi<Zobrist::contextMoveMax; hi++)
+			h += history->score(histCtx[hi], board, *mp);
+
+		*mp += (historyClamp(h) + History::historyMax) << msScore;
 	}
 	isort( moveBuf, count );
 }
@@ -542,7 +557,11 @@ void MoveGen::scoreQuiet()
 static Board dummyBoard;
 
 // can't copy
-MoveGen::MoveGen( const MoveGen & ) : board(dummyBoard), killer(0), history(0)
+MoveGen::MoveGen( const MoveGen & )
+	: board(dummyBoard)
+	, killer(nullptr)
+	, histCtx(nullptr)
+	, history(nullptr)
 {
 	assert( 0 && "illegal copying of MoveGen class!" );
 }

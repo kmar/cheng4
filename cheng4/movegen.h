@@ -631,6 +631,7 @@ protected:
 	uint mode;						// movegen mode
 	const Board &board;				// board ref
 	const Killer * const killer;	// killer ref (includes hashmove)
+	const ContextSignature * const histCtx;	// history ctx signature
 	const History * const history;	// history ref
 	Bitboard dcMask;				// discovered checkers
 	Bitboard pin;					// pins
@@ -656,7 +657,7 @@ protected:
 	bool alreadyGenerated( Move m );
 
 public:
-	MoveGen( const Board &b, const Killer &killer, const History &history, uint mode = mmNormal );
+	MoveGen( const Board &b, const Killer &killer, const ContextSignature *histCtx, const History &history, uint mode = mmNormal );
 	// legal only version
 	MoveGen( const Board &b );
 
@@ -682,6 +683,11 @@ public:
 	inline uint phase() const
 	{
 		return *phPtr;
+	}
+
+	static inline int historyClamp(int h)
+	{
+		return h < History::historyMin ? History::historyMin : h > History::historyMax ? History::historyMax : h;
 	}
 };
 

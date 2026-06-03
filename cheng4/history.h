@@ -32,20 +32,23 @@ struct History
 {
 	static const i16 historyMax = 2047;
 	static const i16 historyMin = -historyMax;
+	// must be a power of 2!
+	static const uint contextMax = 64;
+	static const uint contextMask = contextMax-1;
 
 	// for counter move queries
 	Move previous;
 
-	// history table [stm][piecetype][from][to]
-	i16 history[ ctMax ][ ptMax ][ 64 ][ 64 ];
-	// counter move table [stm][piecetype][from][to]
-	Move counter[ ctMax ][ ptMax ][ 64 ][ 64 ];
+	// history table [contextMax][stm][piecetype][to]
+	i16 history[contextMax][ ctMax ][ ptMax ][ 64 ];
+	// counter move table [stm][piecetype][to]
+	Move counter[ ctMax ][ ptMax ][ 64 ];
 
 	inline History() {}
 	explicit inline History( void * /*zeroInit*/ ) { clear(); }
 
 	// add move which caused cutoff/sub move which didn't
-	void add( const Board &b, Move m, i32 depth );
+	void add( ContextSignature csig, const Board &b, Move m, i32 depth );
 
 	// add counter move for previous m
 	void addCounter( const Board &b, Move m, Move cm );
@@ -61,15 +64,15 @@ struct History
 		Color c = PiecePack::color( p );
 		Piece pt = PiecePack::type(p);
 
-		return counter[c][pt][mf][MovePack::to(m)];
+		return counter[c][pt][MovePack::to(m)];
 	}
 
 	// get move ordering score
-	inline i32 score( const Board &b, Move m ) const
+	inline i32 score( ContextSignature csig, const Board &b, Move m ) const
 	{
 		Square mf = MovePack::from( m );
 		Piece p = b.piece( mf );
-		return history[ b.turn() ][ PiecePack::type(p) ][ mf ][ MovePack::to(m) ];
+		return history[csig & contextMask][ b.turn() ][ PiecePack::type(p) ][ MovePack::to(m) ];
 	}
 
 	// clear table

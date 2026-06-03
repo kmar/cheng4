@@ -117,7 +117,10 @@ struct Search
 	{
 		Move current;				// current move
 		Killer killers;				// killers
-		u32 pad[3];					// pad structure to 32 bytes
+		// history context move signatures
+		ContextSignature ctx[Zobrist::contextMoveMax];
+		// padding to round to 32 bytes
+		uint pad;
 	};
 
 	struct NetCacheStack
@@ -260,6 +263,24 @@ struct Search
 
 	// copy underlying PV
 	void copyPV( Ply ply );
+
+	inline void initHistoryCtx(Ply ply)
+	{
+		for (int hi=0; hi<Zobrist::contextMoveMax; hi++)
+		{
+			ContextSignature csig = 0;
+
+			if ((int)ply > hi)
+			{
+				const auto &stmp = stack[ply-1-hi];
+
+				csig ^= Zobrist::contextMoveFrom[hi][MovePack::from(stmp.current)];
+				csig ^= Zobrist::contextMoveTo[hi][MovePack::to(stmp.current)];
+			}
+
+			stack[ply].ctx[hi] = csig;
+		}
+	}
 
 	template<bool pv> inline uint initPly( Ply ply )
 	{

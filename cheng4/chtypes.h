@@ -181,6 +181,8 @@ typedef u8 Distance;
 typedef u64 Bitboard;
 // hash signature
 typedef u64 Signature;
+// history context signature
+typedef u32 ContextSignature;
 // material key
 typedef u64 MaterialKey;
 // material piece count

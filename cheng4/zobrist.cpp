@@ -35,6 +35,9 @@ Signature	Zobrist::epFile[8];				// en-passant file hash [epfile]
 Signature	Zobrist::piece[2][ptMax][64];	// [color][piece][square]
 Signature	Zobrist::cast[2][0x88+1];		// castling rights [color][rights]
 
+ContextSignature	Zobrist::contextMoveFrom[contextMoveMax][64];	// context from: [ctx][from]
+ContextSignature	Zobrist::contextMoveTo[contextMoveMax][64];	// context to: [ctx][to]
+
 void Zobrist::init()
 {
 	PRNG prng;
@@ -57,6 +60,16 @@ void Zobrist::init()
 	for (Color c=ctWhite; c<=ctBlack; c++)
 		for (uint i=1; i<=0x88; i++)
 			cast[c][i] = prng.next64();
+
+	// context
+	for (int i=0; i<contextMoveMax; i++)
+	{
+		for (int j=0; j<64; j++)
+		{
+			contextMoveFrom[i][j] = (ContextSignature)prng.next64();
+			contextMoveTo[i][j] = (ContextSignature)prng.next64();
+		}
+	}
 }
 
 }

@@ -43,10 +43,10 @@ void History::addCounter( const Board &b, Move m, Move cm )
 	Color c = PiecePack::color( p );
 	Piece pt = PiecePack::type(p);
 
-	counter[c][pt][mf][MovePack::to(m)] = cm;
+	counter[c][pt][MovePack::to(m)] = cm;
 }
 
-void History::add( const Board &b, Move m, i32 depth )
+void History::add(ContextSignature csig, const Board &b, Move m, i32 depth )
 {
 	assert( !MovePack::isSpecial(m) );
 
@@ -63,15 +63,14 @@ void History::add( const Board &b, Move m, i32 depth )
 	if ( depth < 0 )
 		val = -val;
 
-	i16 &h = history[ c ][ pt ][ mf ][ MovePack::to(m) ];
+	i16 &h = history[csig & contextMask][ c ][ pt ][ MovePack::to(m) ];
 	i32 nval = (i32)h + val;
 	while ( abs(nval) > historyMax )
 	{
 		nval /= 2;
 		for (p=ptPawn; p<=ptKing; p++)
 			for ( uint i=0; i<64; i++ )
-				for ( uint j=0; j<64; j++ )
-					history[c][p][i][j] /= 2;
+					history[csig & contextMask][c][p][i] /= 2;
 	}
 	h = (i16)nval;
 }
