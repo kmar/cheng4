@@ -64,7 +64,7 @@ constexpr bool profile = false;
 std::string epoch_filename(int epoch)
 {
 	char buffer[256];
-	sprintf(buffer, NET_FP_FILENAME_EPOCH, epoch+1);
+	snprintf(buffer, sizeof(buffer), NET_FP_FILENAME_EPOCH, epoch+1);
 
 	return buffer;
 }
