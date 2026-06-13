@@ -506,6 +506,10 @@ struct MaterialPack
 	}
 };
 
+static const MaterialKey matBishops =
+	(U64C(63) << MATSHIFT( ctWhite, ptBishop)) |
+	(U64C(63) << MATSHIFT( ctBlack, ptBishop));
+
 // predefined material constants
 static const MaterialKey matMask[ctMax] = {
 	(U64C(63) << MATSHIFT( ctWhite, ptPawn)) |

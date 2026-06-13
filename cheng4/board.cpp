@@ -74,6 +74,15 @@ Draw Board::isDraw() const
 	if ( !mk )
 		return drawMaterial;				// king versus king => most trivial draw
 
+	// kbkb is only insufficient material if all bishops are of the same color, no matter the bishop count
+	if (!(mk & ~matBishops))
+	{
+		// if only bishops remain...
+		Bitboard allBishops = pieces(ctWhite, ptBishop) | pieces(ctBlack, ptBishop);
+		if (!(allBishops & lightSquares) || !(allBishops & darkSquares))
+			return drawMaterial;
+	}
+
 	if ( !(mk & matMask[ ctWhite ]) )
 		// white is bare king
 		return isDrawByMaterial< ctBlack >( mk );
